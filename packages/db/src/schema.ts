@@ -18,7 +18,7 @@ export const universities = pgTable("universities", {
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ─── Programs (filières) ──────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ export const programs = pgTable("programs", {
   unique("programs_id_university_uq").on(t.id, t.universityId),
   unique("programs_university_slug_uq").on(t.universityId, t.slug),
   index("programs_university_idx").on(t.universityId),
-]);
+]).enableRLS();
 
 // ─── Levels (niveaux : L1, L2, M1…) ──────────────────────────────────────────
 
@@ -59,7 +59,7 @@ export const levels = pgTable("levels", {
   unique("levels_program_slug_uq").on(t.programId, t.slug),
   index("levels_university_idx").on(t.universityId),
   index("levels_program_idx").on(t.programId),
-]);
+]).enableRLS();
 
 // ─── Academic Years ───────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ export const academicYears = pgTable("academic_years", {
   unique("academic_years_university_label_uq").on(t.universityId, t.label),
   unique("academic_years_id_university_uq").on(t.id, t.universityId),
   index("academic_years_university_idx").on(t.universityId),
-]);
+]).enableRLS();
 
 // ─── Subjects (matières) ──────────────────────────────────────────────────────
 
@@ -108,7 +108,7 @@ export const subjects = pgTable("subjects", {
   index("subjects_university_idx").on(t.universityId),
   index("subjects_level_idx").on(t.levelId),
   index("subjects_year_idx").on(t.academicYearId),
-]);
+]).enableRLS();
 
 // ─── Resources (cours) ────────────────────────────────────────────────────────
 // file_key nullable pour les ressources de type "link"
@@ -140,7 +140,7 @@ export const resources = pgTable("resources", {
   index("resources_university_idx").on(t.universityId),
   index("resources_subject_idx").on(t.subjectId),
   index("resources_uploaded_by_idx").on(t.uploadedBy),
-]);
+]).enableRLS();
 
 // ─── Assignments (devoirs) ────────────────────────────────────────────────────
 // Statut : draft | published uniquement.
@@ -173,7 +173,7 @@ export const assignments = pgTable("assignments", {
   index("assignments_university_idx").on(t.universityId),
   index("assignments_subject_idx").on(t.subjectId),
   index("assignments_uploaded_by_idx").on(t.uploadedBy),
-]);
+]).enableRLS();
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -190,7 +190,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("users_university_idx").on(t.universityId),
-]);
+]).enableRLS();
 
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
 
@@ -211,7 +211,7 @@ export const accounts = pgTable("accounts", {
   sessionState: varchar("session_state", { length: 255 }),
 }, (t) => [
   index("accounts_user_idx").on(t.userId),
-]);
+]).enableRLS();
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -222,13 +222,13 @@ export const sessions = pgTable("sessions", {
   expires: timestamp("expires").notNull(),
 }, (t) => [
   index("sessions_user_idx").on(t.userId),
-]);
+]).enableRLS();
 
 export const verificationTokens = pgTable("verification_tokens", {
   identifier: varchar("identifier", { length: 255 }).notNull(),
   token: varchar("token", { length: 500 }).notNull().unique(),
   expires: timestamp("expires").notNull(),
-});
+}).enableRLS();
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
 
@@ -248,4 +248,4 @@ export const subscriptions = pgTable("subscriptions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("subscriptions_user_idx").on(t.userId),
-]);
+]).enableRLS();

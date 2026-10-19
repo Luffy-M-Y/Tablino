@@ -15,6 +15,13 @@
       "when": 1792417019653,
       "tag": "0001_short_luckman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792440928393,
+      "tag": "0002_outgoing_blacklash",
+      "breakpoints": true
     }
   ]
 }
