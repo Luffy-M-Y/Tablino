@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@tablino/db", "@tablino/auth"],
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,

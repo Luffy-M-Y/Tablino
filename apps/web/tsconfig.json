@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@tablino/db": ["../../packages/db/src/index.ts"],
+      "@tablino/auth": ["../../packages/auth/src/index.ts"]
     }
   },
   "include": [

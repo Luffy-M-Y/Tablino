@@ -2,7 +2,7 @@ import NextAuth, { type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
-import { users } from "../../drizzle/schema";
+import { schema } from "@tablino/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -20,7 +20,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const [user] = await db.select().from(users).where(eq(users.email, credentials.email));
+        const [user] = await db.select().from(schema.users).where(eq(schema.users.email, credentials.email));
         if (!user?.passwordHash) return null;
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!valid) return null;
