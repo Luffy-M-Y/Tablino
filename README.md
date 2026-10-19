@@ -2,8 +2,21 @@
 
 Archive numérique de devoirs universitaires — PWA mobile-first.
 
+## Architecture
+
+Monorepo pnpm + Turborepo.
+
+```
+apps/
+  web/      # Next.js — étudiants, PWA (port 3000)
+  admin/    # Next.js — dashboard admin + scanner (port 3001)
+packages/
+  db/       # Drizzle ORM — schéma PostgreSQL + client
+  auth/     # Auth.js v4 — Google OAuth + credentials
+```
+
 ## Stack
-- Next.js 15 (App Router) + TypeScript + Tailwind CSS
+- Next.js 16 (App Router) + TypeScript + Tailwind CSS
 - PostgreSQL + Drizzle ORM
 - Cloudflare R2 (stockage PDF)
 - Auth.js v4 (Google OAuth + email/password)
@@ -15,22 +28,26 @@ Archive numérique de devoirs universitaires — PWA mobile-first.
 cp .env.example .env.local
 # Remplir les variables d'environnement
 
-npm install
-npm run db:push   # Appliquer le schéma en dev
-npm run dev
+pnpm install
+pnpm db:push     # Appliquer le schéma en dev
+pnpm dev         # Lance web (3000) + admin (3001)
 ```
 
-## Scripts
+## Scripts racine
 
 | Commande | Description |
 |---|---|
-| `npm run dev` | Serveur de développement |
-| `npm run build` | Build production |
-| `npm run db:generate` | Générer les migrations Drizzle |
-| `npm run db:push` | Appliquer le schéma (dev) |
-| `npm run db:studio` | Interface Drizzle Studio |
+| `pnpm dev` | Lance toutes les apps en dev |
+| `pnpm build` | Build production (toutes les apps) |
+| `pnpm db:push` | Appliquer le schéma Drizzle |
+| `pnpm db:generate` | Générer les migrations |
+| `pnpm db:studio` | Interface Drizzle Studio |
 
 ## Rôles
 - `admin` — gère filières, matières, utilisateurs
 - `scanner` — dépose et valide les devoirs
 - `student` — consulte et télécharge
+
+## Multi-tenant
+- `apps/web` : sous-domaine par université (ex: `iscom.tablino.com`)
+- `apps/admin` : domaine unique `admin.tablino.com`, université déterminée par le compte
