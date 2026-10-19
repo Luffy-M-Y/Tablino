@@ -1,0 +1,15 @@
+$ next dev --port 3000
+▲ Next.js 16.4.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.25.1:3000
+✓ Ready in 1816ms
+✓ Running next.config.ts took 183ms
+Creating turbopack project {
+  dir: 'C:\\Users\\USER\\Desktop\\DEV.Zone\\TABLINO\\apps\\web',
+  testMode: true
+}
+- Cache Components enabled
+- Partial Prefetching enabled
+
+[?25h
+[ELIFECYCLE] Command failed with exit code 1.
