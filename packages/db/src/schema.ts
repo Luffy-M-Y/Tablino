@@ -1,10 +1,17 @@
 import {
   pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean,
+  unique, index, foreignKey,
 } from "drizzle-orm/pg-core";
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 export const roleEnum = pgEnum("role", ["admin", "scanner", "student"]);
-export const docStatusEnum = pgEnum("doc_status", ["pending", "published", "rejected"]);
-export const docTypeEnum = pgEnum("doc_type", ["exam", "homework", "quiz", "other"]);
+export const statusEnum = pgEnum("status", ["draft", "published"]);
+export const resourceFormatEnum = pgEnum("resource_format", [
+  "pdf", "video", "audio", "docx", "pptx", "link", "other",
+]);
+
+// ─── Universities ─────────────────────────────────────────────────────────────
 
 export const universities = pgTable("universities", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -13,37 +20,160 @@ export const universities = pgTable("universities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const departments = pgTable("departments", {
+// ─── Programs (filières) ──────────────────────────────────────────────────────
+
+export const programs = pgTable("programs", {
   id: uuid("id").primaryKey().defaultRandom(),
-  universityId: uuid("university_id").references(() => universities.id, { onDelete: "cascade" }).notNull(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  unique("programs_id_university_uq").on(t.id, t.universityId),
+  unique("programs_university_slug_uq").on(t.universityId, t.slug),
+  index("programs_university_idx").on(t.universityId),
+]);
+
+// ─── Levels (niveaux : L1, L2, M1…) ──────────────────────────────────────────
+
+export const levels = pgTable("levels", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  programId: uuid("program_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  // FK composite : garantit que program appartient à la même université
+  foreignKey({
+    name: "levels_program_university_fk",
+    columns: [t.programId, t.universityId],
+    foreignColumns: [programs.id, programs.universityId],
+  }).onDelete("cascade"),
+  unique("levels_id_university_uq").on(t.id, t.universityId),
+  index("levels_university_idx").on(t.universityId),
+  index("levels_program_idx").on(t.programId),
+]);
+
+// ─── Academic Years ───────────────────────────────────────────────────────────
+
+export const academicYears = pgTable("academic_years", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  label: varchar("label", { length: 20 }).notNull(),
+  startsAt: timestamp("starts_at"),
+  endsAt: timestamp("ends_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique("academic_years_university_label_uq").on(t.universityId, t.label),
+  unique("academic_years_id_university_uq").on(t.id, t.universityId),
+  index("academic_years_university_idx").on(t.universityId),
+]);
+
+// ─── Subjects (matières) ──────────────────────────────────────────────────────
 
 export const subjects = pgTable("subjects", {
   id: uuid("id").primaryKey().defaultRandom(),
-  departmentId: uuid("department_id").references(() => departments.id, { onDelete: "cascade" }).notNull(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  levelId: uuid("level_id").notNull(),
+  academicYearId: uuid("academic_year_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  // FK composite : garantit que level appartient à la même université
+  foreignKey({
+    name: "subjects_level_university_fk",
+    columns: [t.levelId, t.universityId],
+    foreignColumns: [levels.id, levels.universityId],
+  }).onDelete("cascade"),
+  // FK composite : garantit que academic_year appartient à la même université
+  foreignKey({
+    name: "subjects_year_university_fk",
+    columns: [t.academicYearId, t.universityId],
+    foreignColumns: [academicYears.id, academicYears.universityId],
+  }).onDelete("cascade"),
+  unique("subjects_id_university_uq").on(t.id, t.universityId),
+  unique("subjects_level_year_slug_uq").on(t.levelId, t.academicYearId, t.slug),
+  index("subjects_university_idx").on(t.universityId),
+  index("subjects_level_idx").on(t.levelId),
+  index("subjects_year_idx").on(t.academicYearId),
+]);
 
-export const documents = pgTable("documents", {
+// ─── Resources (cours) ────────────────────────────────────────────────────────
+// file_key nullable pour les ressources de type "link"
+
+export const resources = pgTable("resources", {
   id: uuid("id").primaryKey().defaultRandom(),
-  subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "cascade" }).notNull(),
-  uploadedBy: uuid("uploaded_by").references(() => users.id).notNull(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  subjectId: uuid("subject_id").notNull(),
+  uploadedBy: uuid("uploaded_by")
+    .references(() => users.id)
+    .notNull(),
   title: varchar("title", { length: 255 }).notNull(),
-  year: integer("year").notNull(),
-  type: docTypeEnum("type").notNull(),
-  fileKey: varchar("file_key", { length: 500 }).notNull(), // R2 object key
+  format: resourceFormatEnum("format").notNull(),
+  fileKey: varchar("file_key", { length: 500 }),
+  externalUrl: varchar("external_url", { length: 2048 }),
   fileSizeBytes: integer("file_size_bytes"),
-  status: docStatusEnum("status").default("pending").notNull(),
-  ocrText: text("ocr_text"),
-  searchVector: text("search_vector"), // tsvector stocké en text, mis à jour par trigger
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  status: statusEnum("status").default("draft").notNull(),
   publishedAt: timestamp("published_at"),
-});
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  // FK composite : garantit que subject appartient à la même université
+  foreignKey({
+    name: "resources_subject_university_fk",
+    columns: [t.subjectId, t.universityId],
+    foreignColumns: [subjects.id, subjects.universityId],
+  }).onDelete("cascade"),
+  index("resources_university_idx").on(t.universityId),
+  index("resources_subject_idx").on(t.subjectId),
+  index("resources_uploaded_by_idx").on(t.uploadedBy),
+]);
+
+// ─── Assignments (devoirs) ────────────────────────────────────────────────────
+// Statut : draft | published uniquement.
+// "disponible / à rendre / expiré" se calcule depuis due_date côté applicatif.
+
+export const assignments = pgTable("assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  subjectId: uuid("subject_id").notNull(),
+  uploadedBy: uuid("uploaded_by")
+    .references(() => users.id)
+    .notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  instructions: text("instructions"),
+  fileKey: varchar("file_key", { length: 500 }),
+  fileSizeBytes: integer("file_size_bytes"),
+  status: statusEnum("status").default("draft").notNull(),
+  dueDate: timestamp("due_date"),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  // FK composite : garantit que subject appartient à la même université
+  foreignKey({
+    name: "assignments_subject_university_fk",
+    columns: [t.subjectId, t.universityId],
+    foreignColumns: [subjects.id, subjects.universityId],
+  }).onDelete("cascade"),
+  index("assignments_university_idx").on(t.universityId),
+  index("assignments_subject_idx").on(t.subjectId),
+  index("assignments_uploaded_by_idx").on(t.uploadedBy),
+]);
+
+// ─── Users ────────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -56,12 +186,17 @@ export const users = pgTable("users", {
   role: roleEnum("role").default("student").notNull(),
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("users_university_idx").on(t.universityId),
+]);
 
-// Tables requises par next-auth DrizzleAdapter
+// ─── Auth.js tables ───────────────────────────────────────────────────────────
+
 export const accounts = pgTable("accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   type: varchar("type", { length: 255 }).notNull(),
   provider: varchar("provider", { length: 255 }).notNull(),
   providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
@@ -72,14 +207,20 @@ export const accounts = pgTable("accounts", {
   scope: varchar("scope", { length: 255 }),
   idToken: text("id_token"),
   sessionState: varchar("session_state", { length: 255 }),
-});
+}, (t) => [
+  index("accounts_user_idx").on(t.userId),
+]);
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
   sessionToken: varchar("session_token", { length: 500 }).notNull().unique(),
   expires: timestamp("expires").notNull(),
-});
+}, (t) => [
+  index("sessions_user_idx").on(t.userId),
+]);
 
 export const verificationTokens = pgTable("verification_tokens", {
   identifier: varchar("identifier", { length: 255 }).notNull(),
@@ -87,16 +228,22 @@ export const verificationTokens = pgTable("verification_tokens", {
   expires: timestamp("expires").notNull(),
 });
 
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  provider: varchar("provider", { length: 50 }).notNull(), // cinetpay | paydunya | ligdicash
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  provider: varchar("provider", { length: 50 }).notNull(),
   transactionId: varchar("transaction_id", { length: 255 }).notNull().unique(),
   amount: integer("amount").notNull(),
   currency: varchar("currency", { length: 10 }).default("XOF").notNull(),
-  status: varchar("status", { length: 50 }).notNull(), // pending | success | failed
+  status: varchar("status", { length: 50 }).notNull(),
   periodStart: timestamp("period_start"),
   periodEnd: timestamp("period_end"),
   webhookVerified: boolean("webhook_verified").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("subscriptions_user_idx").on(t.userId),
+]);
