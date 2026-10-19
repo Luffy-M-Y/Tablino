@@ -1,12 +1,15 @@
 import {
-  pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean, unique, index,
+  pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean,
+  unique, index, foreignKey,
 } from "drizzle-orm/pg-core";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export const roleEnum = pgEnum("role", ["admin", "scanner", "student"]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
-export const resourceFormatEnum = pgEnum("resource_format", ["pdf", "video", "audio", "other"]);
+export const resourceFormatEnum = pgEnum("resource_format", [
+  "pdf", "video", "audio", "docx", "pptx", "link", "other",
+]);
 
 // ─── Universities ─────────────────────────────────────────────────────────────
 
@@ -28,8 +31,8 @@ export const programs = pgTable("programs", {
   slug: varchar("slug", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  // Clé composite exposée pour les FK composites des tables enfants
   unique("programs_id_university_uq").on(t.id, t.universityId),
+  unique("programs_university_slug_uq").on(t.universityId, t.slug),
   index("programs_university_idx").on(t.universityId),
 ]);
 
@@ -40,13 +43,17 @@ export const levels = pgTable("levels", {
   universityId: uuid("university_id")
     .references(() => universities.id, { onDelete: "cascade" })
     .notNull(),
-  programId: uuid("program_id")
-    .references(() => programs.id, { onDelete: "cascade" })
-    .notNull(),
+  programId: uuid("program_id").notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   order: integer("order").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
+  // FK composite : garantit que program appartient à la même université
+  foreignKey({
+    name: "levels_program_university_fk",
+    columns: [t.programId, t.universityId],
+    foreignColumns: [programs.id, programs.universityId],
+  }).onDelete("cascade"),
   unique("levels_id_university_uq").on(t.id, t.universityId),
   index("levels_university_idx").on(t.universityId),
   index("levels_program_idx").on(t.programId),
@@ -59,7 +66,7 @@ export const academicYears = pgTable("academic_years", {
   universityId: uuid("university_id")
     .references(() => universities.id, { onDelete: "cascade" })
     .notNull(),
-  label: varchar("label", { length: 20 }).notNull(), // ex: "2023-2024"
+  label: varchar("label", { length: 20 }).notNull(),
   startsAt: timestamp("starts_at"),
   endsAt: timestamp("ends_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -70,9 +77,6 @@ export const academicYears = pgTable("academic_years", {
 ]);
 
 // ─── Subjects (matières) ──────────────────────────────────────────────────────
-// Cohérence multi-tenant : level_id + university_id référencent
-// levels(id, university_id) — garantit qu'une matière ne peut pas
-// pointer vers un niveau d'une autre université.
 
 export const subjects = pgTable("subjects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -86,24 +90,26 @@ export const subjects = pgTable("subjects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   // FK composite : garantit que level appartient à la même université
-  {
+  foreignKey({
     name: "subjects_level_university_fk",
     columns: [t.levelId, t.universityId],
     foreignColumns: [levels.id, levels.universityId],
-  },
+  }).onDelete("cascade"),
   // FK composite : garantit que academic_year appartient à la même université
-  {
+  foreignKey({
     name: "subjects_year_university_fk",
     columns: [t.academicYearId, t.universityId],
     foreignColumns: [academicYears.id, academicYears.universityId],
-  },
+  }).onDelete("cascade"),
   unique("subjects_id_university_uq").on(t.id, t.universityId),
+  unique("subjects_level_year_slug_uq").on(t.levelId, t.academicYearId, t.slug),
   index("subjects_university_idx").on(t.universityId),
   index("subjects_level_idx").on(t.levelId),
   index("subjects_year_idx").on(t.academicYearId),
 ]);
 
 // ─── Resources (cours) ────────────────────────────────────────────────────────
+// file_key nullable pour les ressources de type "link"
 
 export const resources = pgTable("resources", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -116,18 +122,19 @@ export const resources = pgTable("resources", {
     .notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   format: resourceFormatEnum("format").notNull(),
-  fileKey: varchar("file_key", { length: 500 }).notNull(),
+  fileKey: varchar("file_key", { length: 500 }),
+  externalUrl: varchar("external_url", { length: 2048 }),
   fileSizeBytes: integer("file_size_bytes"),
   status: statusEnum("status").default("draft").notNull(),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   // FK composite : garantit que subject appartient à la même université
-  {
+  foreignKey({
     name: "resources_subject_university_fk",
     columns: [t.subjectId, t.universityId],
     foreignColumns: [subjects.id, subjects.universityId],
-  },
+  }).onDelete("cascade"),
   index("resources_university_idx").on(t.universityId),
   index("resources_subject_idx").on(t.subjectId),
   index("resources_uploaded_by_idx").on(t.uploadedBy),
@@ -156,11 +163,11 @@ export const assignments = pgTable("assignments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   // FK composite : garantit que subject appartient à la même université
-  {
+  foreignKey({
     name: "assignments_subject_university_fk",
     columns: [t.subjectId, t.universityId],
     foreignColumns: [subjects.id, subjects.universityId],
-  },
+  }).onDelete("cascade"),
   index("assignments_university_idx").on(t.universityId),
   index("assignments_subject_idx").on(t.subjectId),
   index("assignments_uploaded_by_idx").on(t.uploadedBy),
