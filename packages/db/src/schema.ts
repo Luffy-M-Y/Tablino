@@ -45,6 +45,7 @@ export const levels = pgTable("levels", {
     .notNull(),
   programId: uuid("program_id").notNull(),
   name: varchar("name", { length: 100 }).notNull(),
+  slug: varchar("slug", { length: 100 }).notNull(),
   order: integer("order").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
@@ -55,6 +56,7 @@ export const levels = pgTable("levels", {
     foreignColumns: [programs.id, programs.universityId],
   }).onDelete("cascade"),
   unique("levels_id_university_uq").on(t.id, t.universityId),
+  unique("levels_program_slug_uq").on(t.programId, t.slug),
   index("levels_university_idx").on(t.universityId),
   index("levels_program_idx").on(t.programId),
 ]);
