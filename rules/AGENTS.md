@@ -55,6 +55,8 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Compteurs (« 5 niveaux • 12 matières ») : calculés par requête, jamais en dur.
 - États obligatoires : chargement, vide, erreur, introuvable (`notFound()` pour slug inconnu).
 - Bouton télécharger : désactivé avec message clair si `file_key` est nul. Aucun bouton décoratif.
+- Téléchargement (futur, `feat/admin-upload`) : route `/api/download/[id]` — jamais de clé de fichier dans l'URL. Le serveur vérifie `university_id`, `status = published` et les droits d'abonnement, puis génère un lien signé à durée courte (Cloudflare R2 presigned URL). Tant que R2 n'est pas configuré, le bouton affiche « Bientôt disponible » (désactivé).
+- Bouton Ouvrir (externalUrl) : URL validée côté serveur (`/^https?:\/\//`), `target="_blank"`, `rel="noopener noreferrer"`.
 - Accessibilité : focus visible, navigation clavier, contrastes, libellés explicites. Responsive mobile-first.
 - Identité visuelle : bleu universitaire, fond clair, cartes à coins arrondis, ombres discrètes, animations légères.
 - Navigation par routes : `/cours/[programSlug]/[levelSlug]/[year]/[subjectSlug]`, idem `/devoirs/...`. Année dans l'URL = libellé (ex. 2026-2027).
@@ -79,6 +81,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 
 ## État d'avancement (à mettre à jour après chaque branche)
 - Fait : monorepo, schéma hiérarchique, migrations 0000 et 0001, seed idempotent (UUID fixes), test d'isolation 8/8 — tous commités sur `feat/db-levels-slug`.
-- En cours : RLS (migration 0002), puis push + PR de `feat/db-levels-slug` vers `develop`.
-- Ensuite : `feat/web-navigation`.
+- Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
+- Fait : `feat/web-navigation` — layout global, accueil, pages filières/niveaux/années/matières/ressources/devoirs (navigation complète Filière→Niveau→Année→Matière→Ressources|Devoirs), fil d'Ariane, stepper 5 étapes, bouton téléchargement désactivé (« Bientôt disponible », R2 non configuré), bouton Ouvrir pour externalUrl (https uniquement), statut devoir calculé depuis due_date. Build vert sans DATABASE_URL. Push + PR vers `develop` en attente de fusion.
+- Ensuite : fusion PR `feat/web-navigation` → `develop`, puis `feat/auth-roles`.
 - En attente : domaine `tablino.com`, compte Cloudflare R2, accord de l'ISCOM pour le pilote, rotation des mots de passe Supabase.
