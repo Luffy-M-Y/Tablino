@@ -21,7 +21,7 @@ export function ProgramCard({ name, slug, levelCount, subjectCount, basePath }: 
     >
       <div className="flex items-center gap-4">
         <div className={`flex items-center justify-center w-12 h-12 rounded-xl text-lg font-bold shrink-0 ${iconBg}`}>
-          {name.charAt(0).toUpperCase()}
+          {(name.replace(/^\[.*?\]\s*/, "") || name).charAt(0).toUpperCase()}
         </div>
         <div>
           <p className="font-semibold text-slate-800">{name}</p>

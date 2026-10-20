@@ -33,30 +33,36 @@ export async function getHomeCounts(universityId: string) {
 // ─── Filières ─────────────────────────────────────────────────────────────────
 
 export async function getPrograms(universityId: string) {
-  const rows = await db
-    .select({
-      id: schema.programs.id,
-      name: schema.programs.name,
-      slug: schema.programs.slug,
-      levelCount: sql<number>`(
-        select count(*) from levels
-        where levels.program_id = ${schema.programs.id}
-          and levels.university_id = ${schema.programs.universityId}
-      )`.mapWith(Number),
-      subjectCount: sql<number>`(
-        select count(distinct subjects.slug) from subjects
-        where subjects.university_id = ${schema.programs.universityId}
-          and subjects.level_id in (
-            select id from levels
-            where levels.program_id = ${schema.programs.id}
-              and levels.university_id = ${schema.programs.universityId}
-          )
-      )`.mapWith(Number),
-    })
-    .from(schema.programs)
-    .where(eq(schema.programs.universityId, universityId))
-    .orderBy(schema.programs.name);
-  return rows;
+  const [programs, levelCounts, subjectCounts] = await Promise.all([
+    db
+      .select({ id: schema.programs.id, name: schema.programs.name, slug: schema.programs.slug })
+      .from(schema.programs)
+      .where(eq(schema.programs.universityId, universityId))
+      .orderBy(schema.programs.name),
+    db
+      .select({ programId: schema.levels.programId, total: count() })
+      .from(schema.levels)
+      .where(eq(schema.levels.universityId, universityId))
+      .groupBy(schema.levels.programId),
+    db
+      .select({ programId: schema.levels.programId, total: sql<number>`count(distinct ${schema.subjects.slug})`.mapWith(Number) })
+      .from(schema.subjects)
+      .innerJoin(schema.levels, and(
+        eq(schema.subjects.levelId, schema.levels.id),
+        eq(schema.subjects.universityId, schema.levels.universityId),
+      ))
+      .where(eq(schema.subjects.universityId, universityId))
+      .groupBy(schema.levels.programId),
+  ]);
+
+  const lvlMap = new Map(levelCounts.map((r) => [r.programId, r.total]));
+  const subMap = new Map(subjectCounts.map((r) => [r.programId, r.total]));
+
+  return programs.map((p) => ({
+    ...p,
+    levelCount: lvlMap.get(p.id) ?? 0,
+    subjectCount: subMap.get(p.id) ?? 0,
+  }));
 }
 
 // ─── Niveaux ──────────────────────────────────────────────────────────────────
