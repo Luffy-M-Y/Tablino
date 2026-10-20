@@ -38,14 +38,14 @@ ALTER TABLE "levels" ADD CONSTRAINT "levels_year_number_min" CHECK ("levels"."ye
 INSERT INTO "cycles" ("university_id", "name", "short_code", "years_count", "order")
 SELECT DISTINCT "university_id", 'Licence', 'L', GREATEST(3, MAX("order") OVER (PARTITION BY "university_id")), 1
 FROM "levels"
-ON CONFLICT ("university_id", "short_code") DO NOTHING;
+ON CONFLICT ("university_id", "short_code") DO NOTHING;--> statement-breakpoint
 
 -- Associer chaque programme à son cycle
 INSERT INTO "program_cycles" ("program_id", "university_id", "cycle_id")
 SELECT DISTINCT l."program_id", l."university_id", c."id"
 FROM "levels" l
 JOIN "cycles" c ON c."university_id" = l."university_id" AND c."short_code" = 'L'
-ON CONFLICT DO NOTHING;
+ON CONFLICT DO NOTHING;--> statement-breakpoint
 
 -- Remplir cycle_id et year_number depuis order
 UPDATE "levels" l
@@ -53,8 +53,8 @@ SET
   "cycle_id"    = c."id",
   "year_number" = l."order"
 FROM "cycles" c
-WHERE c."university_id" = l."university_id" AND c."short_code" = 'L';
+WHERE c."university_id" = l."university_id" AND c."short_code" = 'L';--> statement-breakpoint
 
 -- Passer les colonnes NOT NULL
-ALTER TABLE "levels" ALTER COLUMN "cycle_id" SET NOT NULL;
+ALTER TABLE "levels" ALTER COLUMN "cycle_id" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "levels" ALTER COLUMN "year_number" SET NOT NULL;
