@@ -1,7 +1,7 @@
 export const instant = false;
 
 import { notFound } from "next/navigation";
-import { BookOpen, Download, ExternalLink, FileX } from "lucide-react";
+import { BookOpen, ExternalLink, FileX, Clock } from "lucide-react";
 import { getCurrentUniversityId } from "@/lib/university";
 import {
   getProgramBySlug,
@@ -91,10 +91,8 @@ export default async function CoursRessourcesPage({
       ) : (
         <div className="flex flex-col gap-3">
           {resources.map((r) => {
-            const hasFile = !!r.fileKey;
-            const hasLink = !!r.externalUrl;
-            const canDownload = hasFile || hasLink;
             const title = r.title.replace(/^\[.*?\]\s*/, "") || r.title;
+            const safeUrl = r.externalUrl && /^https?:\/\//i.test(r.externalUrl) ? r.externalUrl : null;
 
             return (
               <div
@@ -109,36 +107,26 @@ export default async function CoursRessourcesPage({
                   </p>
                 </div>
 
-                {canDownload ? (
-                  hasLink ? (
-                    <a
-                      href={r.externalUrl!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Ouvrir ${title}`}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-uni-600 text-white text-sm font-medium hover:bg-uni-700 transition-colors shrink-0"
-                    >
-                      <ExternalLink size={15} aria-hidden="true" />
-                      Ouvrir
-                    </a>
-                  ) : (
-                    <a
-                      href={`/api/download?key=${encodeURIComponent(r.fileKey!)}`}
-                      aria-label={`Télécharger ${title}`}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-uni-600 text-white text-sm font-medium hover:bg-uni-700 transition-colors shrink-0"
-                    >
-                      <Download size={15} aria-hidden="true" />
-                      Télécharger
-                    </a>
-                  )
+                {safeUrl ? (
+                  <a
+                    href={safeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Ouvrir ${title}`}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-uni-600 text-white text-sm font-medium hover:bg-uni-700 transition-colors shrink-0"
+                  >
+                    <ExternalLink size={15} aria-hidden="true" />
+                    Ouvrir
+                  </a>
                 ) : (
                   <div
-                    aria-label="Fichier non disponible"
+                    aria-disabled="true"
+                    aria-label="Téléchargement bientôt disponible"
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium cursor-not-allowed shrink-0"
-                    title="Ce fichier n'est pas encore disponible"
+                    title="Le téléchargement sera disponible prochainement"
                   >
-                    <FileX size={15} aria-hidden="true" />
-                    Indisponible
+                    <Clock size={15} aria-hidden="true" />
+                    Bientôt disponible
                   </div>
                 )}
               </div>
