@@ -44,7 +44,7 @@ export async function getPrograms(universityId: string) {
           and levels.university_id = ${schema.programs.universityId}
       )`.mapWith(Number),
       subjectCount: sql<number>`(
-        select count(*) from subjects
+        select count(distinct subjects.slug) from subjects
         where subjects.university_id = ${schema.programs.universityId}
           and subjects.level_id in (
             select id from levels
