@@ -79,6 +79,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 
 ## État d'avancement (à mettre à jour après chaque branche)
 - Fait : monorepo, schéma hiérarchique, migrations 0000 et 0001, seed idempotent (UUID fixes), test d'isolation 8/8 — tous commités sur `feat/db-levels-slug`.
-- En cours : RLS (migration 0002), puis push + PR de `feat/db-levels-slug` vers `develop`.
-- Ensuite : `feat/web-navigation`.
+- Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
+- Fait : `feat/web-navigation` — layout global, accueil, pages filières/niveaux/années/matières/ressources/devoirs (navigation complète Filière→Niveau→Année→Matière→Ressources|Devoirs), fil d'Ariane, stepper 5 étapes, bouton téléchargement (désactivé si file_key null), statut devoir calculé depuis due_date. Build vert sans DATABASE_URL. Push + PR vers `develop` en attente de fusion.
+- Ensuite : fusion PR `feat/web-navigation` → `develop`, puis `feat/auth-roles`.
 - En attente : domaine `tablino.com`, compte Cloudflare R2, accord de l'ISCOM pour le pilote, rotation des mots de passe Supabase.
