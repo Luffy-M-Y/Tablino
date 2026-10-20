@@ -22,6 +22,13 @@
       "when": 1792440928393,
       "tag": "0002_outgoing_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792532390690,
+      "tag": "0003_colorful_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,8 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Statut stocké : `draft` ou `published`. Le statut « disponible / à rendre / expiré » d'un devoir se calcule depuis l'échéance, jamais stocké.
 - Année académique : globale à l'université, liée via `subjects.academic_year_id`.
 - Migrations : uniquement `pnpm db:generate` puis `pnpm db:migrate`. Jamais `db:push`, jamais de SQL exécuté directement ni depuis le tableau de bord Supabase. Le suivi Drizzle doit rester cohérent avec la base.
-- Seed : idempotent (UUID fixes), données marquées « DÉMO », rien de réel.
+- Seed : idempotent (UUID fixes), données marquées « DÉMO », rien de réel. Pour les cycles (id généré par la migration), upsert sur `(university_id, short_code)`, relire l'id pour les enfants.
+- `levels.order` : conservé NOT NULL dans la migration 0003. Sera supprimé dans une migration ultérieure (`feat/admin-structure`). Le seed et tout script d'insertion doivent le renseigner.
 
 ## Règles de travail (obligatoires)
 1. Avant chaque grande modification : nouvelle branche depuis `develop`.
@@ -82,6 +83,12 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 ## État d'avancement (à mettre à jour après chaque branche)
 - Fait : monorepo, schéma hiérarchique, migrations 0000 et 0001, seed idempotent (UUID fixes), test d'isolation 8/8 — tous commités sur `feat/db-levels-slug`.
 - Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
-- Fait : `feat/web-navigation` — layout global, accueil, pages filières/niveaux/années/matières/ressources/devoirs (navigation complète Filière→Niveau→Année→Matière→Ressources|Devoirs), fil d'Ariane, stepper 5 étapes, bouton téléchargement désactivé (« Bientôt disponible », R2 non configuré), bouton Ouvrir pour externalUrl (https uniquement), statut devoir calculé depuis due_date. Build vert sans DATABASE_URL. Push + PR vers `develop` en attente de fusion.
+- Fait : `feat/web-navigation` — layout global, accueil, pages filières/niveaux/années/matières/ressources/devoirs (navigation complète Filière→Niveau→Année→Matière→Ressources|Devoirs), fil d'Ariane, stepper 5 étapes, bouton téléchargement désactivé (« Bientôt disponible », R2 non configuré), bouton Ouvrir pour externalUrl (https uniquement), statut devoir calculé depuis due_date. Build vert sans DATABASE_URL. Push + PR vers `develop` — fusionné.
+- En cours : `feat/db-cycles` — ajout de la hiérarchie Cycle entre Filière et Niveau.
+  - `schema.ts` mis à jour : tables `cycles`, `program_cycles`, enrichissement `levels` (cycle_id, year_number).
+  - Migration `0003_colorful_franklin_richards.sql` générée et corrigée manuellement (colonnes nullable → remplissage → SET NOT NULL). Non appliquée.
+  - Alignement schema/migration vérifié (second db:generate → « No schema changes »).
+  - Scripts de test : `packages/db/scripts/test-cycles-integrity.sql` (6 cas, transactions annulées).
+  - En attente : base jetable fournie par M-Y, puis `pnpm db:migrate`.
 - Ensuite : fusion PR `feat/web-navigation` → `develop`, puis `feat/auth-roles`.
 - En attente : domaine `tablino.com`, compte Cloudflare R2, accord de l'ISCOM pour le pilote, rotation des mots de passe Supabase.
