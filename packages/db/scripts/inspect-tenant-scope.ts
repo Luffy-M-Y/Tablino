@@ -1,4 +1,4 @@
-import { count, inArray, or, sql, type SQL } from "drizzle-orm";
+import { asc, count, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import * as schema from "../src/schema";
 import { openGuardedDatabase } from "./_database-guard";
 
@@ -20,10 +20,56 @@ type Counts = {
   levels: number;
 };
 type MigrationRow = { hash: unknown; created_at: unknown };
+type UniversitySummary = { id: string; slug: string; programs: number; cycles: number };
+type AuthCounts = { users: number; accounts: number; sessions: number };
 
 async function countQuery(query: Promise<{ count: number }[]>): Promise<number> {
   const [row] = await query;
   return Number(row?.count ?? 0);
+}
+
+async function readUniversitySummaries(
+  tx: Parameters<Parameters<DbContext["db"]["transaction"]>[0]>[0],
+): Promise<UniversitySummary[]> {
+  const universities = await tx.select({
+    id: schema.universities.id,
+    slug: schema.universities.slug,
+  }).from(schema.universities).orderBy(asc(schema.universities.slug));
+  const summaries: UniversitySummary[] = [];
+
+  for (const university of universities) {
+    const programs = await countQuery(tx.select({ count: count() }).from(schema.programs)
+      .where(eq(schema.programs.universityId, university.id)));
+    const cycles = await countQuery(tx.select({ count: count() }).from(schema.cycles)
+      .where(eq(schema.cycles.universityId, university.id)));
+    summaries.push({ ...university, programs, cycles });
+  }
+  return summaries;
+}
+
+async function readAuthCounts(
+  tx: Parameters<Parameters<DbContext["db"]["transaction"]>[0]>[0],
+): Promise<AuthCounts> {
+  return {
+    users: await countQuery(tx.select({ count: count() }).from(schema.users)),
+    accounts: await countQuery(tx.select({ count: count() }).from(schema.accounts)),
+    sessions: await countQuery(tx.select({ count: count() }).from(schema.sessions)),
+  };
+}
+
+async function checkProcessUniversityId(
+  tx: Parameters<Parameters<DbContext["db"]["transaction"]>[0]>[0],
+): Promise<boolean | null> {
+  const universityId = process.env.UNIVERSITY_ID;
+  if (universityId === undefined) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(universityId)) {
+    return false;
+  }
+  const [university] = await tx.select({ id: schema.universities.id })
+    .from(schema.universities)
+    .where(eq(schema.universities.id, universityId))
+    .limit(1);
+  return Boolean(university);
 }
 
 function relationFilter(
@@ -104,6 +150,10 @@ async function inspect(db: DbContext["db"]) {
     const readOnlyState = await tx.execute(sql`SELECT current_setting('transaction_read_only') AS value`);
     if (readOnlyState.rows[0]?.value !== "on") throw new Error("READ_ONLY_REQUIRED");
 
+    const universities = await readUniversitySummaries(tx);
+    const authCounts = await readAuthCounts(tx);
+    const processUniversityIdExists = await checkProcessUniversityId(tx);
+
     const validMarker = (column: typeof schema.universities.slug | typeof schema.programs.slug | typeof schema.cycles.name) =>
       sql`${column} ~ ${SQL_MARKER_PATTERN}`;
     const validParents = await readParentIds(tx, validMarker);
@@ -116,7 +166,14 @@ async function inspect(db: DbContext["db"]) {
 
     const migrationTable = await tx.execute(sql`SELECT to_regclass('drizzle.__drizzle_migrations')::text AS table_name`);
     if (!migrationTable.rows[0]?.table_name) {
-      return { validCounts, fakeCounts, migrations: null as MigrationRow[] | null };
+      return {
+        validCounts,
+        fakeCounts,
+        migrations: null as MigrationRow[] | null,
+        universities,
+        authCounts,
+        processUniversityIdExists,
+      };
     }
 
     const migrationResult = await tx.execute(sql`SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at`);
@@ -124,6 +181,9 @@ async function inspect(db: DbContext["db"]) {
       validCounts,
       fakeCounts,
       migrations: migrationResult.rows as MigrationRow[],
+      universities,
+      authCounts,
+      processUniversityIdExists,
     };
   });
 }
@@ -147,6 +207,18 @@ async function main(): Promise<void> {
     dbContext = openGuardedDatabase();
     stage = "lecture";
     const result = await inspect(dbContext.db);
+    process.stdout.write(`UNIVERSITIES=${result.universities.length}\n`);
+    for (const university of result.universities) {
+      process.stdout.write(
+        `UNIVERSITY id=${university.id} slug=${university.slug} programs=${university.programs} cycles=${university.cycles}\n`,
+      );
+    }
+    process.stdout.write(
+      `AUTH_COUNTS users=${result.authCounts.users} accounts=${result.authCounts.accounts} sessions=${result.authCounts.sessions}\n`,
+    );
+    process.stdout.write(
+      `UNIVERSITY_ID_IN_XBLAPZ=${result.processUniversityIdExists === null ? "INCONNU" : result.processUniversityIdExists}\n`,
+    );
     process.stdout.write(`ZZ ${format(result.validCounts)} total=${total(result.validCounts)}\n`);
     process.stdout.write(`FAUX_MARQUEURS ${format(result.fakeCounts)} total=${total(result.fakeCounts)}\n`);
     if (result.migrations === null) {
