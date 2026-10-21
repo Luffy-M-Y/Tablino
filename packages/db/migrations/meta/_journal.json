@@ -36,6 +36,13 @@
       "when": 1792545193987,
       "tag": "0004_peaceful_marten_broadcloak",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792548824705,
+      "tag": "0005_fair_zzzax",
+      "breakpoints": true
     }
   ]
 }

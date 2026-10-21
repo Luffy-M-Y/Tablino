@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean,
-  unique, index, foreignKey, check, primaryKey,
+  unique, uniqueIndex, index, foreignKey, check, primaryKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -247,7 +247,7 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   universityId: uuid("university_id").references(() => universities.id),
   name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull(),
   emailVerified: timestamp("email_verified"),
   image: varchar("image", { length: 500 }),
   passwordHash: varchar("password_hash", { length: 255 }),
@@ -256,6 +256,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("users_university_idx").on(t.universityId),
+  uniqueIndex("users_email_lower_unique").on(sql`lower(${t.email})`),
   check(
     "users_role_university_scope_check",
     sql`(${t.role} = 'super_admin' AND ${t.universityId} IS NULL) OR (${t.role} <> 'super_admin' AND ${t.universityId} IS NOT NULL)`,
