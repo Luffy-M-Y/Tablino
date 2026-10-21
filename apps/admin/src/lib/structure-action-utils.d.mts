@@ -27,3 +27,8 @@ export function readStringField(formData: Pick<FormData, "get">, name: string): 
 export function readIntegerField(formData: Pick<FormData, "get">, name: string): number | null;
 export function isUuid(value: unknown): value is string;
 export function messageForReason(reason: string): string;
+export function createStructureMutationLog(
+  action: string,
+  result: string,
+  reason: string,
+): { action: string; result: string; reason: string };

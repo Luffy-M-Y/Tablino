@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createStructureMutationLog,
   isUuid,
   messageForReason,
   readIntegerField,
@@ -39,4 +40,26 @@ test("translates expected mutation reasons without exposing raw errors", () => {
   assert.equal(messageForReason("blocking_levels"), "Des niveaux dépassent la nouvelle durée du cycle.");
   assert.equal(messageForReason("invalid_short_code"), "Le code doit contenir de 1 à 10 lettres.");
   assert.equal(messageForReason("unknown-error"), "La modification n'a pas pu être effectuée.");
+});
+
+test("mutation journal contains only allowlisted action, result, and generic reason", () => {
+  const privateValue = "sensitive-id-form-error-message";
+  const entry = createStructureMutationLog(
+    `program_status-${privateValue}`,
+    `rejected-${privateValue}`,
+    privateValue,
+  );
+
+  assert.deepEqual(Object.keys(entry), ["action", "result", "reason"]);
+  assert.deepEqual(entry, {
+    action: "unknown",
+    result: "error",
+    reason: "unexpected_error",
+  });
+  assert.equal(JSON.stringify(entry).includes(privateValue), false);
+  assert.deepEqual(createStructureMutationLog("program_status", "rejected", "invalid_status"), {
+    action: "program_status",
+    result: "rejected",
+    reason: "invalid_status",
+  });
 });

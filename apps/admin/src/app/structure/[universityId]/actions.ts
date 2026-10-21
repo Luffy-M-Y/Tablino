@@ -18,6 +18,7 @@ import {
   SessionRequiredError,
 } from "@tablino/auth";
 import {
+  createStructureMutationLog,
   isUuid,
   messageForReason,
   readIntegerField,
@@ -57,16 +58,22 @@ async function requireUniversityForAction(formData: FormData): Promise<string> {
 }
 
 async function runMutation(
+  action: "cycle_years_count" | "cycle_short_code" | "level_year_number" | "program_status",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
 ): Promise<StructureActionState> {
   try {
     const result = await mutation();
-    if (!result.ok) return failure(result.reason);
+    if (!result.ok) {
+      console.info("structure_mutation", createStructureMutationLog(action, "rejected", result.reason));
+      return failure(result.reason);
+    }
 
+    console.info("structure_mutation", createStructureMutationLog(action, "success", "none"));
     revalidatePath(`/structure/${universityId}`);
     return { ok: true, message: "Modification enregistrée." };
   } catch {
+    console.info("structure_mutation", createStructureMutationLog(action, "error", "unexpected_error"));
     return failure("unexpected_error");
   }
 }
@@ -81,7 +88,7 @@ export async function updateCycleYearsCountAction(
   if (!isUuid(cycleId)) return failure("cycle_not_found");
   if (yearsCount === null) return failure("out_of_range");
 
-  return runMutation(universityId, () => updateCycleYearsCount(universityId, cycleId, yearsCount));
+  return runMutation("cycle_years_count", universityId, () => updateCycleYearsCount(universityId, cycleId, yearsCount));
 }
 
 export async function updateCycleShortCodeAction(
@@ -96,7 +103,7 @@ export async function updateCycleShortCodeAction(
     return failure("invalid_short_code");
   }
 
-  return runMutation(universityId, () => updateCycleShortCode(universityId, cycleId, shortCode));
+  return runMutation("cycle_short_code", universityId, () => updateCycleShortCode(universityId, cycleId, shortCode));
 }
 
 export async function updateLevelYearNumberAction(
@@ -109,7 +116,7 @@ export async function updateLevelYearNumberAction(
   if (!isUuid(levelId)) return failure("level_not_found");
   if (yearNumber === null) return failure("out_of_range");
 
-  return runMutation(universityId, () => updateLevelYearNumber(universityId, levelId, yearNumber));
+  return runMutation("level_year_number", universityId, () => updateLevelYearNumber(universityId, levelId, yearNumber));
 }
 
 export async function updateProgramStatusAction(
@@ -122,5 +129,5 @@ export async function updateProgramStatusAction(
   if (!isUuid(programId)) return failure("program_not_found");
   if (!isProgramStatusValid(status)) return failure("invalid_status");
 
-  return runMutation(universityId, () => updateProgramStatus(universityId, programId, status));
+  return runMutation("program_status", universityId, () => updateProgramStatus(universityId, programId, status));
 }
