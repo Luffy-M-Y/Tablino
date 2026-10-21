@@ -42,7 +42,10 @@ export async function getPrograms(universityId: string) {
     db
       .select({ id: schema.programs.id, name: schema.programs.name, slug: schema.programs.slug })
       .from(schema.programs)
-      .where(eq(schema.programs.universityId, universityId))
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.status, "published"),
+      ))
       .orderBy(schema.programs.name),
     db
       .select({ programId: schema.levels.programId, total: count() })
@@ -81,6 +84,7 @@ export async function getProgramBySlug(universityId: string, slug: string) {
       and(
         eq(schema.programs.universityId, universityId),
         eq(schema.programs.slug, slug),
+        eq(schema.programs.status, "published"),
       ),
     )
     .limit(1);

@@ -57,13 +57,6 @@ const CYCLES = [
 ] as const;
 type CycleCode = (typeof CYCLES)[number]["shortCode"];
 
-const cycleOrderOffsets = new Map<CycleCode, number>();
-let nextLevelOrder = 0;
-for (const cycle of CYCLES) {
-  cycleOrderOffsets.set(cycle.shortCode, nextLevelOrder);
-  nextLevelOrder += cycle.yearsCount;
-}
-
 async function seed() {
   console.log("🌱 Seed DÉMO — début");
 
@@ -76,10 +69,10 @@ async function seed() {
   // ── Filières ───────────────────────────────────────────────────────────────
   await db.insert(schema.programs)
     .values([
-      { id: ID.progInfo,    universityId: ID.university, name: "[DÉMO] Informatique", slug: "demo-informatique" },
-      { id: ID.progGestion, universityId: ID.university, name: "[DÉMO] Gestion",      slug: "demo-gestion" },
+      { id: ID.progInfo,    universityId: ID.university, name: "[DÉMO] Informatique", slug: "demo-informatique", status: "published" },
+      { id: ID.progGestion, universityId: ID.university, name: "[DÉMO] Gestion",      slug: "demo-gestion", status: "published" },
     ])
-    .onConflictDoUpdate({ target: schema.programs.id, set: { name: schema.programs.name, slug: schema.programs.slug } });
+    .onConflictDoUpdate({ target: schema.programs.id, set: { name: schema.programs.name, slug: schema.programs.slug, status: "published" } });
   console.log("✓ Filières");
 
   // -- Cycles -----------------------------------------------------------------
@@ -149,7 +142,6 @@ async function seed() {
       name: `${level.cycleCode}${level.yearNumber}`,
       slug: `${level.cycleCode.toLowerCase()}${level.yearNumber}`,
       yearNumber: level.yearNumber,
-      order: (cycleOrderOffsets.get(level.cycleCode) ?? 0) + level.yearNumber,
     })))
     .onConflictDoUpdate({
       target: schema.levels.id,
@@ -160,7 +152,6 @@ async function seed() {
         name: sql`excluded.name`,
         slug: sql`excluded.slug`,
         yearNumber: sql`excluded.year_number`,
-        order: sql`excluded."order"`,
       },
     });
   console.log("\u2713 Niveaux");
