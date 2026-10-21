@@ -8,15 +8,23 @@ import type {
 } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { db, schema } from "@tablino/db";
 import type {} from "./next-auth";
 import type { AuthRole } from "./roles";
+import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 
 export type { AuthRole } from "./roles";
 
 type StoredUser = typeof schema.users.$inferSelect;
 type AuthAdapterUser = AdapterUser & Pick<StoredUser, "role" | "universityId">;
-type AuthSurface = "web" | "admin";
+export type { AuthSurface } from "./guards";
+export {
+  AuthorizationDeniedError,
+  SessionRequiredError,
+  type GuardRole,
+  type GuardUser,
+} from "./guards";
 
 type AuthOptionsContext = {
   surface: AuthSurface;
@@ -328,4 +336,37 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
       },
     },
   };
+}
+
+const guards = createAuthGuards({
+  async readSession(surface) {
+    const session = await getServerSession(createAuthOptions({
+      surface,
+      getCurrentUniversityId,
+    }));
+    return session?.user?.id ? { user: { id: session.user.id } } : null;
+  },
+  async readUser(userId) {
+    const [user] = await db.select({
+      id: schema.users.id,
+      role: schema.users.role,
+      universityId: schema.users.universityId,
+    }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    return user ?? null;
+  },
+});
+
+export async function requireSession(surface: AuthSurface) {
+  return guards.requireSession(surface);
+}
+
+export async function requireRole(
+  surface: AuthSurface,
+  allowedRoles: readonly GuardRole[],
+) {
+  return guards.requireRole(surface, allowedRoles);
+}
+
+export async function requireUniversityAccess(surface: AuthSurface, universityId: string) {
+  return guards.requireUniversityAccess(surface, universityId);
 }

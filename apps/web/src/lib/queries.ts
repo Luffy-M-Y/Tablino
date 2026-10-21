@@ -1,9 +1,13 @@
+import "server-only";
+
 import { db, schema } from "@tablino/db";
 import { eq, and, count, sql } from "drizzle-orm";
+import { requireStudentUniversityAccess } from "@/lib/authorization";
 
 // ─── Accueil ──────────────────────────────────────────────────────────────────
 
 export async function getHomeCounts(universityId: string) {
+  await requireStudentUniversityAccess(universityId);
   const [resources, assignments] = await Promise.all([
     db
       .select({ total: count() })
@@ -33,6 +37,7 @@ export async function getHomeCounts(universityId: string) {
 // ─── Filières ─────────────────────────────────────────────────────────────────
 
 export async function getPrograms(universityId: string) {
+  await requireStudentUniversityAccess(universityId);
   const [programs, levelCounts, subjectCounts] = await Promise.all([
     db
       .select({ id: schema.programs.id, name: schema.programs.name, slug: schema.programs.slug })
@@ -68,6 +73,7 @@ export async function getPrograms(universityId: string) {
 // ─── Niveaux ──────────────────────────────────────────────────────────────────
 
 export async function getProgramBySlug(universityId: string, slug: string) {
+  await requireStudentUniversityAccess(universityId);
   const rows = await db
     .select()
     .from(schema.programs)
@@ -82,6 +88,7 @@ export async function getProgramBySlug(universityId: string, slug: string) {
 }
 
 export async function getLevelsByProgram(universityId: string, programId: string) {
+  await requireStudentUniversityAccess(universityId);
   const rows = await db
     .select({
       cycleId: schema.cycles.id,
@@ -124,6 +131,7 @@ export async function getLevelsByProgram(universityId: string, programId: string
 // ─── Années ───────────────────────────────────────────────────────────────────
 
 export async function getLevelBySlug(universityId: string, programId: string, slug: string) {
+  await requireStudentUniversityAccess(universityId);
   const rows = await db
     .select()
     .from(schema.levels)
@@ -139,6 +147,7 @@ export async function getLevelBySlug(universityId: string, programId: string, sl
 }
 
 export async function getAcademicYearsByLevel(universityId: string, levelId: string) {
+  await requireStudentUniversityAccess(universityId);
   // DISTINCT academic_year_id depuis subjects, jointure sur academic_years
   const rows = await db
     .selectDistinct({
@@ -168,6 +177,7 @@ export async function getAcademicYearsByLevel(universityId: string, levelId: str
 // ─── Matières ─────────────────────────────────────────────────────────────────
 
 export async function getAcademicYearByLabel(universityId: string, label: string) {
+  await requireStudentUniversityAccess(universityId);
   const rows = await db
     .select()
     .from(schema.academicYears)
@@ -186,6 +196,7 @@ export async function getSubjectsByLevelAndYear(
   levelId: string,
   academicYearId: string,
 ) {
+  await requireStudentUniversityAccess(universityId);
   return db
     .select()
     .from(schema.subjects)
@@ -207,6 +218,7 @@ export async function getSubjectBySlug(
   academicYearId: string,
   slug: string,
 ) {
+  await requireStudentUniversityAccess(universityId);
   const rows = await db
     .select()
     .from(schema.subjects)
@@ -223,6 +235,7 @@ export async function getSubjectBySlug(
 }
 
 export async function getResourcesBySubject(universityId: string, subjectId: string) {
+  await requireStudentUniversityAccess(universityId);
   return db
     .select()
     .from(schema.resources)
@@ -239,6 +252,7 @@ export async function getResourcesBySubject(universityId: string, subjectId: str
 // ─── Devoirs ──────────────────────────────────────────────────────────────────
 
 export async function getAssignmentsBySubject(universityId: string, subjectId: string) {
+  await requireStudentUniversityAccess(universityId);
   return db
     .select()
     .from(schema.assignments)
