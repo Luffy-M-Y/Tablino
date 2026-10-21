@@ -36,6 +36,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Migrations : uniquement `pnpm db:generate` puis `pnpm db:migrate`. Jamais `db:push`, jamais de SQL exécuté directement ni depuis le tableau de bord Supabase. Le suivi Drizzle doit rester cohérent avec la base.
 - Seed : idempotent (UUID fixes), données marquées « DÉMO », rien de réel. Pour les cycles (id généré par la migration), upsert sur `(university_id, short_code)`, relire l'id pour les enfants.
 - `levels.order` : conservé NOT NULL dans la migration 0003. Sera supprimé dans une migration ultérieure (`feat/admin-structure`). Le seed et tout script d'insertion doivent le renseigner.
+- Paiement futur par université, pas par utilisateur. Dans `feat/auth-roles`, ne pas modifier `subscriptions` ni `users.subscription_expires_at`.
 
 ## Règles de travail (obligatoires)
 1. Avant chaque grande modification : nouvelle branche depuis `develop`.
@@ -56,6 +57,18 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - RLS Supabase : à activer sur toutes les tables du schéma public, sans politique (l'application utilise la connexion Postgres directe).
 - Clés d'API : côté serveur uniquement.
 
+## Authentification et roles (`feat/auth-roles`)
+- Roles : `super_admin` (global), `university_admin` (une universite), `student`. L'ancien role `admin` est converti en `university_admin` ; `scanner` est supprime (donnees demo uniquement).
+- CHECK `users_role_university_scope_check` : `super_admin` exige `university_id IS NULL` ; `university_admin` et `student` exigent `university_id IS NOT NULL`.
+- Migrations versionnees : `0004_peaceful_marten_broadcloak.sql` ajoute l'identite et les roles ; `0005_fair_zzzax.sql` ajoute l'index unique `users_email_lower_unique` sur `lower(users.email)`. Verifier l'etat de chaque migration avant d'en lancer une nouvelle ; ne pas supposer qu'elle est appliquee.
+- `packages/auth` utilise Google OAuth et l'adaptateur Drizzle sur `users`, `accounts`, `sessions`, `verification_tokens` ; les sessions sont persistees en base. Google dans `apps/web` cree uniquement des `student` ; `apps/admin` accepte uniquement les comptes provisionnes. Aucun role privilegie n'est attribue par inscription publique.
+- Provisionnement operateur, sans session ni route publique : `pnpm --filter @tablino/db db:create-super-admin <email>` et `pnpm --filter @tablino/db db:create-university-admin <email> <slug-ou-id>`. Les scripts normalisent l'e-mail, refusent les doublons et ne modifient pas un utilisateur existant. `create-super-admin` refuse s'il existe deja un `super_admin` ; ne pas lancer plusieurs creations concurrentes.
+- Garde commun des scripts dans `packages/db/scripts/_provisioning.ts` : `DATABASE_URL` doit viser le projet de test autorise, port `5432`. Le script charge `packages/db/.env` ; une variable deja definie dans le processus conserve la priorite. Toute autre base exige une autorisation explicite.
+- Gardes serveur `requireSession`, `requireRole`, `requireUniversityAccess` dans `packages/auth/src/guards.ts` : la session est verifiee et role/universite sont relus dans `users` a chaque appel. `apps/admin` autorise `super_admin` globalement et `university_admin` dans son universite ; `apps/web` autorise les etudiants de l'universite courante. Anonyme : redirection `/api/auth/signin` ; role ou perimetre refuse : 403.
+- Regle d'abonnement : un abonnement d'universite expire n'autorise plus l'acces aux contenus proteges ; le controle doit etre serveur. Cette regle reste a integrer avec la facturation future par universite. Ne pas modifier `subscriptions` ni `users.subscription_expires_at` dans `feat/auth-roles`.
+- Variables d'environnement (noms de `.env.example` uniquement) : `DATABASE_URL`, `UNIVERSITY_ID`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `CINETPAY_API_KEY`, `CINETPAY_SITE_ID`, `PAYMENT_WEBHOOK_SECRET`. Ne jamais documenter leurs valeurs.
+- Reste : email/mot de passe, interface de gestion des comptes universitaires, controle d'abonnement expire sur les ressources, tests d'integration apres accord, domaine d'authentification central et validation de `callbackUrl`.
+
 ## Conventions
 - Pages de lecture : Server Components, rendu dynamique (le build ne doit pas dépendre de la base ; vérifier avec `pnpm build` sans `DATABASE_URL`).
 - Compteurs (« 5 niveaux • 12 matières ») : calculés par requête, jamais en dur.
@@ -70,14 +83,14 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Slugs créés par le dashboard : via une vraie fonction de slug (accents, doublons).
 
 ## Fonctionnalités prévues (ne pas implémenter sans demande)
-- Authentification : Google OAuth + email/mot de passe en secours. Rôles : super_admin (à ajouter), admin, scanner, student. Google refuse les URI de redirection avec wildcard : domaine d'authentification central, cookie de domaine, validation de `callbackUrl` contre une liste autorisée.
+- Authentification restante : email/mot de passe, interface de creation d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisee.
 - Paiement : mobile money (Orange Money, Moov Money) via agrégateur (CinetPay, PayDunya ou Ligdicash), interface d'abstraction, pas de renouvellement automatique : abonnement par période avec date d'expiration, webhook vérifié côté serveur.
 - Scan (dashboard) : caméra multi-pages, redressement, PDF, OCR (Tesseract), validation avant publication.
 - Remise de devoirs par les étudiants : interdite sans validation préalable.
 
 ## Feuille de route
 1. `feat/web-navigation` : design, layout, accueil, fil d'Ariane, pages filières, niveaux, années, matières, listes finales
-2. `feat/auth-roles`
+2. `feat/auth-roles` : modele d'identite, Google OAuth, provisionnement ferme, gardes de role et d'universite (etapes 1 a 4 realisees)
 3. `feat/admin-structure`
 4. `feat/admin-upload` (R2)
 5. `feat/admin-scan`
@@ -86,6 +99,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. `feat/auth-subdomain`
 
 ## État d'avancement (à mettre à jour après chaque branche)
+- Fait sur `feat/auth-roles`, etapes 1 a 4 : modele d'identite, migrations 0004/0005, Google OAuth avec adaptateur Drizzle et sessions en base, scripts de provisionnement, gardes serveur ; six cas de test ecrits. Etat d'application des migrations et tests d'integration a confirmer avant toute commande base.
 - Fait : monorepo, schéma hiérarchique, migrations 0000 à 0002, seed idempotent (UUID fixes), test d'isolation 8/8 — commités sur `feat/db-levels-slug`.
 - Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
 - Fait : `feat/web-navigation` — navigation Filière→Niveau→Année→Matière→Ressources|Devoirs. Push + PR vers `develop` — fusionné.
