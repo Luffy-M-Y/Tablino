@@ -45,13 +45,14 @@ async function requireUniversityForAction(formData: FormData): Promise<string> {
   }
 
   const universityId = readStringField(formData, "universityId") ?? "";
+  if (!isUuid(universityId)) forbidden();
+
   try {
     await requireUniversityAccess("admin", universityId);
   } catch (error) {
     return handleGuardFailure(error);
   }
 
-  if (!isUuid(universityId)) forbidden();
   return universityId;
 }
 

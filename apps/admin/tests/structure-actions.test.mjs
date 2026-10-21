@@ -24,10 +24,14 @@ test("reads only safe integer fields", () => {
   assert.equal(readIntegerField(fields({ value: "9007199254740992" }), "value"), null);
 });
 
-test("validates UUID-shaped identifiers", () => {
-  assert.equal(isUuid("123e4567-e89b-12d3-a456-426614174000"), true);
-  assert.equal(isUuid("not-an-id"), false);
+test("accepts only complete UUID strings, case-insensitively", () => {
+  const uuid = "123e4567-e89b-12d3-a456-426614174000";
+  assert.equal(isUuid(uuid), true);
+  assert.equal(isUuid(""), false);
   assert.equal(isUuid(null), false);
+  assert.equal(isUuid(uuid.slice(0, -1)), false);
+  assert.equal(isUuid(`${uuid}-suffix`), false);
+  assert.equal(isUuid("123E4567-e89B-12d3-A456-426614174000"), true);
 });
 
 test("translates expected mutation reasons without exposing raw errors", () => {
