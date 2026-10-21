@@ -30,6 +30,7 @@ export const programs = pgTable("programs", {
     .notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
+  status: statusEnum("status").default("draft").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   unique("programs_id_university_uq").on(t.id, t.universityId),
@@ -90,9 +91,6 @@ export const programCycles = pgTable("program_cycles", {
 // ─── Levels (niveaux : L1, L2, M1…) ──────────────────────────────────────────
 // name       : généré = cycles.short_code + year_number (ex. "L1"). Jamais libre.
 // slug       : short_code.toLowerCase() + year_number (ex. "l1").
-// order      : conservé NOT NULL — tri legacy et compatibilité apps/web.
-//              Sera supprimé dans une migration ultérieure (feat/admin-structure).
-//              Seed et scripts doivent le renseigner.
 // year_number : CHECK >= 1. Cohérence avec cycles.years_count vérifiée applicativement.
 // levels_cycle_university_fk  : ON DELETE NO ACTION (vérifié en fin d'instruction).
 // levels_program_cycle_fk     : ON DELETE NO ACTION (idem).
@@ -107,7 +105,6 @@ export const levels = pgTable("levels", {
   name: varchar("name", { length: 100 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
   yearNumber: integer("year_number").notNull(),
-  order: integer("order").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   foreignKey({

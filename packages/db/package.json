@@ -14,7 +14,9 @@
     "db:create-super-admin": "tsx scripts/create-super-admin.ts",
     "db:create-university-admin": "tsx scripts/create-university-admin.ts",
     "db:seed": "tsx src/seed.ts",
-    "db:test-isolation": "cross-env NODE_ENV=development tsx src/test-isolation.ts"
+    "db:test-isolation": "cross-env NODE_ENV=development tsx src/test-isolation.ts",
+    "db:test-structure": "tsx scripts/test-structure-integration.ts",
+    "test": "tsx --test tests/schema.test.ts tests/structure.test.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",

@@ -31,11 +31,15 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Base de test xblapziuxietpjqewkwh conservée jusqu'à la fin de la phase de développement. Suppression à la demande de l'utilisateur seulement.
 - Tables : universities, programs, levels, academic_years, subjects, resources (cours), assignments (devoirs), users, accounts, sessions, verification_tokens, subscriptions.
 - Isolation : clés étrangères composites incluant `university_id`. Test : `db:test-isolation` (8 cas, doit rester vert).
-- Statut stocké : `draft` ou `published`. Le statut « disponible / à rendre / expiré » d'un devoir se calcule depuis l'échéance, jamais stocké.
+- Statut : `programs.status` porte `draft` ou `published` ; seule une filière publiée est visible dans `apps/web`. Niveaux, matières et années suivent le statut de leur filière. Ressources et devoirs gardent leur propre statut. Le statut « disponible / à rendre / expiré » d'un devoir se calcule depuis l'échéance, jamais stocké.
 - Année académique : globale à l'université, liée via `subjects.academic_year_id`.
 - Migrations : uniquement `pnpm db:generate` puis `pnpm db:migrate`. Jamais `db:push`, jamais de SQL exécuté directement ni depuis le tableau de bord Supabase. Le suivi Drizzle doit rester cohérent avec la base.
 - Seed : idempotent (UUID fixes), données marquées « DÉMO », rien de réel. Pour les cycles (id généré par la migration), upsert sur `(university_id, short_code)`, relire l'id pour les enfants.
-- `levels.order` : conservé NOT NULL dans la migration 0003. Sera supprimé dans une migration ultérieure (`feat/admin-structure`). Le seed et tout script d'insertion doivent le renseigner.
+- `levels.order` : supprimé par la migration 0006 de `feat/admin-structure` ; le tri repose sur `cycles.order`, puis `levels.year_number`. La migration 0006 est appliquée et vérifiée sur la base de test : 7 migrations, 2 filières `published`, colonne `levels.order` supprimée. Les nouvelles filières commencent en `draft`.
+- Structure (`feat/admin-structure`) : refuser la suppression d'une entité ayant des dépendants ; aucune suppression en cascade depuis l'interface. Le `short_code` d'un cycle est immuable tant que des niveaux y sont rattachés.
+- Mutations transactionnelles dans `packages/db/src/structure.ts` : `updateCycleYearsCount`, `updateLevelYearNumber`, `updateCycleShortCode`, `updateProgramStatus`. Chaque mutation verrouille d'abord sa ligne de cycle (`SELECT ... FOR UPDATE`, avec `university_id`) ; aucun chemin ne doit prendre ces verrous dans l'ordre inverse. `canReduceYearsCount` reste un alias exporté obsolète. `updateCycleShortCode` normalise le code en majuscules après trim ; une collision renvoie `short_code_taken`. Changer l'année d'un niveau régénère son nom et son slug ; les permutations de numéros sont refusées.
+- Test d'intégration transactionnel de structure : `pnpm --filter @tablino/db db:test-structure`. Le script partage le garde de `_provisioning` (référence autorisée et port `5432`) et nettoie ses lignes temporaires ; ne pas l'ajouter au script unitaire `test`.
+- Tests unitaires sans base : `pnpm --filter @tablino/db test` et `pnpm --filter @tablino/auth test`. Ne pas y ajouter de contournement ni d'accès à une base.
 - Paiement futur par université, pas par utilisateur. Dans `feat/auth-roles`, ne pas modifier `subscriptions` ni `users.subscription_expires_at`.
 
 ## Règles de travail (obligatoires)
@@ -91,7 +95,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 ## Feuille de route
 1. `feat/web-navigation` : design, layout, accueil, fil d'Ariane, pages filières, niveaux, années, matières, listes finales
 2. `feat/auth-roles` : modele d'identite, Google OAuth, provisionnement ferme, gardes de role et d'universite (etapes 1 a 4 realisees)
-3. `feat/admin-structure`
+3. `feat/admin-structure` : étape 1 terminée, étapes suivantes à réaliser
 4. `feat/admin-upload` (R2)
 5. `feat/admin-scan`
 6. `feat/payments`
@@ -107,5 +111,11 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Migration 0003 appliquée et vérifiée sur la base de test autorisée. Garde testé sur cette base : 6 cas conformes.
 - Vérifications locales : `pnpm build` et `pnpm exec tsc --noEmit` réussis pour les étapes web et db.
 - Reste pour `feat/db-cycles` : push de la branche et PR vers `develop` (après autorisation).
-- À faire ensuite dans `feat/admin-structure` : supprimer `levels.order` et étendre le garde pour verrouiller aussi les changements de `year_number` d'un niveau existant.
+- Fait sur `feat/admin-structure`, étape 1 : `programs.status` (défaut `draft`), filières existantes migrées vers `published`, `levels.order` supprimé en 0006, seed démo publiée, toutes les requêtes web filtrent les filières publiées ; scripts de tests unitaires sans base ajoutés. SQL de test du statut écrit mais non exécuté. Build et tsc db/auth/web réussis.
+- Fait sur `feat/admin-structure`, étape 2 : mutations transactionnelles `updateCycleYearsCount`, `updateLevelYearNumber` (plage, unicité du numéro et du slug, nom/slug régénérés) et `updateCycleShortCode` (normalisation trim/majuscules, validation, collision distincte et refus si des niveaux existent). Verrouillage du cycle en premier et filtrage par université. Tests purs écrits dans `packages/db/tests/structure.test.ts` ; `scripts/test-structure-mutations.sql` écrit, non exécuté. `scripts/test-structure-integration.ts` et la commande `db:test-structure` écrits, non exécutés. Build et tsc db réussis ; les tests restent à exécuter par l'utilisateur.
+- Tests unitaires sans base : l'utilisateur a exécuté les 2 tests db et les 6 tests auth, 8/8 réussis. Ils échouent dans l'environnement de l'assistant avec `ENOMEM` ; aucun contournement n'est permis.
+- Fait sur `feat/admin-structure`, étape 3 : pages de lecture `/structure` et `/structure/[universityId]` dans `apps/admin`, sélecteur d'universités réservé au `super_admin`, redirection du `university_admin` vers sa propre université, affichage des filières brouillon et publiées, cycles et niveaux triés, années académiques et matières. Les accès sont gardés et les lectures de structure filtrent `university_id`.
+- Tests purs de regroupement et de tri écrits dans `apps/admin/tests/structure-view.test.mjs`, script `pnpm --filter @tablino/admin test` ajouté, non exécuté par l'assistant conformément à la demande. Build et `tsc --noEmit` de l'admin réussis ; le build monorepo reste bloqué par le téléchargement de la police Google dans `apps/web`.
+- Fait sur `feat/admin-structure`, étape 4 : mutation transactionnelle `updateProgramStatus` avec validation pure ; test unitaire pur et script SQL `BEGIN`/`ROLLBACK` écrits, non exécutés. Quatre Server Actions pour les mutations de cycle, niveau et filière revérifient rôle et université, valident les champs, renvoient des messages français sans détails techniques et revalident la page après succès. Formulaires simples ajoutés à la page de structure. Build et `tsc --noEmit` db/admin réussis ; tests non exécutés par l'assistant.
+- Dans `feat/admin-structure`, passer une filière en `draft` est autorisé même si elle contient des ressources ou devoirs publiés. Toute future suppression doit être refusée si des dépendants existent, sans cascade depuis l'interface.
 - En attente : domaine `tablino.com`, compte Cloudflare R2, accord de l'ISCOM pour le pilote, rotation des mots de passe Supabase.
