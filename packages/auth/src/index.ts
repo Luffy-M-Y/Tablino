@@ -88,7 +88,7 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
       const universityId = await context.getCurrentUniversityId();
       const [created] = await db.insert(schema.users).values({
         name: user.name ?? null,
-        email: user.email,
+        email: user.email?.trim().toLowerCase() ?? null,
         emailVerified: user.emailVerified ?? null,
         image: user.image ?? null,
         role: "student",
@@ -137,12 +137,12 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
         type: account.type,
         provider: account.provider,
         providerAccountId: account.providerAccountId,
-        refreshToken: account.refresh_token ?? null,
-        accessToken: account.access_token ?? null,
+        refreshToken: null,
+        accessToken: null,
         expiresAt: account.expires_at ?? null,
         tokenType: account.token_type ?? null,
         scope: account.scope ?? null,
-        idToken: account.id_token ?? null,
+        idToken: null,
         sessionState: account.session_state ?? null,
       }).onConflictDoNothing({
         target: [schema.accounts.provider, schema.accounts.providerAccountId],
@@ -290,8 +290,16 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const email = googleProfile?.email ?? user.email;
         if (!email || googleProfile?.email_verified !== true) return false;
 
-        const storedUser = await getUserByAccount(account.provider, account.providerAccountId)
-          ?? await getUserByEmail(email);
+        const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
+        const emailUser = linkedUser ? null : await getUserByEmail(email);
+        if (emailUser) {
+          const [existingAccount] = await db.select({ userId: schema.accounts.userId })
+            .from(schema.accounts)
+            .where(eq(schema.accounts.userId, emailUser.id))
+            .limit(1);
+          if (existingAccount) return false;
+        }
+        const storedUser = linkedUser ?? emailUser;
 
         if (!storedUser) {
           if (context.surface !== "web") return false;
