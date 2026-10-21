@@ -6,6 +6,7 @@ import {
   buildLevelSlug,
   isShortCodeValid,
   isYearNumberInRange,
+  normalizeShortCode,
 } from "./structure-validation";
 
 export type UpdateCycleYearsCountResult =
@@ -28,7 +29,10 @@ export type UpdateLevelYearNumberResult =
 
 export type UpdateCycleShortCodeResult =
   | { ok: true }
-  | { ok: false; reason: "cycle_not_found" | "invalid_short_code" | "has_levels" };
+  | {
+      ok: false;
+      reason: "cycle_not_found" | "invalid_short_code" | "short_code_taken" | "has_levels";
+    };
 
 function isUniqueConstraintViolation(error: unknown, constraint: string): boolean {
   if (typeof error !== "object" || error === null) return false;
@@ -207,6 +211,8 @@ export async function updateCycleShortCode(
   cycleId: string,
   newShortCode: string,
 ): Promise<UpdateCycleShortCodeResult> {
+  const normalizedShortCode = normalizeShortCode(newShortCode);
+
   try {
     return await db.transaction(async (tx) => {
       const [cycle] = await tx
@@ -220,7 +226,7 @@ export async function updateCycleShortCode(
         .limit(1);
 
       if (!cycle) return { ok: false, reason: "cycle_not_found" };
-      if (!isShortCodeValid(newShortCode)) {
+      if (!isShortCodeValid(normalizedShortCode)) {
         return { ok: false, reason: "invalid_short_code" };
       }
 
@@ -240,16 +246,16 @@ export async function updateCycleShortCode(
         .from(schema.cycles)
         .where(and(
           eq(schema.cycles.universityId, universityId),
-          eq(schema.cycles.shortCode, newShortCode),
+          eq(schema.cycles.shortCode, normalizedShortCode),
           ne(schema.cycles.id, cycleId),
         ))
         .limit(1);
 
-      if (collision) return { ok: false, reason: "invalid_short_code" };
+      if (collision) return { ok: false, reason: "short_code_taken" };
 
       await tx
         .update(schema.cycles)
-        .set({ shortCode: newShortCode })
+        .set({ shortCode: normalizedShortCode })
         .where(and(
           eq(schema.cycles.universityId, universityId),
           eq(schema.cycles.id, cycleId),
@@ -259,7 +265,7 @@ export async function updateCycleShortCode(
     });
   } catch (error) {
     if (isUniqueConstraintViolation(error, "cycles_university_short_code_uq")) {
-      return { ok: false, reason: "invalid_short_code" };
+      return { ok: false, reason: "short_code_taken" };
     }
     throw error;
   }

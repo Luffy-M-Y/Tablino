@@ -5,6 +5,7 @@ import {
   buildLevelSlug,
   isShortCodeValid,
   isYearNumberInRange,
+  normalizeShortCode,
 } from "../src/structure-validation";
 
 test("year number validation accepts only integers within the cycle range", () => {
@@ -24,6 +25,12 @@ test("short code validation accepts one to ten letters only", () => {
   assert.equal(isShortCodeValid("ABCDEFGHIJK"), false);
   assert.equal(isShortCodeValid("A1"), false);
   assert.equal(isShortCodeValid("A-B"), false);
+});
+
+test("short code normalization trims whitespace and uppercases letters", () => {
+  assert.equal(normalizeShortCode("  zz "), "ZZ");
+  assert.equal(isShortCodeValid(normalizeShortCode("  zz ")), true);
+  assert.equal(isShortCodeValid(normalizeShortCode("  z-1 ")), false);
 });
 
 test("level names preserve the cycle code and append the year number", () => {

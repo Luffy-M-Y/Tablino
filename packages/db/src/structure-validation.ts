@@ -8,6 +8,10 @@ export function isShortCodeValid(shortCode: string): boolean {
     && [...shortCode].every((character) => /[A-Za-z]/.test(character));
 }
 
+export function normalizeShortCode(shortCode: string): string {
+  return shortCode.trim().toUpperCase();
+}
+
 export function buildLevelName(shortCode: string, yearNumber: number): string {
   return `${shortCode}${yearNumber}`;
 }

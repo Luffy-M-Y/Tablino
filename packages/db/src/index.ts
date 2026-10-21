@@ -9,6 +9,7 @@ export {
 export {
   isYearNumberInRange,
   isShortCodeValid,
+  normalizeShortCode,
   buildLevelName,
   buildLevelSlug,
 } from "./structure-validation";
