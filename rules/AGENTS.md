@@ -27,6 +27,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 ## Base de données
 - Supabase. `packages/db/.env` : Session pooler, port 5432 (migrations). `apps/web/.env.local` : Transaction pooler, port 6543.
 - Toute migration utilise le Session pooler, port 5432 ; ne pas utiliser le port 6543 pour les migrations.
+- Pour lancer apps/admin en dev, apps/admin/.env.local doit contenir DATABASE_URL (même cible que .env.test) et UNIVERSITY_ID. Noms seulement, jamais de valeurs.
 - Base de test autorisée : référence `xblapziuxietpjqewkwh` uniquement. Références interdites : `dmkhqphgxmgsgosvrylx` et `dfrlsuhllzqsqerqzsch`. Vérifier référence et port avant toute opération.
 - Base de test xblapziuxietpjqewkwh conservée jusqu'à la fin de la phase de développement. Suppression à la demande de l'utilisateur seulement.
 - Tables : universities, programs, levels, academic_years, subjects, resources (cours), assignments (devoirs), users, accounts, sessions, verification_tokens, subscriptions.
@@ -59,6 +60,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. Montre les erreurs avant de les corriger.
 9. Ne jamais utiliser `git add .` ni `git add -A` ; indexer les chemins explicitement.
 10. `.worktree-develop/` est exclu localement via `.git/info/exclude`.
+11. Ne jamais lancer `next dev` ni `pnpm dev` sans demande explicite du propriétaire dans le message courant. `next dev` génère `apps/admin/AGENTS.md` (exclu localement via `.git/info/exclude`).
 
 ## Sécurité
 - Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. Les fichiers `.env*` ne doivent jamais apparaître dans une capture. Ils sont ignorés par Git : vérifier avec `git status` avant chaque commit.
@@ -107,7 +109,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
    3. `fix/web-system-fonts`
    4. `test/db-isolation-cycles`
    5. `test/db-tenant-scope`
-   Fusionnées dans `develop` (PR #6 à #10) ; `origin/develop` = `5d07a58`.
+   Fusionnées dans `develop` (PR #6 à #10) ; `origin/develop` = `77b16ff`.
 4. `feat/admin-upload` (R2)
 5. `feat/admin-scan`
 6. `feat/payments`
@@ -115,6 +117,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. `feat/auth-subdomain`
 
 ## État d'avancement (à mettre à jour après chaque branche)
+- `feat/admin-shell` fusionnée (PR #12) ; PR #13 (état admin-shell) ; PR #14 `fix/auth-google-timeout` (`httpOptions.timeout` 10 s sur le provider Google, logger JSON sans métadonnées dans `packages/auth`) ; PR #15 `fix/admin-global-css` (import de `globals.css` dans le layout admin) ; `origin/develop` = `77b16ff`. Connexion Google admin confirmée en fenêtre privée, rendu de l'accueil admin vérifié à l'écran.
 - `feat/admin-shell`, étapes 1 à 5 : identité visuelle, navigation responsive avec profil et déconnexion, composant `AdminPage` avec fil d'Ariane sur l'accueil et les pages de structure, cartes d'accueil Structure, Uploader un fichier et Scanner. Aucune lecture de base ajoutée ; gardes inchangées ; `packages/auth` intact. Le propriétaire a vérifié 13/13 tests admin, build OK et tsc code 0. Rendu visuel non vérifié.
 - Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
 - Vérifications rapportées par l'utilisateur le 21/10/2026 : tests admin 7/7 ; `db:test-structure` 9 OK ; `db:test-tenant-scope` OK ; inspection après identique à l'état avant, ZZ = 0. L'inspecteur n'affiche pas les comptages de `program_cycles` (6) ni de `levels` (16). Build forcé OK ; quatre `tsc --noEmit` avec code 0. Les deux tests de base ont été lancés par l'utilisateur, pas par Codex.
@@ -131,7 +134,6 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Fait sur `feat/db-cycles` : schéma `cycles`, `program_cycles` et `levels.cycle_id` / `year_number` ; migration `0003_colorful_franklin_richards.sql` ; seed idempotent des cycles ; pages cours/devoirs groupées par cycle ; garde transactionnel `canReduceYearsCount` dans `packages/db/src/cycles.ts`.
 - Migration 0003 appliquée et vérifiée sur la base de test autorisée. Garde testé sur cette base : 6 cas conformes.
 - Vérifications locales : `pnpm build` et `pnpm exec tsc --noEmit` réussis pour les étapes web et db.
-- Reste pour `feat/db-cycles` : push de la branche et PR vers `develop` (après autorisation).
 - Fait sur `feat/admin-structure`, étape 1 : `programs.status` (défaut `draft`), filières existantes migrées vers `published`, `levels.order` supprimé en 0006, seed démo publiée, toutes les requêtes web filtrent les filières publiées ; scripts de tests unitaires sans base ajoutés. SQL de test du statut écrit mais non exécuté. Build et tsc db/auth/web réussis.
 - Fait sur `feat/admin-structure`, étape 2 : mutations transactionnelles `updateCycleYearsCount`, `updateLevelYearNumber` (plage, unicité du numéro et du slug, nom/slug régénérés) et `updateCycleShortCode` (normalisation trim/majuscules, validation, collision distincte et refus si des niveaux existent). Verrouillage du cycle en premier et filtrage par université. Tests purs écrits dans `packages/db/tests/structure.test.ts` ; `scripts/test-structure-mutations.sql` écrit, non exécuté. `scripts/test-structure-integration.ts` et la commande `db:test-structure` écrits, non exécutés. Build et tsc db réussis ; les tests restent à exécuter par l'utilisateur.
 - Tests unitaires sans base : l'utilisateur a exécuté les 2 tests db et les 6 tests auth, 8/8 réussis. Ils échouent dans l'environnement de l'assistant avec `ENOMEM` ; aucun contournement n'est permis.
