@@ -9,8 +9,8 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.ts",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
+    "db:push": "tsx scripts/disabled-db-command.ts push",
+    "db:studio": "tsx scripts/disabled-db-command.ts studio",
     "db:create-super-admin": "tsx scripts/create-super-admin.ts",
     "db:create-university-admin": "tsx scripts/create-university-admin.ts",
     "db:seed": "tsx src/seed.ts",

@@ -24,6 +24,10 @@ test("refuse une URL malformée", () => {
   assert.equal(validateDatabaseTarget("postgres://["), false);
 });
 
+test("refuse toute query string", () => {
+  assert.equal(validateDatabaseTarget(`${makeValidTarget()}?sslmode=require`), false);
+});
+
 test("refuse la référence dmkhqp", () => {
   assert.equal(validateDatabaseTarget(makeValidTarget("dmkhqphgxmgsgosvrylx")), false);
 });

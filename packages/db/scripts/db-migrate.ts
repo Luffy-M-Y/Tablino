@@ -12,6 +12,6 @@ async function main() {
 }
 
 main().catch(() => {
-  console.error("Migration refusée par le lanceur gardé.");
+  console.error("Échec de migration : lanceur gardé.");
   process.exitCode = 1;
 });

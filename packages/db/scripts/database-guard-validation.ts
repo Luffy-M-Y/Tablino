@@ -14,7 +14,8 @@ export function validateDatabaseTarget(connectionString: string | undefined): bo
     return (url.protocol === "postgres:" || url.protocol === "postgresql:")
       && url.hostname.endsWith(ALLOWED_POOLER_SUFFIX)
       && projectReference === ALLOWED_PROJECT_REFERENCE
-      && url.port === "5432";
+      && url.port === "5432"
+      && !connectionString.includes("?");
   } catch {
     return false;
   }
@@ -30,6 +31,6 @@ export function selectDatabaseUrl(
 
 export function assertAllowedDatabaseTarget(connectionString: string | undefined): asserts connectionString is string {
   if (!validateDatabaseTarget(connectionString)) {
-    throw new Error("DATABASE_URL refusée par le garde.");
+    throw new Error("Connexion à la base refusée par le garde.");
   }
 }
