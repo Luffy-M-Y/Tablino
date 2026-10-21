@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { getCurrentUniversityId as getConfiguredUniversityId } from "@tablino/auth";
 
 /**
  * Point d'entrée unique pour l'university_id.
@@ -7,7 +8,5 @@ import { connection } from "next/server";
  */
 export async function getCurrentUniversityId(): Promise<string> {
   await connection(); // force le rendu dynamique (request-time)
-  const id = process.env.UNIVERSITY_ID;
-  if (!id) throw new Error("UNIVERSITY_ID manquant dans les variables d'environnement serveur.");
-  return id;
+  return getConfiguredUniversityId();
 }
