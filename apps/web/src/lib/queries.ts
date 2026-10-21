@@ -82,16 +82,43 @@ export async function getProgramBySlug(universityId: string, slug: string) {
 }
 
 export async function getLevelsByProgram(universityId: string, programId: string) {
-  return db
-    .select()
+  const rows = await db
+    .select({
+      cycleId: schema.cycles.id,
+      cycleName: schema.cycles.name,
+      levelId: schema.levels.id,
+      levelName: schema.levels.name,
+      levelSlug: schema.levels.slug,
+    })
     .from(schema.levels)
+    .innerJoin(schema.cycles, and(
+      eq(schema.cycles.id, schema.levels.cycleId),
+      eq(schema.cycles.universityId, schema.levels.universityId),
+    ))
     .where(
       and(
         eq(schema.levels.universityId, universityId),
         eq(schema.levels.programId, programId),
       ),
     )
-    .orderBy(schema.levels.order);
+    .orderBy(schema.cycles.order, schema.levels.yearNumber);
+
+  const cycles = new Map<string, {
+    id: string;
+    name: string;
+    levels: { id: string; name: string; slug: string }[];
+  }>();
+
+  for (const row of rows) {
+    let cycle = cycles.get(row.cycleId);
+    if (!cycle) {
+      cycle = { id: row.cycleId, name: row.cycleName, levels: [] };
+      cycles.set(row.cycleId, cycle);
+    }
+    cycle.levels.push({ id: row.levelId, name: row.levelName, slug: row.levelSlug });
+  }
+
+  return Array.from(cycles.values());
 }
 
 // ─── Années ───────────────────────────────────────────────────────────────────

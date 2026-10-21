@@ -6,7 +6,6 @@ import { getCurrentUniversityId } from "@/lib/university";
 import { getProgramBySlug, getLevelsByProgram } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
-import { ProgramCard } from "@/components/cards/ProgramCard";
 import { LevelCard } from "@/components/cards/LevelCard";
 
 const STEPS = [
@@ -28,7 +27,7 @@ export default async function CoursNiveauxPage({
   const program = await getProgramBySlug(universityId, programSlug);
   if (!program) notFound();
 
-  const levels = await getLevelsByProgram(universityId, program.id);
+  const cycles = await getLevelsByProgram(universityId, program.id);
 
   const programLabel = program.name.replace(/^\[.*?\]\s*/, "") || program.name;
 
@@ -57,20 +56,29 @@ export default async function CoursNiveauxPage({
         Sélectionnez un niveau pour afficher les années disponibles.
       </p>
 
-      {levels.length === 0 ? (
+      {cycles.length === 0 ? (
         <p className="text-slate-500 text-sm py-8 text-center">
           Aucun niveau disponible pour cette filière.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {levels.map((l) => (
-            <LevelCard
-              key={l.id}
-              name={l.name}
-              slug={l.slug}
-              basePath={`/cours/${programSlug}`}
-              variant="cours"
-            />
+        <div className="space-y-8">
+          {cycles.map((cycle) => (
+            <section key={cycle.id} aria-labelledby={`cycle-${cycle.id}`}>
+              <h3 id={`cycle-${cycle.id}`} className="text-lg font-semibold text-slate-700 mb-3">
+                {cycle.name}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {cycle.levels.map((level) => (
+                  <LevelCard
+                    key={level.id}
+                    name={level.name}
+                    slug={level.slug}
+                    basePath={`/cours/${programSlug}`}
+                    variant="cours"
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
