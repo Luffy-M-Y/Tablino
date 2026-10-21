@@ -383,8 +383,12 @@ async function runTests(): Promise<void> {
   if (process.argv.includes("--wait-for-sigint") && !interrupted) {
     process.stdout.write("READY_FOR_SIGINT\n");
     await new Promise<void>((resolve) => {
-      resolveSignalWait = resolve;
-      if (interrupted) resolve();
+      const keepAlive = setInterval(() => undefined, 1_000);
+      resolveSignalWait = () => {
+        clearInterval(keepAlive);
+        resolve();
+      };
+      if (interrupted) resolveSignalWait();
     });
   }
 }
