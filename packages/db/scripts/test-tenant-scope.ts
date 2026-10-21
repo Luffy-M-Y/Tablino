@@ -400,7 +400,7 @@ async function finish(): Promise<void> {
     let timeout: NodeJS.Timeout | undefined;
     if (guardedDb) {
       timeout = setTimeout(() => {
-        process.stdout.write("ECHEC CLEANUP_TIMEOUT\n");
+        process.stdout.write("ECHEC CLEANUP_TIMEOUT : résidus possibles, relancer le script\n");
         process.exit(1);
       }, CLEANUP_TIMEOUT_MS);
       cleanupOk = await cleanupMarkedFixtures("FINAL");
