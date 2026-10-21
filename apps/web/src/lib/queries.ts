@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db, schema } from "@tablino/db";
-import { eq, and, count, sql } from "drizzle-orm";
+import { eq, and, count, sql, getTableColumns } from "drizzle-orm";
 import { requireStudentUniversityAccess } from "@/lib/authorization";
 
 // ─── Accueil ──────────────────────────────────────────────────────────────────
@@ -12,19 +12,45 @@ export async function getHomeCounts(universityId: string) {
     db
       .select({ total: count() })
       .from(schema.resources)
+      .innerJoin(schema.subjects, and(
+        eq(schema.resources.subjectId, schema.subjects.id),
+        eq(schema.resources.universityId, schema.subjects.universityId),
+      ))
+      .innerJoin(schema.levels, and(
+        eq(schema.subjects.levelId, schema.levels.id),
+        eq(schema.subjects.universityId, schema.levels.universityId),
+      ))
+      .innerJoin(schema.programs, and(
+        eq(schema.levels.programId, schema.programs.id),
+        eq(schema.levels.universityId, schema.programs.universityId),
+      ))
       .where(
         and(
           eq(schema.resources.universityId, universityId),
           eq(schema.resources.status, "published"),
+          eq(schema.programs.status, "published"),
         ),
       ),
     db
       .select({ total: count() })
       .from(schema.assignments)
+      .innerJoin(schema.subjects, and(
+        eq(schema.assignments.subjectId, schema.subjects.id),
+        eq(schema.assignments.universityId, schema.subjects.universityId),
+      ))
+      .innerJoin(schema.levels, and(
+        eq(schema.subjects.levelId, schema.levels.id),
+        eq(schema.subjects.universityId, schema.levels.universityId),
+      ))
+      .innerJoin(schema.programs, and(
+        eq(schema.levels.programId, schema.programs.id),
+        eq(schema.levels.universityId, schema.programs.universityId),
+      ))
       .where(
         and(
           eq(schema.assignments.universityId, universityId),
           eq(schema.assignments.status, "published"),
+          eq(schema.programs.status, "published"),
         ),
       ),
   ]);
@@ -50,7 +76,14 @@ export async function getPrograms(universityId: string) {
     db
       .select({ programId: schema.levels.programId, total: count() })
       .from(schema.levels)
-      .where(eq(schema.levels.universityId, universityId))
+      .innerJoin(schema.programs, and(
+        eq(schema.levels.programId, schema.programs.id),
+        eq(schema.levels.universityId, schema.programs.universityId),
+      ))
+      .where(and(
+        eq(schema.levels.universityId, universityId),
+        eq(schema.programs.status, "published"),
+      ))
       .groupBy(schema.levels.programId),
     db
       .select({ programId: schema.levels.programId, total: sql<number>`count(distinct ${schema.subjects.slug})`.mapWith(Number) })
@@ -59,7 +92,14 @@ export async function getPrograms(universityId: string) {
         eq(schema.subjects.levelId, schema.levels.id),
         eq(schema.subjects.universityId, schema.levels.universityId),
       ))
-      .where(eq(schema.subjects.universityId, universityId))
+      .innerJoin(schema.programs, and(
+        eq(schema.levels.programId, schema.programs.id),
+        eq(schema.levels.universityId, schema.programs.universityId),
+      ))
+      .where(and(
+        eq(schema.subjects.universityId, universityId),
+        eq(schema.programs.status, "published"),
+      ))
       .groupBy(schema.levels.programId),
   ]);
 
@@ -78,7 +118,7 @@ export async function getPrograms(universityId: string) {
 export async function getProgramBySlug(universityId: string, slug: string) {
   await requireStudentUniversityAccess(universityId);
   const rows = await db
-    .select()
+    .select(getTableColumns(schema.programs))
     .from(schema.programs)
     .where(
       and(
@@ -106,10 +146,15 @@ export async function getLevelsByProgram(universityId: string, programId: string
       eq(schema.cycles.id, schema.levels.cycleId),
       eq(schema.cycles.universityId, schema.levels.universityId),
     ))
+    .innerJoin(schema.programs, and(
+      eq(schema.programs.id, schema.levels.programId),
+      eq(schema.programs.universityId, schema.levels.universityId),
+    ))
     .where(
       and(
         eq(schema.levels.universityId, universityId),
         eq(schema.levels.programId, programId),
+        eq(schema.programs.status, "published"),
       ),
     )
     .orderBy(schema.cycles.order, schema.levels.yearNumber);
@@ -137,13 +182,18 @@ export async function getLevelsByProgram(universityId: string, programId: string
 export async function getLevelBySlug(universityId: string, programId: string, slug: string) {
   await requireStudentUniversityAccess(universityId);
   const rows = await db
-    .select()
+    .select(getTableColumns(schema.levels))
     .from(schema.levels)
+    .innerJoin(schema.programs, and(
+      eq(schema.programs.id, schema.levels.programId),
+      eq(schema.programs.universityId, schema.levels.universityId),
+    ))
     .where(
       and(
         eq(schema.levels.universityId, universityId),
         eq(schema.levels.programId, programId),
         eq(schema.levels.slug, slug),
+        eq(schema.programs.status, "published"),
       ),
     )
     .limit(1);
@@ -168,10 +218,19 @@ export async function getAcademicYearsByLevel(universityId: string, levelId: str
         eq(schema.subjects.universityId, schema.academicYears.universityId),
       ),
     )
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
     .where(
       and(
         eq(schema.subjects.universityId, universityId),
         eq(schema.subjects.levelId, levelId),
+        eq(schema.programs.status, "published"),
       ),
     )
     .orderBy(schema.academicYears.label);
@@ -202,13 +261,22 @@ export async function getSubjectsByLevelAndYear(
 ) {
   await requireStudentUniversityAccess(universityId);
   return db
-    .select()
+    .select(getTableColumns(schema.subjects))
     .from(schema.subjects)
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
     .where(
       and(
         eq(schema.subjects.universityId, universityId),
         eq(schema.subjects.levelId, levelId),
         eq(schema.subjects.academicYearId, academicYearId),
+        eq(schema.programs.status, "published"),
       ),
     )
     .orderBy(schema.subjects.name);
@@ -224,14 +292,23 @@ export async function getSubjectBySlug(
 ) {
   await requireStudentUniversityAccess(universityId);
   const rows = await db
-    .select()
+    .select(getTableColumns(schema.subjects))
     .from(schema.subjects)
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
     .where(
       and(
         eq(schema.subjects.universityId, universityId),
         eq(schema.subjects.levelId, levelId),
         eq(schema.subjects.academicYearId, academicYearId),
         eq(schema.subjects.slug, slug),
+        eq(schema.programs.status, "published"),
       ),
     )
     .limit(1);
@@ -241,13 +318,26 @@ export async function getSubjectBySlug(
 export async function getResourcesBySubject(universityId: string, subjectId: string) {
   await requireStudentUniversityAccess(universityId);
   return db
-    .select()
+    .select(getTableColumns(schema.resources))
     .from(schema.resources)
+    .innerJoin(schema.subjects, and(
+      eq(schema.resources.subjectId, schema.subjects.id),
+      eq(schema.resources.universityId, schema.subjects.universityId),
+    ))
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
     .where(
       and(
         eq(schema.resources.universityId, universityId),
         eq(schema.resources.subjectId, subjectId),
         eq(schema.resources.status, "published"),
+        eq(schema.programs.status, "published"),
       ),
     )
     .orderBy(schema.resources.publishedAt);
@@ -258,13 +348,26 @@ export async function getResourcesBySubject(universityId: string, subjectId: str
 export async function getAssignmentsBySubject(universityId: string, subjectId: string) {
   await requireStudentUniversityAccess(universityId);
   return db
-    .select()
+    .select(getTableColumns(schema.assignments))
     .from(schema.assignments)
+    .innerJoin(schema.subjects, and(
+      eq(schema.assignments.subjectId, schema.subjects.id),
+      eq(schema.assignments.universityId, schema.subjects.universityId),
+    ))
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
     .where(
       and(
         eq(schema.assignments.universityId, universityId),
         eq(schema.assignments.subjectId, subjectId),
         eq(schema.assignments.status, "published"),
+        eq(schema.programs.status, "published"),
       ),
     )
     .orderBy(schema.assignments.dueDate);
