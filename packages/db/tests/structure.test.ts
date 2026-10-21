@@ -3,10 +3,18 @@ import test from "node:test";
 import {
   buildLevelName,
   buildLevelSlug,
+  isProgramStatusValid,
   isShortCodeValid,
   isYearNumberInRange,
   normalizeShortCode,
 } from "../src/structure-validation";
+
+test("program status validation accepts only draft and published", () => {
+  assert.equal(isProgramStatusValid("draft"), true);
+  assert.equal(isProgramStatusValid("published"), true);
+  assert.equal(isProgramStatusValid("archived"), false);
+  assert.equal(isProgramStatusValid(null), false);
+});
 
 test("year number validation accepts only integers within the cycle range", () => {
   assert.equal(isYearNumberInRange(1, 3), true);

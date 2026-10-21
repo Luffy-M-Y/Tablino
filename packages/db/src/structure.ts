@@ -5,6 +5,7 @@ import {
   buildLevelName,
   buildLevelSlug,
   isShortCodeValid,
+  isProgramStatusValid,
   isYearNumberInRange,
   normalizeShortCode,
 } from "./structure-validation";
@@ -33,6 +34,10 @@ export type UpdateCycleShortCodeResult =
       ok: false;
       reason: "cycle_not_found" | "invalid_short_code" | "short_code_taken" | "has_levels";
     };
+
+export type UpdateProgramStatusResult =
+  | { ok: true }
+  | { ok: false; reason: "program_not_found" | "invalid_status" };
 
 function isUniqueConstraintViolation(error: unknown, constraint: string): boolean {
   if (typeof error !== "object" || error === null) return false;
@@ -269,4 +274,40 @@ export async function updateCycleShortCode(
     }
     throw error;
   }
+}
+
+/** Updates a program status after validating its tenant-scoped row. */
+export async function updateProgramStatus(
+  universityId: string,
+  programId: string,
+  newStatus: string,
+): Promise<UpdateProgramStatusResult> {
+  return db.transaction(async (tx) => {
+    if (!isProgramStatusValid(newStatus)) {
+      return { ok: false, reason: "invalid_status" };
+    }
+
+    const [program] = await tx
+      .select({ id: schema.programs.id })
+      .from(schema.programs)
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!program) return { ok: false, reason: "program_not_found" };
+
+    const [updated] = await tx
+      .update(schema.programs)
+      .set({ status: newStatus })
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ))
+      .returning({ id: schema.programs.id });
+
+    return updated ? { ok: true } : { ok: false, reason: "program_not_found" };
+  });
 }

@@ -6,9 +6,11 @@ export {
   updateCycleYearsCount,
   updateCycleShortCode,
   updateLevelYearNumber,
+  updateProgramStatus,
 } from "./structure";
 export {
   isYearNumberInRange,
+  isProgramStatusValid,
   isShortCodeValid,
   normalizeShortCode,
   buildLevelName,
@@ -19,4 +21,5 @@ export type {
   UpdateCycleYearsCountResult,
   UpdateCycleShortCodeResult,
   UpdateLevelYearNumberResult,
+  UpdateProgramStatusResult,
 } from "./structure";

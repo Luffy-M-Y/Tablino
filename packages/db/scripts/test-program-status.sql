@@ -1,13 +1,19 @@
 BEGIN;
 
-DO $$
+DO $test$
+DECLARE
+  invalid_status_rejected boolean := false;
 BEGIN
-  PERFORM 'invalid'::status;
-  RAISE EXCEPTION 'Expected an invalid program status to be rejected';
-EXCEPTION
-  WHEN invalid_text_representation THEN
-    RAISE NOTICE 'Invalid program status rejected';
-END
-$$;
+  BEGIN
+    EXECUTE 'UPDATE programs SET status = ''invalid'' WHERE false';
+  EXCEPTION WHEN invalid_text_representation THEN
+    invalid_status_rejected := true;
+  END;
+
+  IF NOT invalid_status_rejected THEN
+    RAISE EXCEPTION 'Le statut invalide a été accepté';
+  END IF;
+END;
+$test$;
 
 ROLLBACK;
