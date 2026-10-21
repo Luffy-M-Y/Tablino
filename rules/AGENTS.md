@@ -26,6 +26,8 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 
 ## Base de données
 - Supabase. `packages/db/.env` : Session pooler, port 5432 (migrations). `apps/web/.env.local` : Transaction pooler, port 6543.
+- Toute migration utilise le Session pooler, port 5432 ; ne pas utiliser le port 6543 pour les migrations.
+- Base de test autorisée : référence `xblapziuxietpjqewkwh` uniquement. Références interdites : `dmkhqphgxmgsgosvrylx` et `dfrlsuhllzqsqerqzsch`. Vérifier référence et port avant toute opération.
 - Tables : universities, programs, levels, academic_years, subjects, resources (cours), assignments (devoirs), users, accounts, sessions, verification_tokens, subscriptions.
 - Isolation : clés étrangères composites incluant `university_id`. Test : `db:test-isolation` (8 cas, doit rester vert).
 - Statut stocké : `draft` ou `published`. Le statut « disponible / à rendre / expiré » d'un devoir se calcule depuis l'échéance, jamais stocké.
@@ -43,9 +45,11 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 6. Fusion dans `develop` ou `main` : jamais sans mon accord.
 7. Un seul outil écrit du code à la fois.
 8. Montre les erreurs avant de les corriger.
+9. Ne jamais utiliser `git add .` ni `git add -A` ; indexer les chemins explicitement.
+10. `.worktree-develop/` est exclu localement via `.git/info/exclude`.
 
 ## Sécurité
-- Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. `.env*` ignorés par Git : vérifier avec `git status` avant chaque commit.
+- Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. Les fichiers `.env*` ne doivent jamais apparaître dans une capture. Ils sont ignorés par Git : vérifier avec `git status` avant chaque commit.
 - `UNIVERSITY_ID` : variable serveur uniquement, jamais préfixée `NEXT_PUBLIC_`. Point d'entrée unique : `getCurrentUniversityId()`, à remplacer plus tard par l'identification par sous-domaine.
 - Toute requête filtre par `university_id`. Contenu public : uniquement `status = published`.
 - RLS Supabase : à activer sur toutes les tables du schéma public, sans politique (l'application utilise la connexion Postgres directe).
@@ -81,14 +85,12 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. `feat/auth-subdomain`
 
 ## État d'avancement (à mettre à jour après chaque branche)
-- Fait : monorepo, schéma hiérarchique, migrations 0000 et 0001, seed idempotent (UUID fixes), test d'isolation 8/8 — tous commités sur `feat/db-levels-slug`.
+- Fait : monorepo, schéma hiérarchique, migrations 0000 à 0002, seed idempotent (UUID fixes), test d'isolation 8/8 — commités sur `feat/db-levels-slug`.
 - Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
-- Fait : `feat/web-navigation` — layout global, accueil, pages filières/niveaux/années/matières/ressources/devoirs (navigation complète Filière→Niveau→Année→Matière→Ressources|Devoirs), fil d'Ariane, stepper 5 étapes, bouton téléchargement désactivé (« Bientôt disponible », R2 non configuré), bouton Ouvrir pour externalUrl (https uniquement), statut devoir calculé depuis due_date. Build vert sans DATABASE_URL. Push + PR vers `develop` — fusionné.
-- En cours : `feat/db-cycles` — ajout de la hiérarchie Cycle entre Filière et Niveau.
-  - `schema.ts` mis à jour : tables `cycles`, `program_cycles`, enrichissement `levels` (cycle_id, year_number).
-  - Migration `0003_colorful_franklin_richards.sql` générée et corrigée manuellement (colonnes nullable → remplissage → SET NOT NULL). Non appliquée.
-  - Alignement schema/migration vérifié (second db:generate → « No schema changes »).
-  - Scripts de test : `packages/db/scripts/test-cycles-integrity.sql` (6 cas, transactions annulées).
-  - En attente : base jetable fournie par M-Y, puis `pnpm db:migrate`.
-- Ensuite : fusion PR `feat/web-navigation` → `develop`, puis `feat/auth-roles`.
+- Fait : `feat/web-navigation` — navigation Filière→Niveau→Année→Matière→Ressources|Devoirs. Push + PR vers `develop` — fusionné.
+- Fait sur `feat/db-cycles` : schéma `cycles`, `program_cycles` et `levels.cycle_id` / `year_number` ; migration `0003_colorful_franklin_richards.sql` ; seed idempotent des cycles ; pages cours/devoirs groupées par cycle ; garde transactionnel `canReduceYearsCount` dans `packages/db/src/cycles.ts`.
+- Migration 0003 appliquée et vérifiée sur la base de test autorisée. Garde testé sur cette base : 6 cas conformes.
+- Vérifications locales : `pnpm build` et `pnpm exec tsc --noEmit` réussis pour les étapes web et db.
+- Reste pour `feat/db-cycles` : push de la branche et PR vers `develop` (après autorisation).
+- À faire ensuite dans `feat/admin-structure` : supprimer `levels.order` et étendre le garde pour verrouiller aussi les changements de `year_number` d'un niveau existant.
 - En attente : domaine `tablino.com`, compte Cloudflare R2, accord de l'ISCOM pour le pilote, rotation des mots de passe Supabase.
