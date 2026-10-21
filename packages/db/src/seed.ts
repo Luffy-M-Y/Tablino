@@ -4,17 +4,9 @@
  * Usage : pnpm db:seed
  */
 
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import { config } from "dotenv";
-import { resolve } from "path";
 import { and, eq, sql } from "drizzle-orm";
 import * as schema from "./schema";
-
-config({ path: resolve(__dirname, "../.env") });
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool, { schema });
+import { openGuardedDatabase } from "../scripts/_database-guard";
 
 // ── UUID fixes (jamais modifiés) ──────────────────────────────────────────────
 const ID = {
@@ -57,7 +49,7 @@ const CYCLES = [
 ] as const;
 type CycleCode = (typeof CYCLES)[number]["shortCode"];
 
-async function seed() {
+async function seed(db: ReturnType<typeof openGuardedDatabase>["db"]) {
   console.log("🌱 Seed DÉMO — début");
 
   // ── Université ─────────────────────────────────────────────────────────────
@@ -233,11 +225,18 @@ async function seed() {
   console.log("✓ Devoirs : 2 (dont 1 sans fichier)");
 
   console.log("🌱 Seed DÉMO — terminé");
-  await pool.end();
 }
 
-seed().catch((err) => {
-  console.error("❌ Seed échoué :", err);
-  pool.end();
-  process.exit(1);
+async function main() {
+  const { db, pool } = openGuardedDatabase();
+  try {
+    await seed(db);
+  } finally {
+    await pool.end();
+  }
+}
+
+main().catch(() => {
+  console.error("Seed DÉMO refusé.");
+  process.exitCode = 1;
 });

@@ -22,7 +22,6 @@ async function main() {
   let hasFailure = false;
   let guardedDb: DbContext["db"] | undefined;
   let guardPool: DbContext["pool"] | undefined;
-  let mutationPool: (typeof import("../src/client"))["pool"] | undefined;
   let universityId: string | undefined;
   let programId: string | undefined;
   let cycleId: string | undefined;
@@ -48,12 +47,8 @@ async function main() {
     guardedDb = guarded.db;
     guardPool = guarded.pool;
 
-    const [{ updateCycleYearsCount, updateLevelYearNumber, updateCycleShortCode }, client] =
-      await Promise.all([
-        import("../src/structure"),
-        import("../src/client"),
-      ]);
-    mutationPool = client.pool;
+    const { updateCycleYearsCount, updateLevelYearNumber, updateCycleShortCode } =
+      await import("../src/structure");
 
     const [university] = await guardedDb
       .select({ id: schema.universities.id })
@@ -210,7 +205,7 @@ async function main() {
     }
 
     try {
-      await Promise.all([guardPool?.end(), mutationPool?.end()]);
+      await guardPool?.end();
     } catch {
       console.log("ECHEC pool_cleanup");
       hasFailure = true;
