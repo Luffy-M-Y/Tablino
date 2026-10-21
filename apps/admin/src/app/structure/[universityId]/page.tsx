@@ -6,6 +6,7 @@ import {
   updateLevelYearNumberAction,
   updateProgramStatusAction,
 } from "./actions";
+import AdminPage from "@/components/admin-page";
 
 export default async function UniversityStructurePage({
   params,
@@ -14,9 +15,14 @@ export default async function UniversityStructurePage({
   const overview = await getStructureOverview(universityId);
 
   return (
-    <main>
-      <h1>Structure — {overview.university.name}</h1>
-
+    <AdminPage
+      title={overview.university.name}
+      breadcrumbs={[
+        { label: "Accueil", href: "/" },
+        { label: "Structure", href: "/structure" },
+        { label: overview.university.name },
+      ]}
+    >
       <section aria-labelledby="programs-heading">
         <h2 id="programs-heading">Filières</h2>
         {overview.programs.length === 0 ? (
@@ -134,6 +140,6 @@ export default async function UniversityStructurePage({
           </ul>
         )}
       </section>
-    </main>
+    </AdminPage>
   );
 }

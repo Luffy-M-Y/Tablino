@@ -3,6 +3,7 @@ import { forbidden, redirect } from "next/navigation";
 import { requireAdminAccess } from "@/lib/authorization";
 import { getStructureUniversities } from "@/lib/structure-queries";
 import { requireUniversityAccess } from "@tablino/auth";
+import AdminPage from "@/components/admin-page";
 
 export default async function StructurePage() {
   const user = await requireAdminAccess();
@@ -14,8 +15,10 @@ export default async function StructurePage() {
 
   const universities = await getStructureUniversities();
   return (
-    <main>
-      <h1>Structure</h1>
+    <AdminPage
+      title="Structure"
+      breadcrumbs={[{ label: "Accueil", href: "/" }, { label: "Structure" }]}
+    >
       {universities.length === 0 ? (
         <p>Aucune université.</p>
       ) : (
@@ -27,6 +30,6 @@ export default async function StructurePage() {
           ))}
         </ul>
       )}
-    </main>
+    </AdminPage>
   );
 }
