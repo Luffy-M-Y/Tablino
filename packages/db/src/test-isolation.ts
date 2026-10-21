@@ -1,187 +1,223 @@
-/**
- * TEST D'ISOLATION — FK composites university_id
- * Transaction globale annulée → aucun effet permanent.
- * SAVEPOINT par test → les tests suivants ne sont pas contaminés par un échec précédent.
- * Vérification stricte : e.code === "23503" ET e.constraint === nom attendu.
- */
-
+import { randomUUID } from "node:crypto";
+import type { PoolClient } from "pg";
 import { openGuardedDatabase } from "../scripts/_database-guard";
 
-if (process.env.NODE_ENV !== "development") {
-  console.error("❌ db:test-isolation ne s'exécute qu'en NODE_ENV=development");
-  process.exit(1);
-}
+type CaseResult = { name: string; passed: boolean };
 
-// UUIDs fixes du seed
-const DEMO = {
-  university:  "d0000000-0000-0000-0000-000000000001",
-  l1Info:      "d0000000-0000-0000-0000-000000000004",
-  year2425:    "d0000000-0000-0000-0000-000000000009",
-  subAlgo:     "d0000000-0000-0000-0000-000000000010",
-  scanner:     "d0000000-0000-0000-0000-000000000013",
-  progInfo:    "d0000000-0000-0000-0000-000000000002",
-};
-
-// UUIDs temporaires pour université B (dans la transaction)
-const B = {
-  university: "ffffffff-0000-0000-0000-000000000001",
-  program:    "ffffffff-0000-0000-0000-000000000002",
-  level:      "ffffffff-0000-0000-0000-000000000003",
-  year:       "ffffffff-0000-0000-0000-000000000004",
-  subject:    "ffffffff-0000-0000-0000-000000000005",
-};
-
-type TestResult = { name: string; passed: boolean; detail: string };
-
-async function runTest(
-  client: any,
+async function expectConstraint(
+  client: PoolClient,
   name: string,
   expectedConstraint: string,
-  fn: () => Promise<unknown>
-): Promise<TestResult> {
-  await client.query(`SAVEPOINT t`);
+  query: string,
+  values: unknown[],
+): Promise<CaseResult> {
+  const savepoint = `case_${randomUUID().replaceAll("-", "")}`;
+  await client.query(`SAVEPOINT ${savepoint}`);
+  let passed = false;
+
   try {
-    await fn();
-    await client.query(`RELEASE SAVEPOINT t`);
-    return { name, passed: false, detail: "❌ Insertion acceptée (attendu : rejet)" };
-  } catch (e: any) {
-    await client.query(`ROLLBACK TO SAVEPOINT t`);
-    if (e.code === "23503" && e.constraint === expectedConstraint) {
-      return { name, passed: true, detail: `✅ Rejeté — constraint: ${e.constraint}` };
-    }
-    return {
-      name, passed: false,
-      detail: `❌ Rejet pour mauvaise raison — code: ${e.code ?? "?"}, constraint: ${e.constraint ?? "?"} (attendu: 23503 / ${expectedConstraint})`,
-    };
+    await client.query(query, values);
+  } catch (error) {
+    const dbError = error as { code?: string; constraint?: string };
+    passed =
+      dbError.code === "23503" && dbError.constraint === expectedConstraint;
+  } finally {
+    await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+    await client.query(`RELEASE SAVEPOINT ${savepoint}`);
   }
+
+  return { name, passed };
 }
 
-async function runWitness(
-  client: any,
+async function expectAccepted(
+  client: PoolClient,
   name: string,
-  fn: () => Promise<unknown>
-): Promise<TestResult> {
-  await client.query(`SAVEPOINT t`);
+  query: string,
+  values: unknown[],
+): Promise<CaseResult> {
+  const savepoint = `case_${randomUUID().replaceAll("-", "")}`;
+  await client.query(`SAVEPOINT ${savepoint}`);
+
   try {
-    await fn();
-    await client.query(`RELEASE SAVEPOINT t`);
-    return { name, passed: true, detail: "✅ Insertion acceptée" };
-  } catch (e: any) {
-    await client.query(`ROLLBACK TO SAVEPOINT t`);
-    return { name, passed: false, detail: `❌ Rejetée (attendu : acceptée) — ${e.message?.split("\n")[0]}` };
+    await client.query(query, values);
+    await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+    return { name, passed: true };
+  } catch {
+    await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+    await client.query(`RELEASE SAVEPOINT ${savepoint}`);
+    return { name, passed: false };
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const { pool } = openGuardedDatabase();
-  const client = await pool.connect();
-  const results: TestResult[] = [];
+  let client: PoolClient | undefined;
+  let transactionStarted = false;
 
   try {
+    client = await pool.connect();
     await client.query("BEGIN");
+    transactionStarted = true;
 
-    // ── Setup : université B ───────────────────────────────────────────────
-    await client.query(`INSERT INTO universities (id, name, slug) VALUES ($1, '[TEST] Univ B', 'test-univ-b')`, [B.university]);
-    await client.query(`INSERT INTO programs (id, university_id, name, slug) VALUES ($1, $2, '[TEST] Prog B', 'test-prog-b')`, [B.program, B.university]);
-    await client.query(`INSERT INTO levels (id, university_id, program_id, name, slug, "order") VALUES ($1, $2, $3, 'L1', 'l1', 1)`, [B.level, B.university, B.program]);
-    await client.query(`INSERT INTO academic_years (id, university_id, label) VALUES ($1, $2, '2099-2100')`, [B.year, B.university]);
+    const universityA = randomUUID();
+    const universityB = randomUUID();
+    const programA = randomUUID();
+    const programB = randomUUID();
+    const cycleA = randomUUID();
+    const cycleB = randomUUID();
+    const unlinkedCycleA = randomUUID();
+
     await client.query(
-      `INSERT INTO subjects (id, university_id, level_id, academic_year_id, name, slug) VALUES ($1, $2, $3, $4, '[TEST] Matière B', 'test-matiere-b')`,
-      [B.subject, B.university, B.level, B.year]
+      "INSERT INTO universities (id, name, slug) VALUES ($1, $2, $3), ($4, $5, $6)",
+      [
+        universityA,
+        "Isolation University A",
+        `isolation-a-${universityA}`,
+        universityB,
+        "Isolation University B",
+        `isolation-b-${universityB}`,
+      ],
+    );
+    await client.query(
+      "INSERT INTO programs (id, university_id, name, slug) VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)",
+      [
+        programA,
+        universityA,
+        "Isolation Program A",
+        `isolation-program-a-${programA}`,
+        programB,
+        universityB,
+        "Isolation Program B",
+        `isolation-program-b-${programB}`,
+      ],
+    );
+    await client.query(
+      "INSERT INTO cycles (id, university_id, short_code, name, years_count, \"order\") VALUES ($1, $2, $3, $4, $5, $6), ($7, $8, $9, $10, $11, $12), ($13, $14, $15, $16, $17, $18)",
+      [
+        cycleA,
+        universityA,
+        "TA",
+        "Test Cycle A",
+        3,
+        1,
+        cycleB,
+        universityB,
+        "TB",
+        "Test Cycle B",
+        3,
+        1,
+        unlinkedCycleA,
+        universityA,
+        "TC",
+        "Unlinked Test Cycle A",
+        3,
+        2,
+      ],
     );
 
-    // ── TEST 1 : subject(univA) + level(univB) → rejeté ───────────────────
-    results.push(await runTest(client,
-      "TEST 1 : subject(univA) + level(univB)",
-      "subjects_level_university_fk",
-      () => client.query(
-        `INSERT INTO subjects (university_id, level_id, academic_year_id, name, slug) VALUES ($1, $2, $3, '[TEST] Invalide 1', 'test-invalide-1')`,
-        [DEMO.university, B.level, DEMO.year2425]
-      )
-    ));
+    const programCycleInsert =
+      "INSERT INTO program_cycles (university_id, program_id, cycle_id) VALUES ($1, $2, $3)";
+    const levelInsert =
+      "INSERT INTO levels (university_id, program_id, cycle_id, name, slug, year_number) VALUES ($1, $2, $3, $4, $5, $6)";
+    const results: CaseResult[] = [];
 
-    // ── TEST 2 : subject(univA) + academic_year(univB) → rejeté ──────────
-    results.push(await runTest(client,
-      "TEST 2 : subject(univA) + academic_year(univB)",
-      "subjects_year_university_fk",
-      () => client.query(
-        `INSERT INTO subjects (university_id, level_id, academic_year_id, name, slug) VALUES ($1, $2, $3, '[TEST] Invalide 2', 'test-invalide-2')`,
-        [DEMO.university, DEMO.l1Info, B.year]
-      )
-    ));
+    results.push(
+      await expectAccepted(
+        client,
+        "program_cycle_A_A_accepted",
+        programCycleInsert,
+        [universityA, programA, cycleA],
+      ),
+    );
+    results.push(
+      await expectAccepted(
+        client,
+        "program_cycle_B_B_accepted",
+        programCycleInsert,
+        [universityB, programB, cycleB],
+      ),
+    );
+    results.push(
+      await expectConstraint(
+        client,
+        "level_A_program_A_cycle_B_rejected",
+        "levels_cycle_university_fk",
+        levelInsert,
+        [universityA, programA, cycleB, "TB1", `tb1-${programA}`, 1],
+      ),
+    );
+    results.push(
+      await expectConstraint(
+        client,
+        "level_A_without_program_cycle_rejected",
+        "levels_program_cycle_fk",
+        levelInsert,
+        [
+          universityA,
+          programA,
+          unlinkedCycleA,
+          "TC1",
+          `tc1-${programA}`,
+          1,
+        ],
+      ),
+    );
+    results.push(
+      await expectConstraint(
+        client,
+        "program_cycle_program_A_cycle_B_rejected",
+        "program_cycles_program_fk",
+        programCycleInsert,
+        [universityB, programA, cycleB],
+      ),
+    );
+    results.push(
+      await expectConstraint(
+        client,
+        "program_cycle_university_A_cycle_B_rejected",
+        "program_cycles_cycle_fk",
+        programCycleInsert,
+        [universityA, programA, cycleB],
+      ),
+    );
+    results.push(
+      await expectAccepted(
+        client,
+        "level_A_program_A_cycle_A_accepted",
+        levelInsert,
+        [universityA, programA, cycleA, "TA1", `ta1-${programA}`, 1],
+      ),
+    );
+    results.push(
+      await expectAccepted(
+        client,
+        "level_B_program_B_cycle_B_accepted",
+        levelInsert,
+        [universityB, programB, cycleB, "TB1", `tb1-${programB}`, 1],
+      ),
+    );
 
-    // ── TEST 3 : resource(univA) + subject(univB) → rejeté ───────────────
-    results.push(await runTest(client,
-      "TEST 3 : resource(univA) + subject(univB)",
-      "resources_subject_university_fk",
-      () => client.query(
-        `INSERT INTO resources (university_id, subject_id, uploaded_by, title, format, status) VALUES ($1, $2, $3, '[TEST] Invalide 3', 'pdf', 'draft')`,
-        [DEMO.university, B.subject, DEMO.scanner]
-      )
-    ));
+    for (const result of results) {
+      process.stdout.write(`${result.passed ? "OK" : "ECHEC"} ${result.name}\n`);
+    }
 
-    // ── TEST 4 : assignment(univA) + subject(univB) → rejeté ─────────────
-    results.push(await runTest(client,
-      "TEST 4 : assignment(univA) + subject(univB)",
-      "assignments_subject_university_fk",
-      () => client.query(
-        `INSERT INTO assignments (university_id, subject_id, uploaded_by, title, status) VALUES ($1, $2, $3, '[TEST] Invalide 4', 'draft')`,
-        [DEMO.university, B.subject, DEMO.scanner]
-      )
-    ));
-
-    // ── TEST 5 : insertion cohérente subject(univA) → acceptée ───────────
-    results.push(await runWitness(client,
-      "TEST 5 (témoin) : subject cohérent univA",
-      () => client.query(
-        `INSERT INTO subjects (university_id, level_id, academic_year_id, name, slug) VALUES ($1, $2, $3, '[TEST] Valide', 'test-valide')`,
-        [DEMO.university, DEMO.l1Info, DEMO.year2425]
-      )
-    ));
-
-    // ── TEST 6 : level(univA) + program(univB) → rejeté ──────────────────
-    results.push(await runTest(client,
-      "TEST 6 : level(univA) + program(univB)",
-      "levels_program_university_fk",
-      () => client.query(
-        `INSERT INTO levels (university_id, program_id, name, slug, "order") VALUES ($1, $2, 'L3', 'l3', 3)`,
-        [DEMO.university, B.program]
-      )
-    ));
-
-    // ── TÉMOIN resource valide ────────────────────────────────────────────
-    results.push(await runWitness(client,
-      "TÉMOIN : resource cohérente univA",
-      () => client.query(
-        `INSERT INTO resources (university_id, subject_id, uploaded_by, title, format, status) VALUES ($1, $2, $3, '[TEST] Resource valide', 'pdf', 'draft')`,
-        [DEMO.university, DEMO.subAlgo, DEMO.scanner]
-      )
-    ));
-
-    // ── TÉMOIN assignment valide ──────────────────────────────────────────
-    results.push(await runWitness(client,
-      "TÉMOIN : assignment cohérent univA",
-      () => client.query(
-        `INSERT INTO assignments (university_id, subject_id, uploaded_by, title, status) VALUES ($1, $2, $3, '[TEST] Assignment valide', 'draft')`,
-        [DEMO.university, DEMO.subAlgo, DEMO.scanner]
-      )
-    ));
-
+    if (results.some(({ passed }) => !passed)) {
+      process.exitCode = 1;
+    }
+  } catch {
+    process.stdout.write("ECHEC isolation_test_setup_or_execution\n");
+    process.exitCode = 1;
   } finally {
-    await client.query("ROLLBACK");
-    console.log("🔄 Transaction annulée — aucune donnée modifiée\n");
-    client.release();
+    if (client && transactionStarted) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        process.exitCode = 1;
+      }
+    }
+    client?.release();
     await pool.end();
   }
-
-  // ── Résultats ─────────────────────────────────────────────────────────────
-  let passed = 0;
-  for (const r of results) {
-    console.log(`${r.name}\n  ${r.detail}`);
-    if (r.passed) passed++;
-  }
-  console.log(`\n${passed}/${results.length} tests passés`);
-  if (passed < results.length) process.exit(1);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+void main();
