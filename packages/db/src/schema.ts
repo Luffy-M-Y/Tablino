@@ -1,7 +1,8 @@
 import {
   pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean,
-  unique, index, foreignKey,
+  unique, index, foreignKey, check, primaryKey,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,65 @@ export const programs = pgTable("programs", {
   index("programs_university_idx").on(t.universityId),
 ]).enableRLS();
 
+// ─── Cycles (Licence, Master, Doctorat…) ─────────────────────────────────────
+// years_count : nombre d'années du cycle, configurable par université (1–10).
+// short_code  : préfixe des niveaux (L, M, D…). Lettres uniquement.
+//               Immuable si des niveaux existent (décision finale feat/admin-structure).
+// name        : nom du cycle (ex. "Licence"). Jamais généré automatiquement.
+// Ordre d'affichage : cycle.order ASC, puis level.year_number ASC.
+
+export const cycles = pgTable("cycles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  shortCode: varchar("short_code", { length: 10 }).notNull(),
+  yearsCount: integer("years_count").notNull(),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  unique("cycles_id_university_uq").on(t.id, t.universityId),
+  unique("cycles_university_short_code_uq").on(t.universityId, t.shortCode),
+  index("cycles_university_idx").on(t.universityId),
+  check("cycles_years_count_range", sql`${t.yearsCount} >= 1 AND ${t.yearsCount} <= 10`),
+  check("cycles_short_code_letters", sql`${t.shortCode} ~ '^[A-Za-z]+$'`),
+]).enableRLS();
+
+// ─── Program Cycles (filière ↔ cycles proposés) ───────────────────────────────
+// Une filière déclare les cycles qu'elle propose.
+// Une filière sans cycle est autorisée en base.
+// Suppression d'un program_cycles refusée si des niveaux y sont rattachés
+// (levels_program_cycle_fk ON DELETE NO ACTION).
+
+export const programCycles = pgTable("program_cycles", {
+  programId: uuid("program_id").notNull(),
+  universityId: uuid("university_id").notNull(),
+  cycleId: uuid("cycle_id").notNull(),
+}, (t) => [
+  primaryKey({ name: "program_cycles_pk", columns: [t.programId, t.cycleId] }),
+  foreignKey({
+    name: "program_cycles_program_fk",
+    columns: [t.programId, t.universityId],
+    foreignColumns: [programs.id, programs.universityId],
+  }).onDelete("cascade"),
+  foreignKey({
+    name: "program_cycles_cycle_fk",
+    columns: [t.cycleId, t.universityId],
+    foreignColumns: [cycles.id, cycles.universityId],
+  }).onDelete("cascade"),
+  index("program_cycles_university_idx").on(t.universityId),
+]).enableRLS();
+
 // ─── Levels (niveaux : L1, L2, M1…) ──────────────────────────────────────────
+// name       : généré = cycles.short_code + year_number (ex. "L1"). Jamais libre.
+// slug       : short_code.toLowerCase() + year_number (ex. "l1").
+// order      : conservé NOT NULL — tri legacy et compatibilité apps/web.
+//              Sera supprimé dans une migration ultérieure (feat/admin-structure).
+//              Seed et scripts doivent le renseigner.
+// year_number : CHECK >= 1. Cohérence avec cycles.years_count vérifiée applicativement.
+// levels_cycle_university_fk  : ON DELETE NO ACTION (vérifié en fin d'instruction).
+// levels_program_cycle_fk     : ON DELETE NO ACTION (idem).
 
 export const levels = pgTable("levels", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -44,21 +103,35 @@ export const levels = pgTable("levels", {
     .references(() => universities.id, { onDelete: "cascade" })
     .notNull(),
   programId: uuid("program_id").notNull(),
+  cycleId: uuid("cycle_id").notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull(),
+  yearNumber: integer("year_number").notNull(),
   order: integer("order").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  // FK composite : garantit que program appartient à la même université
   foreignKey({
     name: "levels_program_university_fk",
     columns: [t.programId, t.universityId],
     foreignColumns: [programs.id, programs.universityId],
   }).onDelete("cascade"),
+  foreignKey({
+    name: "levels_cycle_university_fk",
+    columns: [t.cycleId, t.universityId],
+    foreignColumns: [cycles.id, cycles.universityId],
+  }).onDelete("no action"),
+  foreignKey({
+    name: "levels_program_cycle_fk",
+    columns: [t.programId, t.cycleId],
+    foreignColumns: [programCycles.programId, programCycles.cycleId],
+  }).onDelete("no action"),
   unique("levels_id_university_uq").on(t.id, t.universityId),
   unique("levels_program_slug_uq").on(t.programId, t.slug),
+  unique("levels_program_cycle_year_uq").on(t.programId, t.cycleId, t.yearNumber),
   index("levels_university_idx").on(t.universityId),
   index("levels_program_idx").on(t.programId),
+  index("levels_cycle_idx").on(t.cycleId),
+  check("levels_year_number_min", sql`${t.yearNumber} >= 1`),
 ]).enableRLS();
 
 // ─── Academic Years ───────────────────────────────────────────────────────────
@@ -91,13 +164,11 @@ export const subjects = pgTable("subjects", {
   slug: varchar("slug", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  // FK composite : garantit que level appartient à la même université
   foreignKey({
     name: "subjects_level_university_fk",
     columns: [t.levelId, t.universityId],
     foreignColumns: [levels.id, levels.universityId],
   }).onDelete("cascade"),
-  // FK composite : garantit que academic_year appartient à la même université
   foreignKey({
     name: "subjects_year_university_fk",
     columns: [t.academicYearId, t.universityId],
@@ -111,7 +182,6 @@ export const subjects = pgTable("subjects", {
 ]).enableRLS();
 
 // ─── Resources (cours) ────────────────────────────────────────────────────────
-// file_key nullable pour les ressources de type "link"
 
 export const resources = pgTable("resources", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -131,7 +201,6 @@ export const resources = pgTable("resources", {
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  // FK composite : garantit que subject appartient à la même université
   foreignKey({
     name: "resources_subject_university_fk",
     columns: [t.subjectId, t.universityId],
@@ -143,8 +212,6 @@ export const resources = pgTable("resources", {
 ]).enableRLS();
 
 // ─── Assignments (devoirs) ────────────────────────────────────────────────────
-// Statut : draft | published uniquement.
-// "disponible / à rendre / expiré" se calcule depuis due_date côté applicatif.
 
 export const assignments = pgTable("assignments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -164,7 +231,6 @@ export const assignments = pgTable("assignments", {
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  // FK composite : garantit que subject appartient à la même université
   foreignKey({
     name: "assignments_subject_university_fk",
     columns: [t.subjectId, t.universityId],

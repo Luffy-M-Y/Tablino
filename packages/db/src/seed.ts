@@ -8,7 +8,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { config } from "dotenv";
 import { resolve } from "path";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import * as schema from "./schema";
 
 config({ path: resolve(__dirname, "../.env") });
@@ -25,6 +25,18 @@ const ID = {
   l2Info:      "d0000000-0000-0000-0000-000000000005",
   l1Gestion:   "d0000000-0000-0000-0000-000000000006",
   l2Gestion:   "d0000000-0000-0000-0000-000000000007",
+  l3Info:      "d0000000-0000-0000-0000-000000000019",
+  m1Info:      "d0000000-0000-0000-0000-000000000020",
+  m2Info:      "d0000000-0000-0000-0000-000000000021",
+  d1Info:      "d0000000-0000-0000-0000-000000000022",
+  d2Info:      "d0000000-0000-0000-0000-000000000023",
+  d3Info:      "d0000000-0000-0000-0000-000000000024",
+  l3Gestion:   "d0000000-0000-0000-0000-000000000025",
+  m1Gestion:   "d0000000-0000-0000-0000-000000000026",
+  m2Gestion:   "d0000000-0000-0000-0000-000000000027",
+  d1Gestion:   "d0000000-0000-0000-0000-000000000028",
+  d2Gestion:   "d0000000-0000-0000-0000-000000000029",
+  d3Gestion:   "d0000000-0000-0000-0000-000000000030",
   year2324:    "d0000000-0000-0000-0000-000000000008",
   year2425:    "d0000000-0000-0000-0000-000000000009",
   subAlgo:     "d0000000-0000-0000-0000-000000000010",
@@ -37,6 +49,20 @@ const ID = {
   asgn1:       "d0000000-0000-0000-0000-000000000017",
   asgn2:       "d0000000-0000-0000-0000-000000000018",
 };
+
+const CYCLES = [
+  { shortCode: "L", name: "Licence", yearsCount: 3, order: 1 },
+  { shortCode: "M", name: "Master", yearsCount: 2, order: 2 },
+  { shortCode: "D", name: "Doctorat", yearsCount: 3, order: 3 },
+] as const;
+type CycleCode = (typeof CYCLES)[number]["shortCode"];
+
+const cycleOrderOffsets = new Map<CycleCode, number>();
+let nextLevelOrder = 0;
+for (const cycle of CYCLES) {
+  cycleOrderOffsets.set(cycle.shortCode, nextLevelOrder);
+  nextLevelOrder += cycle.yearsCount;
+}
 
 async function seed() {
   console.log("🌱 Seed DÉMO — début");
@@ -56,16 +82,88 @@ async function seed() {
     .onConflictDoUpdate({ target: schema.programs.id, set: { name: schema.programs.name, slug: schema.programs.slug } });
   console.log("✓ Filières");
 
-  // ── Niveaux ────────────────────────────────────────────────────────────────
+  // -- Cycles -----------------------------------------------------------------
+  const cycleIds = {} as Record<CycleCode, string>;
+  for (const cycle of CYCLES) {
+    await db.insert(schema.cycles)
+      .values({ universityId: ID.university, ...cycle })
+      .onConflictDoUpdate({
+        target: [schema.cycles.universityId, schema.cycles.shortCode],
+        set: { name: cycle.name, yearsCount: cycle.yearsCount, order: cycle.order },
+      });
+
+    const [storedCycle] = await db.select({ id: schema.cycles.id })
+      .from(schema.cycles)
+      .where(and(
+        eq(schema.cycles.universityId, ID.university),
+        eq(schema.cycles.shortCode, cycle.shortCode),
+      ))
+      .limit(1);
+    if (!storedCycle) throw new Error(`Cycle ${cycle.shortCode} introuvable apres upsert`);
+    cycleIds[cycle.shortCode] = storedCycle.id;
+  }
+  console.log("\u2713 Cycles");
+
+  // -- Cycle associations for demo programs ----------------------------------
+  const programCycleRows = [ID.progInfo, ID.progGestion].flatMap((programId) =>
+    CYCLES.map((cycle) => ({
+      programId,
+      universityId: ID.university,
+      cycleId: cycleIds[cycle.shortCode],
+    })),
+  );
+  await db.insert(schema.programCycles)
+    .values(programCycleRows)
+    .onConflictDoUpdate({
+      target: [schema.programCycles.programId, schema.programCycles.cycleId],
+      set: { universityId: ID.university },
+    });
+  console.log("\u2713 Cycles des filieres");
+
+  // -- Levels ----------------------------------------------------------------
+  const levelSeeds = [
+    { id: ID.l1Info, programId: ID.progInfo, cycleCode: "L", yearNumber: 1 },
+    { id: ID.l2Info, programId: ID.progInfo, cycleCode: "L", yearNumber: 2 },
+    { id: ID.l3Info, programId: ID.progInfo, cycleCode: "L", yearNumber: 3 },
+    { id: ID.m1Info, programId: ID.progInfo, cycleCode: "M", yearNumber: 1 },
+    { id: ID.m2Info, programId: ID.progInfo, cycleCode: "M", yearNumber: 2 },
+    { id: ID.d1Info, programId: ID.progInfo, cycleCode: "D", yearNumber: 1 },
+    { id: ID.d2Info, programId: ID.progInfo, cycleCode: "D", yearNumber: 2 },
+    { id: ID.d3Info, programId: ID.progInfo, cycleCode: "D", yearNumber: 3 },
+    { id: ID.l1Gestion, programId: ID.progGestion, cycleCode: "L", yearNumber: 1 },
+    { id: ID.l2Gestion, programId: ID.progGestion, cycleCode: "L", yearNumber: 2 },
+    { id: ID.l3Gestion, programId: ID.progGestion, cycleCode: "L", yearNumber: 3 },
+    { id: ID.m1Gestion, programId: ID.progGestion, cycleCode: "M", yearNumber: 1 },
+    { id: ID.m2Gestion, programId: ID.progGestion, cycleCode: "M", yearNumber: 2 },
+    { id: ID.d1Gestion, programId: ID.progGestion, cycleCode: "D", yearNumber: 1 },
+    { id: ID.d2Gestion, programId: ID.progGestion, cycleCode: "D", yearNumber: 2 },
+    { id: ID.d3Gestion, programId: ID.progGestion, cycleCode: "D", yearNumber: 3 },
+  ] as const;
+
   await db.insert(schema.levels)
-    .values([
-      { id: ID.l1Info,    universityId: ID.university, programId: ID.progInfo,    name: "L1", slug: "l1", order: 1 },
-      { id: ID.l2Info,    universityId: ID.university, programId: ID.progInfo,    name: "L2", slug: "l2", order: 2 },
-      { id: ID.l1Gestion, universityId: ID.university, programId: ID.progGestion, name: "L1", slug: "l1", order: 1 },
-      { id: ID.l2Gestion, universityId: ID.university, programId: ID.progGestion, name: "L2", slug: "l2", order: 2 },
-    ])
-    .onConflictDoUpdate({ target: schema.levels.id, set: { name: schema.levels.name, slug: schema.levels.slug, order: schema.levels.order } });
-  console.log("✓ Niveaux");
+    .values(levelSeeds.map((level) => ({
+      id: level.id,
+      universityId: ID.university,
+      programId: level.programId,
+      cycleId: cycleIds[level.cycleCode],
+      name: `${level.cycleCode}${level.yearNumber}`,
+      slug: `${level.cycleCode.toLowerCase()}${level.yearNumber}`,
+      yearNumber: level.yearNumber,
+      order: (cycleOrderOffsets.get(level.cycleCode) ?? 0) + level.yearNumber,
+    })))
+    .onConflictDoUpdate({
+      target: schema.levels.id,
+      set: {
+        universityId: sql`excluded.university_id`,
+        programId: sql`excluded.program_id`,
+        cycleId: sql`excluded.cycle_id`,
+        name: sql`excluded.name`,
+        slug: sql`excluded.slug`,
+        yearNumber: sql`excluded.year_number`,
+        order: sql`excluded."order"`,
+      },
+    });
+  console.log("\u2713 Niveaux");
 
   // ── Années académiques ─────────────────────────────────────────────────────
   await db.insert(schema.academicYears)
