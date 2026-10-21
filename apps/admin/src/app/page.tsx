@@ -9,11 +9,9 @@ import { getStructureUniversities } from "@/lib/structure-queries";
 const COUNT_LABELS = [
   ["programs", "Filières"],
   ["cycles", "Cycles"],
-  ["levels", "Niveaux"],
-  ["academicYears", "Années académiques"],
   ["subjects", "Matières"],
-  ["resources", "Ressources"],
-  ["assignments", "Devoirs"],
+  ["resources", "Ressources publiées"],
+  ["assignments", "Devoirs publiés"],
 ] as const;
 
 export default async function HomePage({
@@ -77,7 +75,7 @@ export default async function HomePage({
           {selectedUniversity ? `Compteurs — ${selectedUniversity.name}` : "Compteurs"}
         </h2>
         {counts ? (
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-7">
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
             {COUNT_LABELS.map(([key, label]) => (
               <div
                 key={key}
