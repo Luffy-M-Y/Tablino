@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, db, eq, schema } from "@tablino/db";
+import { and, asc, db, eq, schema } from "@tablino/db";
 import {
   AuthorizationDeniedError,
   requireRole,
@@ -69,10 +69,16 @@ export async function getStructureOverview(universityId: string) {
     db.select({
       id: schema.levels.id,
       cycleId: schema.levels.cycleId,
+      programId: schema.levels.programId,
+      programName: schema.programs.name,
       name: schema.levels.name,
       slug: schema.levels.slug,
       yearNumber: schema.levels.yearNumber,
     }).from(schema.levels)
+      .innerJoin(schema.programs, and(
+        eq(schema.programs.id, schema.levels.programId),
+        eq(schema.programs.universityId, universityId),
+      ))
       .where(eq(schema.levels.universityId, universityId))
       .orderBy(asc(schema.levels.yearNumber)),
     db.select({
@@ -88,7 +94,12 @@ export async function getStructureOverview(universityId: string) {
       levelId: schema.subjects.levelId,
       name: schema.subjects.name,
       slug: schema.subjects.slug,
+      academicYearLabel: schema.academicYears.label,
     }).from(schema.subjects)
+      .innerJoin(schema.academicYears, and(
+        eq(schema.academicYears.id, schema.subjects.academicYearId),
+        eq(schema.academicYears.universityId, universityId),
+      ))
       .where(eq(schema.subjects.universityId, universityId))
       .orderBy(asc(schema.subjects.name)),
   ]);

@@ -41,11 +41,13 @@ export default async function UniversityStructurePage({
                   <ul>
                     {cycle.levels.map((level) => (
                       <li key={level.id}>
-                        {level.name}
+                        {level.programName} — {level.name}
                         {level.subjects.length > 0 && (
                           <ul aria-label={`Matières de ${level.name}`}>
                             {level.subjects.map((subject) => (
-                              <li key={subject.id}>{subject.name}</li>
+                              <li key={subject.id}>
+                                {subject.name} ({subject.academicYearLabel})
+                              </li>
                             ))}
                           </ul>
                         )}

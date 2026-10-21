@@ -3,6 +3,7 @@ export type StructureSubject = {
   name: string;
   slug: string;
   levelId: string;
+  academicYearLabel: string;
 };
 
 export type StructureLevel = {
@@ -11,6 +12,8 @@ export type StructureLevel = {
   slug: string;
   cycleId: string;
   yearNumber: number;
+  programId: string;
+  programName: string;
   subjects: StructureSubject[];
 };
 
