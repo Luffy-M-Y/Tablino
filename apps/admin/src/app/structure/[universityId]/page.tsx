@@ -1,4 +1,11 @@
 import { getStructureOverview } from "@/lib/structure-queries";
+import { StructureActionForm } from "./structure-action-form";
+import {
+  updateCycleShortCodeAction,
+  updateCycleYearsCountAction,
+  updateLevelYearNumberAction,
+  updateProgramStatusAction,
+} from "./actions";
 
 export default async function UniversityStructurePage({
   params,
@@ -18,7 +25,16 @@ export default async function UniversityStructurePage({
           <ul>
             {overview.programs.map((program) => (
               <li key={program.id}>
-                {program.name} <span>({program.status})</span>
+                <p>{program.name} <span>({program.status})</span></p>
+                <StructureActionForm action={updateProgramStatusAction} buttonLabel="Enregistrer le statut">
+                  <input type="hidden" name="universityId" value={universityId} />
+                  <input type="hidden" name="programId" value={program.id} />
+                  <label htmlFor={`program-status-${program.id}`}>Statut de la filière</label>
+                  <select id={`program-status-${program.id}`} name="status" defaultValue={program.status} required>
+                    <option value="draft">Brouillon</option>
+                    <option value="published">Publiée</option>
+                  </select>
+                </StructureActionForm>
               </li>
             ))}
           </ul>
@@ -35,6 +51,36 @@ export default async function UniversityStructurePage({
               <li key={cycle.id}>
                 <h3>{cycle.name} ({cycle.shortCode})</h3>
                 <p>{cycle.yearsCount} ans</p>
+                <StructureActionForm action={updateCycleYearsCountAction} buttonLabel="Enregistrer la durée">
+                  <input type="hidden" name="universityId" value={universityId} />
+                  <input type="hidden" name="cycleId" value={cycle.id} />
+                  <label htmlFor={`cycle-years-${cycle.id}`}>Nombre d’années</label>
+                  <input
+                    id={`cycle-years-${cycle.id}`}
+                    name="yearsCount"
+                    type="number"
+                    min={1}
+                    max={10}
+                    step={1}
+                    defaultValue={cycle.yearsCount}
+                    required
+                  />
+                </StructureActionForm>
+                <StructureActionForm action={updateCycleShortCodeAction} buttonLabel="Enregistrer le code">
+                  <input type="hidden" name="universityId" value={universityId} />
+                  <input type="hidden" name="cycleId" value={cycle.id} />
+                  <label htmlFor={`cycle-code-${cycle.id}`}>Code court</label>
+                  <input
+                    id={`cycle-code-${cycle.id}`}
+                    name="shortCode"
+                    type="text"
+                    minLength={1}
+                    maxLength={10}
+                    pattern="[A-Za-z]{1,10}"
+                    defaultValue={cycle.shortCode}
+                    required
+                  />
+                </StructureActionForm>
                 {cycle.levels.length === 0 ? (
                   <p>Aucun niveau.</p>
                 ) : (
@@ -42,6 +88,21 @@ export default async function UniversityStructurePage({
                     {cycle.levels.map((level) => (
                       <li key={level.id}>
                         {level.programName} — {level.name}
+                        <StructureActionForm action={updateLevelYearNumberAction} buttonLabel="Enregistrer l’année">
+                          <input type="hidden" name="universityId" value={universityId} />
+                          <input type="hidden" name="levelId" value={level.id} />
+                          <label htmlFor={`level-year-${level.id}`}>Année du niveau</label>
+                          <input
+                            id={`level-year-${level.id}`}
+                            name="yearNumber"
+                            type="number"
+                            min={1}
+                            max={cycle.yearsCount}
+                            step={1}
+                            defaultValue={level.yearNumber}
+                            required
+                          />
+                        </StructureActionForm>
                         {level.subjects.length > 0 && (
                           <ul aria-label={`Matières de ${level.name}`}>
                             {level.subjects.map((subject) => (
