@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+:root {
+  --color-university-primary: #1d4ed8;
+  --color-page-background: #f8fafc;
+  --color-text: #0f172a;
+  --color-border: #e2e8f0;
+  --radius-rounded: 0.75rem;
+  --shadow-subtle: 0 2px 8px rgb(15 23 42 / 8%);
+}
