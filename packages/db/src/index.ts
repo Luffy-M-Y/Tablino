@@ -1,4 +1,5 @@
 export { db } from "./client";
+export { getDashboardCounts } from "./dashboard";
 export { and, asc, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {
