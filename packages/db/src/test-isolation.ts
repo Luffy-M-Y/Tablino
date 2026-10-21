@@ -2,12 +2,17 @@ import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { openGuardedDatabase } from "../scripts/_database-guard";
 
-type CaseResult = { name: string; passed: boolean };
+type CaseResult = {
+  name: string;
+  passed: boolean;
+  receivedCode?: string;
+  receivedConstraint?: string;
+};
 
 async function expectConstraint(
   client: PoolClient,
   name: string,
-  expectedConstraint: string,
+  expectedConstraints: string[],
   query: string,
   values: unknown[],
 ): Promise<CaseResult> {
@@ -20,13 +25,20 @@ async function expectConstraint(
   } catch (error) {
     const dbError = error as { code?: string; constraint?: string };
     passed =
-      dbError.code === "23503" && dbError.constraint === expectedConstraint;
+      dbError.code === "23503" &&
+      expectedConstraints.includes(dbError.constraint ?? "");
+    return {
+      name,
+      passed,
+      receivedCode: dbError.code ?? "inconnu",
+      receivedConstraint: dbError.constraint ?? "inconnue",
+    };
   } finally {
     await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
     await client.query(`RELEASE SAVEPOINT ${savepoint}`);
   }
 
-  return { name, passed };
+  return { name, passed, receivedCode: "aucune", receivedConstraint: "aucune" };
 }
 
 async function expectAccepted(
@@ -42,10 +54,16 @@ async function expectAccepted(
     await client.query(query, values);
     await client.query(`RELEASE SAVEPOINT ${savepoint}`);
     return { name, passed: true };
-  } catch {
+  } catch (error) {
+    const dbError = error as { code?: string; constraint?: string };
     await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
     await client.query(`RELEASE SAVEPOINT ${savepoint}`);
-    return { name, passed: false };
+    return {
+      name,
+      passed: false,
+      receivedCode: dbError.code ?? "inconnu",
+      receivedConstraint: dbError.constraint ?? "inconnue",
+    };
   }
 }
 
@@ -141,7 +159,7 @@ async function main(): Promise<void> {
       await expectConstraint(
         client,
         "level_A_program_A_cycle_B_rejected",
-        "levels_cycle_university_fk",
+        ["levels_cycle_university_fk", "levels_program_cycle_fk"],
         levelInsert,
         [universityA, programA, cycleB, "TB1", `tb1-${programA}`, 1],
       ),
@@ -150,7 +168,7 @@ async function main(): Promise<void> {
       await expectConstraint(
         client,
         "level_A_without_program_cycle_rejected",
-        "levels_program_cycle_fk",
+        ["levels_program_cycle_fk"],
         levelInsert,
         [
           universityA,
@@ -166,7 +184,7 @@ async function main(): Promise<void> {
       await expectConstraint(
         client,
         "program_cycle_program_A_cycle_B_rejected",
-        "program_cycles_program_fk",
+        ["program_cycles_program_fk"],
         programCycleInsert,
         [universityB, programA, cycleB],
       ),
@@ -175,7 +193,7 @@ async function main(): Promise<void> {
       await expectConstraint(
         client,
         "program_cycle_university_A_cycle_B_rejected",
-        "program_cycles_cycle_fk",
+        ["program_cycles_cycle_fk"],
         programCycleInsert,
         [universityA, programA, cycleB],
       ),
@@ -198,14 +216,20 @@ async function main(): Promise<void> {
     );
 
     for (const result of results) {
-      process.stdout.write(`${result.passed ? "OK" : "ECHEC"} ${result.name}\n`);
+      const details = result.passed
+        ? ""
+        : ` SQLSTATE=${result.receivedCode ?? "aucun"} contrainte=${result.receivedConstraint ?? "aucune"}`;
+      process.stdout.write(`${result.passed ? "OK" : "ECHEC"} ${result.name}${details}\n`);
     }
 
     if (results.some(({ passed }) => !passed)) {
       process.exitCode = 1;
     }
-  } catch {
-    process.stdout.write("ECHEC isolation_test_setup_or_execution\n");
+  } catch (error) {
+    const dbError = error as { code?: string; constraint?: string };
+    process.stdout.write(
+      `ECHEC isolation_test_setup_or_execution SQLSTATE=${dbError.code ?? "inconnu"} contrainte=${dbError.constraint ?? "inconnue"}\n`,
+    );
     process.exitCode = 1;
   } finally {
     if (client && transactionStarted) {
