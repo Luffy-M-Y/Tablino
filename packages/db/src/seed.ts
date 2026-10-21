@@ -57,6 +57,13 @@ const CYCLES = [
 ] as const;
 type CycleCode = (typeof CYCLES)[number]["shortCode"];
 
+const cycleOrderOffsets = new Map<CycleCode, number>();
+let nextLevelOrder = 0;
+for (const cycle of CYCLES) {
+  cycleOrderOffsets.set(cycle.shortCode, nextLevelOrder);
+  nextLevelOrder += cycle.yearsCount;
+}
+
 async function seed() {
   console.log("🌱 Seed DÉMO — début");
 
@@ -142,7 +149,7 @@ async function seed() {
       name: `${level.cycleCode}${level.yearNumber}`,
       slug: `${level.cycleCode.toLowerCase()}${level.yearNumber}`,
       yearNumber: level.yearNumber,
-      order: level.yearNumber,
+      order: (cycleOrderOffsets.get(level.cycleCode) ?? 0) + level.yearNumber,
     })))
     .onConflictDoUpdate({
       target: schema.levels.id,
