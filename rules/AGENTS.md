@@ -107,7 +107,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
    3. `fix/web-system-fonts`
    4. `test/db-isolation-cycles`
    5. `test/db-tenant-scope`
-   Push et PR en attente de mon accord.
+   Fusionnées dans `develop` (PR #6 à #10) ; `origin/develop` = `5d07a58`.
 4. `feat/admin-upload` (R2)
 5. `feat/admin-scan`
 6. `feat/payments`
@@ -115,13 +115,14 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. `feat/auth-subdomain`
 
 ## État d'avancement (à mettre à jour après chaque branche)
-- Vérifications rapportées par l'utilisateur le 21/10/2026, branche `test/db-tenant-scope`, commit `d098b49` : tests admin 7/7 ; `db:test-structure` 9 OK ; `db:test-tenant-scope` OK ; inspection après identique à l'état avant, ZZ = 0. L'inspecteur n'affiche pas les comptages de `program_cycles` (6) ni de `levels` (16). Build forcé OK ; quatre `tsc --noEmit` avec code 0. Les deux tests de base ont été lancés par l'utilisateur, pas par Codex.
+- Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
+- Vérifications rapportées par l'utilisateur le 21/10/2026 : tests admin 7/7 ; `db:test-structure` 9 OK ; `db:test-tenant-scope` OK ; inspection après identique à l'état avant, ZZ = 0. L'inspecteur n'affiche pas les comptages de `program_cycles` (6) ni de `levels` (16). Build forcé OK ; quatre `tsc --noEmit` avec code 0. Les deux tests de base ont été lancés par l'utilisateur, pas par Codex.
 - `feat/db-command-guards` : garde centralisé pour les commandes de base ; commits clés `74bb3ef`, `0d6c282`, `6f6ac9d`.
 - `fix/web-system-fonts` : remplacement de la police Google par une pile système ; commit clé `efcbff3`.
 - `test/db-isolation-cycles` : tests d'isolation adaptés aux cycles et aux deux clés étrangères possibles ; commits clés `157a99b`, `0fc4493`.
 - `test/db-tenant-scope` : tests réels inter-universités, marqueurs et nettoyage, journal sûr et inspection gardée ; commits clés `2417713`, `268f346`, `abf5694`, `dfb474b`, `63335ea`, `d098b49`.
 - Ordre des PR : `admin-structure` → `db-command-guards` → `web-system-fonts` → `db-isolation-cycles` → `db-tenant-scope`.
-- La base de test est à la migration 0006. Le seed de develop écrit levels.order, supprimée en 0006 : ne pas lancer ce seed sur la base de test avant la fusion de feat/admin-structure.
+- Le seed ne s'exécute pas sur la base de test sans accord explicite.
 - Fait sur `feat/auth-roles`, etapes 1 a 4 : modele d'identite, migrations 0004/0005, Google OAuth avec adaptateur Drizzle et sessions en base, scripts de provisionnement, gardes serveur ; six cas de test ecrits. Etat d'application des migrations et tests d'integration a confirmer avant toute commande base.
 - Fait : monorepo, schéma hiérarchique, migrations 0000 à 0002, seed idempotent (UUID fixes), test d'isolation 8/8 — commités sur `feat/db-levels-slug`.
 - Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
