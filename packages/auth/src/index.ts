@@ -269,6 +269,42 @@ export async function getCurrentUniversityId(): Promise<string> {
   return universityId;
 }
 
+function safeAuthLogCode(code: string): string {
+  return /^[A-Z0-9_]+$/.test(code) ? code : "UNKNOWN";
+}
+
+function safeAuthErrorDetails(metadata: unknown) {
+  const sourceError = metadata instanceof Error
+    ? metadata
+    : typeof metadata === "object" && metadata !== null && "error" in metadata
+      ? metadata.error
+      : undefined;
+
+  if (typeof sourceError !== "object" || sourceError === null) return {};
+
+  const error = sourceError as { name?: unknown; code?: unknown; message?: unknown };
+  const name = typeof error.name === "string"
+    ? error.name.replace(/[\r\n\t]/g, " ").slice(0, 80)
+    : undefined;
+  const errorCode = typeof error.code === "string"
+    && error.code.length <= 40
+    && /^[A-Za-z0-9_.-]+$/.test(error.code)
+    ? error.code
+    : undefined;
+  const message = typeof error.message === "string"
+    ? error.message
+      .replace(/https?:\/\/\S+/g, "[url]")
+      .replace(/\b[\w.+-]+@[\w.-]+\.[A-Z]{2,}\b/gi, "[email]")
+      .replace(/\b(?:access_token|refresh_token|id_token|token|secret|password|cookie|authorization)\s*[:=]\s*["']?[^"'\s,;]+/gi, "[redacted]")
+      .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token]")
+      .replace(/\b[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\b/gi, "[id]")
+      .replace(/[\r\n\t]/g, " ")
+      .slice(0, 120)
+    : undefined;
+
+  return { name, code: errorCode, message };
+}
+
 export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
   const secureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
 
@@ -278,7 +314,21 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
+      httpOptions: { timeout: 10_000 },
     })],
+    debug: false,
+    logger: {
+      error(code, metadata) {
+        console.error(JSON.stringify({
+          code: safeAuthLogCode(code),
+          ...safeAuthErrorDetails(metadata),
+        }));
+      },
+      warn(code) {
+        console.warn(JSON.stringify({ code: safeAuthLogCode(code) }));
+      },
+      debug() {},
+    },
     session: { strategy: "database" },
     cookies: {
       sessionToken: {
