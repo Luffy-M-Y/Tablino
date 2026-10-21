@@ -28,6 +28,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Supabase. `packages/db/.env` : Session pooler, port 5432 (migrations). `apps/web/.env.local` : Transaction pooler, port 6543.
 - Toute migration utilise le Session pooler, port 5432 ; ne pas utiliser le port 6543 pour les migrations.
 - Base de test autorisée : référence `xblapziuxietpjqewkwh` uniquement. Références interdites : `dmkhqphgxmgsgosvrylx` et `dfrlsuhllzqsqerqzsch`. Vérifier référence et port avant toute opération.
+- Base de test xblapziuxietpjqewkwh conservée jusqu'à la fin de la phase de développement. Suppression à la demande de l'utilisateur seulement.
 - Tables : universities, programs, levels, academic_years, subjects, resources (cours), assignments (devoirs), users, accounts, sessions, verification_tokens, subscriptions.
 - Isolation : clés étrangères composites incluant `university_id`. Test : `db:test-isolation` (8 cas, doit rester vert).
 - Statut stocké : `draft` ou `published`. Le statut « disponible / à rendre / expiré » d'un devoir se calcule depuis l'échéance, jamais stocké.
