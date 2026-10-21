@@ -37,8 +37,14 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Seed : idempotent (UUID fixes), données marquées « DÉMO », rien de réel. Pour les cycles (id généré par la migration), upsert sur `(university_id, short_code)`, relire l'id pour les enfants.
 - `levels.order` : supprimé par la migration 0006 de `feat/admin-structure` ; le tri repose sur `cycles.order`, puis `levels.year_number`. La migration 0006 est appliquée et vérifiée sur la base de test : 7 migrations, 2 filières `published`, colonne `levels.order` supprimée. Les nouvelles filières commencent en `draft`.
 - Structure (`feat/admin-structure`) : refuser la suppression d'une entité ayant des dépendants ; aucune suppression en cascade depuis l'interface. Le `short_code` d'un cycle est immuable tant que des niveaux y sont rattachés.
-- Mutations transactionnelles dans `packages/db/src/structure.ts` : `updateCycleYearsCount`, `updateLevelYearNumber`, `updateCycleShortCode`, `updateProgramStatus`. Chaque mutation verrouille d'abord sa ligne de cycle (`SELECT ... FOR UPDATE`, avec `university_id`) ; aucun chemin ne doit prendre ces verrous dans l'ordre inverse. `canReduceYearsCount` reste un alias exporté obsolète. `updateCycleShortCode` normalise le code en majuscules après trim ; une collision renvoie `short_code_taken`. Changer l'année d'un niveau régénère son nom et son slug ; les permutations de numéros sont refusées.
+- Mutations transactionnelles dans `packages/db/src/structure.ts` : `updateCycleYearsCount`, `updateLevelYearNumber`, `updateCycleShortCode`, `updateProgramStatus`. Les trois mutations de cycle/niveau verrouillent le cycle d'abord avec `SELECT ... FOR UPDATE` filtré par université ; aucun chemin ne doit prendre ces verrous dans l'ordre inverse. `updateProgramStatus` verrouille la filière ciblée, avec filtre d'université, et ne verrouille pas de cycle. `canReduceYearsCount` reste un alias exporté obsolète. `updateCycleShortCode` normalise le code en majuscules après trim ; une collision renvoie `short_code_taken`. Changer l'année d'un niveau régénère son nom et son slug ; les permutations de numéros sont refusées.
 - Test d'intégration transactionnel de structure : `pnpm --filter @tablino/db db:test-structure`. Le script partage le garde de `_provisioning` (référence autorisée et port `5432`) et nettoie ses lignes temporaires ; ne pas l'ajouter au script unitaire `test`.
+- Dans `test/db-isolation-cycles`, l'insertion de `"order"` dans `test-isolation.ts` concerne `cycles.order` ; elle n'écrit pas `levels.order`, supprimée en 0006.
+- Journal des Server Actions de structure : `action`, `result` et `reason` sont limités par liste blanche, puis écrits via `console.info`; aucun identifiant, champ de formulaire, e-mail, secret ni objet/message d'erreur brut.
+- Tests réels inter-universités et inspection : `pnpm --filter @tablino/db db:test-tenant-scope` et `pnpm --filter @tablino/db db:inspect-tenant-scope`. Les deux passent par `_database-guard` et `.env.test` ; refuser si `DATABASE_URL` est déjà définie dans le processus. L'inspecteur utilise une transaction `READ ONLY` et ne doit contenir aucune écriture. Il rapporte les marqueurs ZZ ancrés et les faux marqueurs séparément, ainsi que les migrations sans données personnelles.
+- `test-tenant-scope` génère par exécution un suffixe aléatoire de 11 lettres majuscules ; les marqueurs parents ont la forme exacte `ZZ` + suffixe + `A` ou `B` (`^ZZ[A-Z]{12}$`). Exécuter un seul run à la fois : le nettoyage de démarrage et de fin cible tous les marqueurs valides. Après un kill brutal, relancer le script pour nettoyer les résidus au démarrage ; procédure manuelle Windows : lancer avec `--wait-for-sigint`, relever le PID Node, puis `Stop-Process -Id <PID> -Force` dans un autre terminal.
+- Au SIGINT, le script attend le nettoyage ; délai maximal 15 secondes. En cas de `CLEANUP_TIMEOUT`, des résidus peuvent rester : relancer le script. Le scénario de dépassement du délai n'a pas été testé. Si un lancement échoue avec `ENOMEM` avant l'exécution, relancer une fois ; si l'erreur persiste, arrêter et rapporter l'erreur, sans contournement.
+- Nettoyage ponctuel demandé : le résidu d'origine inconnue `ZZ31D033F20607` a été supprimé après vérification des comptes attendus ; les comptages de sa cible sont ensuite tous à zéro. L'université démo (2 filières, 3 cycles) et les totaux d'authentification (3 utilisateurs, 2 comptes, 3 sessions) sont restés inchangés. Aucune trace dans l'historique git ; générateur committé = 11 lettres sans chiffres.
 - Tests unitaires sans base : `pnpm --filter @tablino/db test` et `pnpm --filter @tablino/auth test`. Ne pas y ajouter de contournement ni d'accès à une base.
 - Paiement futur par université, pas par utilisateur. Dans `feat/auth-roles`, ne pas modifier `subscriptions` ni `users.subscription_expires_at`.
 
@@ -95,7 +101,13 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 ## Feuille de route
 1. `feat/web-navigation` : design, layout, accueil, fil d'Ariane, pages filières, niveaux, années, matières, listes finales
 2. `feat/auth-roles` : modele d'identite, Google OAuth, provisionnement ferme, gardes de role et d'universite (etapes 1 a 4 realisees)
-3. `feat/admin-structure` : étape 1 terminée, étapes suivantes à réaliser
+3. Travail `feat/admin-structure`, réparti sur les branches suivantes dans cet ordre :
+   1. `feat/admin-structure`
+   2. `feat/db-command-guards`
+   3. `fix/web-system-fonts`
+   4. `test/db-isolation-cycles`
+   5. `test/db-tenant-scope`
+   Push et PR en attente de mon accord.
 4. `feat/admin-upload` (R2)
 5. `feat/admin-scan`
 6. `feat/payments`
@@ -103,6 +115,13 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. `feat/auth-subdomain`
 
 ## État d'avancement (à mettre à jour après chaque branche)
+- Vérifications rapportées par l'utilisateur le 21/10/2026, branche `test/db-tenant-scope`, commit `d098b49` : tests admin 7/7 ; `db:test-structure` 9 OK ; `db:test-tenant-scope` OK ; inspection après identique à l'état avant, ZZ = 0. L'inspecteur n'affiche pas les comptages de `program_cycles` (6) ni de `levels` (16). Build forcé OK ; quatre `tsc --noEmit` avec code 0. Les deux tests de base ont été lancés par l'utilisateur, pas par Codex.
+- `feat/db-command-guards` : garde centralisé pour les commandes de base ; commits clés `74bb3ef`, `0d6c282`, `6f6ac9d`.
+- `fix/web-system-fonts` : remplacement de la police Google par une pile système ; commit clé `efcbff3`.
+- `test/db-isolation-cycles` : tests d'isolation adaptés aux cycles et aux deux clés étrangères possibles ; commits clés `157a99b`, `0fc4493`.
+- `test/db-tenant-scope` : tests réels inter-universités, marqueurs et nettoyage, journal sûr et inspection gardée ; commits clés `2417713`, `268f346`, `abf5694`, `dfb474b`, `63335ea`, `d098b49`.
+- Ordre des PR : `admin-structure` → `db-command-guards` → `web-system-fonts` → `db-isolation-cycles` → `db-tenant-scope`.
+- La base de test est à la migration 0006. Le seed de develop écrit levels.order, supprimée en 0006 : ne pas lancer ce seed sur la base de test avant la fusion de feat/admin-structure.
 - Fait sur `feat/auth-roles`, etapes 1 a 4 : modele d'identite, migrations 0004/0005, Google OAuth avec adaptateur Drizzle et sessions en base, scripts de provisionnement, gardes serveur ; six cas de test ecrits. Etat d'application des migrations et tests d'integration a confirmer avant toute commande base.
 - Fait : monorepo, schéma hiérarchique, migrations 0000 à 0002, seed idempotent (UUID fixes), test d'isolation 8/8 — commités sur `feat/db-levels-slug`.
 - Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.

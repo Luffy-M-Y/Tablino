@@ -14,6 +14,23 @@ const messages = {
   unexpected_error: "La modification n'a pas pu être effectuée.",
 };
 
+const mutationActions = new Set([
+  "cycle_years_count",
+  "cycle_short_code",
+  "level_year_number",
+  "program_status",
+]);
+const mutationResults = new Set(["success", "rejected", "error"]);
+const mutationReasons = new Set([...Object.keys(messages), "none"]);
+
+export function createStructureMutationLog(action, result, reason) {
+  return {
+    action: mutationActions.has(action) ? action : "unknown",
+    result: mutationResults.has(result) ? result : "error",
+    reason: mutationReasons.has(reason) ? reason : "unexpected_error",
+  };
+}
+
 export function readStringField(formData, name) {
   if (!formData || typeof formData.get !== "function") return null;
   const value = formData.get(name);
