@@ -115,6 +115,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 8. `feat/auth-subdomain`
 
 ## État d'avancement (à mettre à jour après chaque branche)
+- `feat/admin-shell`, étapes 1 à 5 : identité visuelle, navigation responsive avec profil et déconnexion, composant `AdminPage` avec fil d'Ariane sur l'accueil et les pages de structure, cartes d'accueil Structure, Uploader un fichier et Scanner. Aucune lecture de base ajoutée ; gardes inchangées ; `packages/auth` intact. Le propriétaire a vérifié 13/13 tests admin, build OK et tsc code 0. Rendu visuel non vérifié.
 - Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
 - Vérifications rapportées par l'utilisateur le 21/10/2026 : tests admin 7/7 ; `db:test-structure` 9 OK ; `db:test-tenant-scope` OK ; inspection après identique à l'état avant, ZZ = 0. L'inspecteur n'affiche pas les comptages de `program_cycles` (6) ni de `levels` (16). Build forcé OK ; quatre `tsc --noEmit` avec code 0. Les deux tests de base ont été lancés par l'utilisateur, pas par Codex.
 - `feat/db-command-guards` : garde centralisé pour les commandes de base ; commits clés `74bb3ef`, `0d6c282`, `6f6ac9d`.
