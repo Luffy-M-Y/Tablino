@@ -1,12 +1,8 @@
-import { config } from "dotenv";
-import { resolve } from "node:path";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-import * as schema from "../src/schema";
+import { openGuardedDatabase } from "./_database-guard";
 
-config({ path: resolve(__dirname, "../.env") });
-
-const ALLOWED_PROJECT_REFERENCE = "xblapziuxietpjqewkwh";
+export function openProvisioningDatabase() {
+  return openGuardedDatabase();
+}
 
 export function normalizeEmail(value: string | undefined): string {
   const email = value?.trim().toLowerCase();
@@ -31,32 +27,4 @@ export function parseUniversityIdentifier(value: string | undefined):
     throw new Error("Université invalide.");
   }
   return { kind: "slug", value: slug };
-}
-
-export function openProvisioningDatabase() {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("Garde base refusé.");
-
-  let url: URL;
-  let username: string;
-  try {
-    url = new URL(connectionString);
-    username = decodeURIComponent(url.username);
-  } catch {
-    throw new Error("Garde base refusé.");
-  }
-
-  const projectReference = username.startsWith("postgres.")
-    ? username.slice("postgres.".length)
-    : "";
-  if (
-    !["postgres:", "postgresql:"].includes(url.protocol)
-    || projectReference !== ALLOWED_PROJECT_REFERENCE
-    || url.port !== "5432"
-  ) {
-    throw new Error("Garde base refusé.");
-  }
-
-  const pool = new Pool({ connectionString });
-  return { db: drizzle(pool, { schema }), pool };
 }

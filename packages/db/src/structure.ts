@@ -1,5 +1,5 @@
 import { and, eq, gt, ne } from "drizzle-orm";
-import { db } from "./client";
+import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 import {
   buildLevelName,
@@ -9,6 +9,12 @@ import {
   isYearNumberInRange,
   normalizeShortCode,
 } from "./structure-validation";
+
+type StructureDatabase = typeof sharedDb;
+
+async function resolveDatabase(database?: StructureDatabase): Promise<StructureDatabase> {
+  return database ?? (await import("./client")).db;
+}
 
 export type UpdateCycleYearsCountResult =
   | { ok: true }
@@ -51,8 +57,9 @@ export async function updateCycleYearsCount(
   universityId: string,
   cycleId: string,
   newYearsCount: number,
+  database?: StructureDatabase,
 ): Promise<UpdateCycleYearsCountResult> {
-  return db.transaction(async (tx) => {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
     const [cycle] = await tx
       .select({ id: schema.cycles.id })
       .from(schema.cycles)
@@ -106,9 +113,10 @@ export async function updateLevelYearNumber(
   universityId: string,
   levelId: string,
   newYearNumber: number,
+  database?: StructureDatabase,
 ): Promise<UpdateLevelYearNumberResult> {
   try {
-    return await db.transaction(async (tx) => {
+    return await (await resolveDatabase(database)).transaction(async (tx) => {
       const [initialLevel] = await tx
         .select({ cycleId: schema.levels.cycleId })
         .from(schema.levels)
@@ -215,11 +223,12 @@ export async function updateCycleShortCode(
   universityId: string,
   cycleId: string,
   newShortCode: string,
+  database?: StructureDatabase,
 ): Promise<UpdateCycleShortCodeResult> {
   const normalizedShortCode = normalizeShortCode(newShortCode);
 
   try {
-    return await db.transaction(async (tx) => {
+    return await (await resolveDatabase(database)).transaction(async (tx) => {
       const [cycle] = await tx
         .select({ id: schema.cycles.id })
         .from(schema.cycles)
@@ -281,8 +290,9 @@ export async function updateProgramStatus(
   universityId: string,
   programId: string,
   newStatus: string,
+  database?: StructureDatabase,
 ): Promise<UpdateProgramStatusResult> {
-  return db.transaction(async (tx) => {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
     if (!isProgramStatusValid(newStatus)) {
       return { ok: false, reason: "invalid_status" };
     }

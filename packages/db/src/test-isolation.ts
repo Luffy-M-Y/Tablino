@@ -5,18 +5,12 @@
  * Vérification stricte : e.code === "23503" ET e.constraint === nom attendu.
  */
 
-import { Pool } from "pg";
-import { config } from "dotenv";
-import { resolve } from "path";
-
-config({ path: resolve(__dirname, "../.env") });
+import { openGuardedDatabase } from "../scripts/_database-guard";
 
 if (process.env.NODE_ENV !== "development") {
   console.error("❌ db:test-isolation ne s'exécute qu'en NODE_ENV=development");
   process.exit(1);
 }
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 // UUIDs fixes du seed
 const DEMO = {
@@ -79,6 +73,7 @@ async function runWitness(
 }
 
 async function main() {
+  const { pool } = openGuardedDatabase();
   const client = await pool.connect();
   const results: TestResult[] = [];
 
