@@ -36,6 +36,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Migrations : uniquement `pnpm db:generate` puis `pnpm db:migrate`. Jamais `db:push`, jamais de SQL exécuté directement ni depuis le tableau de bord Supabase. Le suivi Drizzle doit rester cohérent avec la base.
 - Seed : idempotent (UUID fixes), données marquées « DÉMO », rien de réel. Pour les cycles (id généré par la migration), upsert sur `(university_id, short_code)`, relire l'id pour les enfants.
 - `levels.order` : conservé NOT NULL dans la migration 0003. Sera supprimé dans une migration ultérieure (`feat/admin-structure`). Le seed et tout script d'insertion doivent le renseigner.
+- Paiement futur par université, pas par utilisateur. Dans `feat/auth-roles`, ne pas modifier `subscriptions` ni `users.subscription_expires_at`.
 
 ## Règles de travail (obligatoires)
 1. Avant chaque grande modification : nouvelle branche depuis `develop`.

@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export const roleEnum = pgEnum("role", ["admin", "scanner", "student"]);
+export const roleEnum = pgEnum("role", ["super_admin", "university_admin", "student"]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
 export const resourceFormatEnum = pgEnum("resource_format", [
   "pdf", "video", "audio", "docx", "pptx", "link", "other",
@@ -256,6 +256,10 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("users_university_idx").on(t.universityId),
+  check(
+    "users_role_university_scope_check",
+    sql`(${t.role} = 'super_admin' AND ${t.universityId} IS NULL) OR (${t.role} <> 'super_admin' AND ${t.universityId} IS NOT NULL)`,
+  ),
 ]).enableRLS();
 
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
@@ -277,6 +281,7 @@ export const accounts = pgTable("accounts", {
   sessionState: varchar("session_state", { length: 255 }),
 }, (t) => [
   index("accounts_user_idx").on(t.userId),
+  unique("accounts_provider_provider_account_id_uq").on(t.provider, t.providerAccountId),
 ]).enableRLS();
 
 export const sessions = pgTable("sessions", {
@@ -292,9 +297,11 @@ export const sessions = pgTable("sessions", {
 
 export const verificationTokens = pgTable("verification_tokens", {
   identifier: varchar("identifier", { length: 255 }).notNull(),
-  token: varchar("token", { length: 500 }).notNull().unique(),
+  token: varchar("token", { length: 500 }).notNull(),
   expires: timestamp("expires").notNull(),
-}).enableRLS();
+}, (t) => [
+  primaryKey({ name: "verification_tokens_pk", columns: [t.identifier, t.token] }),
+]).enableRLS();
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
 

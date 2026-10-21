@@ -42,7 +42,7 @@ const ID = {
   subAlgo:     "d0000000-0000-0000-0000-000000000010",
   subBdd:      "d0000000-0000-0000-0000-000000000011",
   subCompta:   "d0000000-0000-0000-0000-000000000012",
-  scanner:     "d0000000-0000-0000-0000-000000000013",
+  demoStudent: "d0000000-0000-0000-0000-000000000013",
   res1:        "d0000000-0000-0000-0000-000000000014",
   res2:        "d0000000-0000-0000-0000-000000000015",
   res3:        "d0000000-0000-0000-0000-000000000016",
@@ -184,11 +184,11 @@ async function seed() {
     .onConflictDoUpdate({ target: schema.subjects.id, set: { name: schema.subjects.name, slug: schema.subjects.slug } });
   console.log("✓ Matières");
 
-  // ── Scanner ────────────────────────────────────────────────────────────────
+  // ── Utilisateur étudiant démo ─────────────────────────────────────────────
   await db.insert(schema.users)
-    .values({ id: ID.scanner, universityId: ID.university, name: "[DÉMO] Scanner", email: "demo-scanner@demo.tablino.invalid", role: "scanner" })
-    .onConflictDoUpdate({ target: schema.users.id, set: { name: "[DÉMO] Scanner", email: "demo-scanner@demo.tablino.invalid" } });
-  console.log("✓ Scanner");
+    .values({ id: ID.demoStudent, universityId: ID.university, name: "[DÉMO] Élève", email: "demo-student@demo.tablino.invalid", role: "student" })
+    .onConflictDoUpdate({ target: schema.users.id, set: { name: "[DÉMO] Élève", email: "demo-student@demo.tablino.invalid", role: "student" } });
+  console.log("✓ Utilisateur étudiant démo");
 
   // ── Ressources ─────────────────────────────────────────────────────────────
   // res1 : avec fichier
@@ -197,19 +197,19 @@ async function seed() {
   await db.insert(schema.resources)
     .values([
       {
-        id: ID.res1, universityId: ID.university, subjectId: ID.subAlgo, uploadedBy: ID.scanner,
+        id: ID.res1, universityId: ID.university, subjectId: ID.subAlgo, uploadedBy: ID.demoStudent,
         title: "[DÉMO] Introduction aux algorithmes — Cours 1",
         format: "pdf", fileKey: "demo/algo/cours-1.pdf", fileSizeBytes: 512000,
         status: "published", publishedAt: new Date("2024-09-15"),
       },
       {
-        id: ID.res2, universityId: ID.university, subjectId: ID.subBdd, uploadedBy: ID.scanner,
+        id: ID.res2, universityId: ID.university, subjectId: ID.subBdd, uploadedBy: ID.demoStudent,
         title: "[DÉMO] Modèle relationnel — Slides",
         format: "link", fileKey: null, externalUrl: "https://demo.tablino.com/bdd-slides",
         status: "published", publishedAt: new Date("2024-10-01"),
       },
       {
-        id: ID.res3, universityId: ID.university, subjectId: ID.subBdd, uploadedBy: ID.scanner,
+        id: ID.res3, universityId: ID.university, subjectId: ID.subBdd, uploadedBy: ID.demoStudent,
         title: "[DÉMO] [SANS FICHIER] Cours magistral BDD",
         format: "pdf", fileKey: null,
         status: "published", publishedAt: new Date("2024-10-05"),
@@ -224,14 +224,14 @@ async function seed() {
   await db.insert(schema.assignments)
     .values([
       {
-        id: ID.asgn1, universityId: ID.university, subjectId: ID.subAlgo, uploadedBy: ID.scanner,
+        id: ID.asgn1, universityId: ID.university, subjectId: ID.subAlgo, uploadedBy: ID.demoStudent,
         title: "[DÉMO] Devoir 1 — Tri et recherche",
         instructions: "Implémenter un algorithme de tri rapide et analyser sa complexité.",
         fileKey: "demo/algo/devoir-1.pdf", fileSizeBytes: 128000,
         status: "published", dueDate: new Date("2024-11-15"), publishedAt: new Date("2024-10-20"),
       },
       {
-        id: ID.asgn2, universityId: ID.university, subjectId: ID.subCompta, uploadedBy: ID.scanner,
+        id: ID.asgn2, universityId: ID.university, subjectId: ID.subCompta, uploadedBy: ID.demoStudent,
         title: "[DÉMO] [SANS FICHIER] Devoir 1 — Bilan comptable 2023",
         instructions: "Établir le bilan comptable à partir des données fournies.",
         fileKey: null,
