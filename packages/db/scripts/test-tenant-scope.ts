@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { count, inArray, or, sql, type SQL } from "drizzle-orm";
+import { count, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import * as schema from "../src/schema";
 import { openGuardedDatabase } from "./_database-guard";
 
@@ -7,6 +7,11 @@ const SQL_MARKER_PATTERN = "^ZZ[A-Z]{12}$";
 const JS_MARKER_PATTERN = /^ZZ[A-Z]{12}$/;
 const CLEANUP_TIMEOUT_MS = 15_000;
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const FAKE_MARKERS = [
+  "ZZABCDEFGHIJKLX",
+  "ZZABCDEFGHIJK",
+  "ZZABCDEFGHIJK1",
+] as const;
 
 type DbContext = ReturnType<typeof openGuardedDatabase>;
 type MarkerParents = { programIds: string[]; cycleIds: string[] };
@@ -123,7 +128,7 @@ async function deleteIfMatched(
   }
 }
 
-async function cleanupMarkedFixtures(label: "STARTUP" | "FINAL"): Promise<boolean> {
+async function cleanupMarkedFixtures(label: "STARTUP" | "FINAL" | "FAKE_MARKER"): Promise<boolean> {
   if (!guardedDb) return false;
 
   let parents: MarkerParents;
@@ -184,6 +189,75 @@ async function cleanupMarkedFixtures(label: "STARTUP" | "FINAL"): Promise<boolea
     return false;
   }
   return true;
+}
+
+async function testFalseMarkerCleanup(db: DbContext["db"]): Promise<boolean> {
+  if (FAKE_MARKERS.some((marker) => JS_MARKER_PATTERN.test(marker))) {
+    process.stdout.write("ECHEC FAKE_MARKERS_MATCH_VALID_PATTERN\n");
+    return false;
+  }
+  process.stdout.write("OK fake_markers_do_not_match_valid_pattern\n");
+
+  let insertedIds: string[] = [];
+  let passed = false;
+  try {
+    const staleRows = await db.select({ id: schema.universities.id })
+      .from(schema.universities)
+      .where(inArray(schema.universities.slug, [...FAKE_MARKERS]));
+    process.stdout.write(`FAKE_MARKER_STALE_BEFORE=${staleRows.length}\n`);
+    for (const row of staleRows) {
+      await db.delete(schema.universities).where(eq(schema.universities.id, row.id));
+    }
+    const staleAfter = await db.select({ id: schema.universities.id })
+      .from(schema.universities)
+      .where(inArray(schema.universities.slug, [...FAKE_MARKERS]));
+    process.stdout.write(`FAKE_MARKER_STALE_AFTER=${staleAfter.length}\n`);
+    if (staleAfter.length > 0) return false;
+
+    const inserted = await db.insert(schema.universities).values(
+      FAKE_MARKERS.map((marker) => ({ name: marker, slug: marker })),
+    ).returning({ id: schema.universities.id, slug: schema.universities.slug });
+    insertedIds = inserted.map(({ id }) => id);
+    process.stdout.write(`FAKE_MARKERS_INSERTED=${inserted.length}\n`);
+    if (inserted.length !== FAKE_MARKERS.length) return false;
+
+    const cleanupOk = await cleanupMarkedFixtures("FAKE_MARKER");
+    const surviving = await db.select({ id: schema.universities.id, slug: schema.universities.slug })
+      .from(schema.universities)
+      .where(inArray(schema.universities.id, insertedIds));
+    const survivingSlugs = new Set(surviving.map(({ slug }) => slug));
+    const suffixSurvived = survivingSlugs.has(FAKE_MARKERS[0]);
+    const shortSurvived = survivingSlugs.has(FAKE_MARKERS[1]);
+    const digitSurvived = survivingSlugs.has(FAKE_MARKERS[2]);
+    process.stdout.write(
+      `FAKE_MARKERS_SURVIVE suffix=${Number(suffixSurvived)} short=${Number(shortSurvived)} digit=${Number(digitSurvived)}\n`,
+    );
+    passed = cleanupOk && suffixSurvived && shortSurvived && digitSurvived;
+  } catch (error) {
+    reportDatabaseFailure("fake_marker_cleanup", error);
+  } finally {
+    for (const id of insertedIds) {
+      try {
+        await db.delete(schema.universities).where(eq(schema.universities.id, id));
+      } catch {
+        passed = false;
+      }
+    }
+    if (insertedIds.length > 0) {
+      try {
+        const remaining = await db.select({ id: schema.universities.id })
+          .from(schema.universities)
+          .where(inArray(schema.universities.id, insertedIds));
+        process.stdout.write(`FAKE_MARKERS_AFTER_DELETE=${remaining.length}\n`);
+        if (remaining.length > 0) passed = false;
+      } catch {
+        process.stdout.write("ECHEC FAKE_MARKERS_COUNT_AFTER_DELETE\n");
+        passed = false;
+      }
+    }
+  }
+  process.stdout.write(`${passed ? "OK" : "ECHEC"} fake_marker_survival_and_id_cleanup\n`);
+  return passed;
 }
 
 function reportDatabaseFailure(name: string, error: unknown): void {
@@ -294,6 +368,11 @@ async function runTests(): Promise<void> {
     guardPool = guarded.pool;
   } catch {
     process.stdout.write("ECHEC GARDE_BASE\n");
+    failed = true;
+    return;
+  }
+
+  if (!await testFalseMarkerCleanup(guardedDb)) {
     failed = true;
     return;
   }
