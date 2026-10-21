@@ -32,6 +32,14 @@ BEGIN
     NULL;
   END;
 
+  BEGIN
+    INSERT INTO users (email, role)
+    VALUES ('invalid-admin-' || gen_random_uuid()::text || '@example.invalid', 'university_admin');
+    RAISE EXCEPTION 'CHECK allowed university_admin without university_id';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+
   INSERT INTO accounts (user_id, type, provider, provider_account_id)
   VALUES (student_id, 'oauth', 'google', 'identity-test-' || student_id::text);
 
