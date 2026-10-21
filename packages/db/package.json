@@ -17,6 +17,7 @@
     "db:test-isolation": "cross-env NODE_ENV=development tsx src/test-isolation.ts",
     "db:test-structure": "tsx scripts/test-structure-integration.ts",
     "db:test-tenant-scope": "tsx scripts/test-tenant-scope.ts",
+    "db:inspect-tenant-scope": "tsx scripts/inspect-tenant-scope.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
