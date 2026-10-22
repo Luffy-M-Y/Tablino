@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import {
+  addProgramCycle,
   createCycle,
   deleteCycle,
   deleteProgram,
@@ -18,6 +19,7 @@ import {
   updateCycleShortCode,
   updateCycleYearsCount,
   updateLevelYearNumber,
+  updateProgramCycleYearsCount,
   updateProgramStatus,
 } from "@tablino/db";
 import {
@@ -77,6 +79,8 @@ async function runMutation(
     | "cycle_short_code"
     | "level_year_number"
     | "program_status"
+    | "program_cycle_add"
+    | "program_cycle_years_count"
     | "cycle_rename"
     | "program_rename"
     | "subject_rename"
@@ -269,4 +273,34 @@ export async function deleteProgramAction(
     redirect(`/structure/${universityId}/programs`);
   }
   return result;
+}
+
+export async function addProgramCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const cycleId = readStringField(formData, "cycleId");
+  const yearsCount = readIntegerField(formData, "yearsCount");
+  if (!isUuid(programId) || !isUuid(cycleId)) return failure("not_found");
+  if (yearsCount === null) return failure("years_out_of_range");
+
+  return runMutation("program_cycle_add", universityId, () =>
+    addProgramCycle(universityId, programId, cycleId, yearsCount));
+}
+
+export async function updateProgramCycleYearsCountAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const cycleId = readStringField(formData, "cycleId");
+  const yearsCount = readIntegerField(formData, "yearsCount");
+  if (!isUuid(programId) || !isUuid(cycleId)) return failure("not_found");
+  if (yearsCount === null) return failure("years_out_of_range");
+
+  return runMutation("program_cycle_years_count", universityId, () =>
+    updateProgramCycleYearsCount(universityId, programId, cycleId, yearsCount));
 }
