@@ -19,6 +19,8 @@ const messages = {
   program_not_found: "Filière introuvable.",
   not_found: "Élément introuvable.",
   confirmation_required: "Confirmez la suppression.",
+  subject_exists: "Cette matière existe déjà pour ce niveau et cette année.",
+  academic_year_not_found: "Année académique introuvable.",
   unexpected_error: "La modification n'a pas pu être effectuée.",
 };
 
@@ -33,6 +35,7 @@ const mutationActions = new Set([
   "cycle_rename",
   "program_rename",
   "subject_rename",
+  "subject_create",
   "subject_delete",
   "program_cycle_delete",
   "cycle_delete",

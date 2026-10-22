@@ -19,6 +19,8 @@ export type ActionReason =
   | "program_not_found"
   | "not_found"
   | "confirmation_required"
+  | "subject_exists"
+  | "academic_year_not_found"
   | "unexpected_error";
 
 export type StructureActionState =

@@ -18,6 +18,7 @@ export {
   deleteProgramCycle,
   deleteCycle,
   deleteProgram,
+  createSubject,
 } from "./structure";
 export {
   isYearNumberInRange,
@@ -28,6 +29,7 @@ export {
   normalizeShortCode,
   buildLevelName,
   buildLevelSlug,
+  buildSubjectSlug,
 } from "./structure-validation";
 export type {
   AddProgramCycleResult,
@@ -45,4 +47,5 @@ export type {
   DeleteProgramCycleResult,
   DeleteCycleResult,
   DeleteProgramResult,
+  CreateSubjectResult,
 } from "./structure";

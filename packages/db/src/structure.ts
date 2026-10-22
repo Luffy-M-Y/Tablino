@@ -4,6 +4,7 @@ import * as schema from "./schema";
 import {
   buildLevelName,
   buildLevelSlug,
+  buildSubjectSlug,
   isCycleValid,
   isShortCodeValid,
   isProgramStatusValid,
@@ -75,6 +76,10 @@ export type RenameCycleResult =
 export type RenameSubjectResult =
   | { ok: true }
   | { ok: false; reason: "invalid_name" | "not_found" };
+
+export type CreateSubjectResult =
+  | { ok: true }
+  | { ok: false; reason: "level_not_found" | "academic_year_not_found" | "invalid_name" | "subject_exists" };
 
 export type DeleteSubjectResult =
   | { ok: true }
@@ -549,6 +554,70 @@ export async function renameSubject(
         eq(schema.subjects.universityId, universityId),
         eq(schema.subjects.id, subjectId),
       ));
+
+    return { ok: true };
+  });
+}
+
+export async function createSubject(
+  universityId: string,
+  levelId: string,
+  academicYearId: string,
+  name: string,
+  database?: StructureDatabase,
+): Promise<CreateSubjectResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const levels = await tx
+      .select({ id: schema.levels.id })
+      .from(schema.levels)
+      .where(and(
+        eq(schema.levels.universityId, universityId),
+        eq(schema.levels.id, levelId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!(levels.length > 0)) return { ok: false, reason: "level_not_found" };
+
+    const academicYears = await tx
+      .select({ id: schema.academicYears.id })
+      .from(schema.academicYears)
+      .where(and(
+        eq(schema.academicYears.universityId, universityId),
+        eq(schema.academicYears.id, academicYearId),
+      ))
+      .limit(1);
+
+    if (!(academicYears.length > 0)) {
+      return { ok: false, reason: "academic_year_not_found" };
+    }
+
+    const normalizedName = normalizeName(name);
+    if (!isNameValid(normalizedName, SUBJECT_NAME_MAX_LENGTH)) {
+      return { ok: false, reason: "invalid_name" };
+    }
+
+    const slug = buildSubjectSlug(normalizedName);
+    if (!slug) return { ok: false, reason: "invalid_name" };
+
+    const existingSubjects = await tx
+      .select({ id: schema.subjects.id })
+      .from(schema.subjects)
+      .where(and(
+        eq(schema.subjects.universityId, universityId),
+        eq(schema.subjects.levelId, levelId),
+        eq(schema.subjects.academicYearId, academicYearId),
+        eq(schema.subjects.slug, slug),
+      ))
+      .limit(1);
+
+    if (existingSubjects.length > 0) {
+      return { ok: false, reason: "subject_exists" };
+    }
+
+    await tx
+      .insert(schema.subjects)
+      .values({ universityId, levelId, academicYearId, name: normalizedName, slug });
 
     return { ok: true };
   });
