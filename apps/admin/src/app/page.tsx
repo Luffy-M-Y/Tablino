@@ -1,12 +1,8 @@
-import { getCurrentUniversityId } from "@tablino/auth";
 import AdminPage from "@/components/admin-page";
 import { ADMIN_HOME_CARDS } from "@/lib/admin-home-cards.mjs";
-import { requireAdminAccess } from "@/lib/authorization";
+import { getCurrentUniversity } from "@/lib/current-university";
 import { getDashboardCountsForUniversity } from "@/lib/dashboard-queries";
-import { isUuid } from "@/lib/structure-action-utils.mjs";
-import { getStructureOverview, getStructureUniversities } from "@/lib/structure-queries";
 import Link from "next/link";
-import { forbidden } from "next/navigation";
 
 const COUNT_LABELS = [
   ["programs", "Filières"],
@@ -17,40 +13,10 @@ const COUNT_LABELS = [
 ] as const;
 
 export default async function HomePage() {
-  const user = await requireAdminAccess();
-  let universityId: string | null = null;
-  let universityName: string | null = null;
+  const university = await getCurrentUniversity();
 
-  if (user.role === "super_admin") {
-    const universities = await getStructureUniversities();
-    try {
-      const configuredUniversityId = await getCurrentUniversityId();
-      const configuredUniversity = isUuid(configuredUniversityId)
-        ? universities.find((university) => university.id === configuredUniversityId)
-        : undefined;
-      if (configuredUniversity) {
-        universityId = configuredUniversity.id;
-        universityName = configuredUniversity.name;
-      }
-    } catch {
-      universityId = null;
-    }
-  } else if (user.role === "university_admin" && user.universityId) {
-    if (isUuid(user.universityId)) {
-      try {
-        const overview = await getStructureOverview(user.universityId);
-        universityId = overview.university.id;
-        universityName = overview.university.name;
-      } catch {
-        universityId = null;
-      }
-    }
-  } else {
-    forbidden();
-  }
-
-  const counts = universityId
-    ? await getDashboardCountsForUniversity(universityId)
+  const counts = university
+    ? await getDashboardCountsForUniversity(university.id)
     : null;
 
   return (
@@ -95,7 +61,7 @@ export default async function HomePage() {
 
       <section aria-labelledby="dashboard-counts-heading" className="mt-8">
         <h2 id="dashboard-counts-heading" className="mb-4 text-xl font-semibold">
-          {universityName ? `Compteurs — ${universityName}` : "Compteurs"}
+          {university ? `Compteurs — ${university.name}` : "Compteurs"}
         </h2>
         {counts ? (
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">

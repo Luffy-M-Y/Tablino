@@ -29,6 +29,7 @@ import {
   type StructureActionInitialState,
   type StructureActionState,
 } from "@/lib/structure-action-utils.mjs";
+import { getCurrentUniversity } from "@/lib/current-university";
 
 function failure(reason: ActionReason): StructureActionState {
   return { ok: false, reason, message: messageForReason(reason) };
@@ -55,6 +56,9 @@ async function requireUniversityForAction(formData: FormData): Promise<string> {
   } catch (error) {
     return handleGuardFailure(error);
   }
+
+  const university = await getCurrentUniversity();
+  if (!university || university.id !== universityId) forbidden();
 
   return universityId;
 }
