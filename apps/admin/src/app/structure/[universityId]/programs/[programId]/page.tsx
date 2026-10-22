@@ -87,7 +87,10 @@ export default async function ProgramDetailPage({
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="mb-4 text-xl font-semibold">Matières</h2>
-        <SubjectsSearch subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))} />
+        <SubjectsSearch
+          universityId={universityId}
+          subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))}
+        />
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">

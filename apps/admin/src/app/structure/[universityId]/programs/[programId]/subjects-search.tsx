@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
+import { deleteSubjectAction, renameSubjectAction } from "../../actions";
+import { DeleteControl, RenameControl } from "../../structure-edit-controls";
 
 type Subject = {
   id: string;
@@ -9,10 +11,11 @@ type Subject = {
 };
 
 type Props = {
+  universityId: string;
   subjects: Subject[];
 };
 
-export function SubjectsSearch({ subjects }: Props) {
+export function SubjectsSearch({ universityId, subjects }: Props) {
   const [query, setQuery] = useState("");
   const normalizedQuery = normalizeSearchValue(query);
   const matchingSubjects = useMemo(
@@ -56,6 +59,24 @@ export function SubjectsSearch({ subjects }: Props) {
           {matchingSubjects.map((subject) => (
             <li key={subject.id} className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]">
               {subject.name}
+              <div className="mt-3 flex items-center gap-2">
+                <RenameControl
+                  action={renameSubjectAction}
+                  universityId={universityId}
+                  idField="subjectId"
+                  idValue={subject.id}
+                  currentName={subject.name}
+                  maxLength={255}
+                  label="Modifier le nom de la matière"
+                />
+                <DeleteControl
+                  action={deleteSubjectAction}
+                  universityId={universityId}
+                  fields={{ subjectId: subject.id }}
+                  itemName={subject.name}
+                  label="Supprimer la matière"
+                />
+              </div>
             </li>
           ))}
         </ul>
