@@ -1,10 +1,12 @@
 export type ActionReason =
   | "invalid_cycle"
+  | "invalid_name"
   | "duplicate_short_code"
   | "university_not_found"
   | "year_taken"
   | "slug_taken"
   | "has_levels"
+  | "has_dependents"
   | "blocking_levels"
   | "short_code_taken"
   | "out_of_range"

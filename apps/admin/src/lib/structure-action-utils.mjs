@@ -1,10 +1,12 @@
 const messages = {
   invalid_cycle: "Le nom du cycle ou son code court est invalide.",
+  invalid_name: "Le nom est invalide.",
   duplicate_short_code: "Ce code court est déjà utilisé dans cette université.",
   university_not_found: "Université introuvable.",
   year_taken: "Cette année est déjà utilisée dans la filière.",
   slug_taken: "Ce nom de niveau est déjà utilisé dans la filière.",
   has_levels: "Le code ne peut pas changer tant que des niveaux y sont rattachés.",
+  has_dependents: "La suppression est impossible tant que des éléments en dépendent.",
   blocking_levels: "Des niveaux dépassent la nouvelle durée du cycle.",
   short_code_taken: "Ce code est déjà utilisé dans cette université.",
   out_of_range: "La valeur doit être un entier dans la plage autorisée.",
@@ -23,6 +25,13 @@ const mutationActions = new Set([
   "cycle_short_code",
   "level_year_number",
   "program_status",
+  "cycle_rename",
+  "program_rename",
+  "subject_rename",
+  "subject_delete",
+  "program_cycle_delete",
+  "cycle_delete",
+  "program_delete",
 ]);
 const mutationResults = new Set(["success", "rejected", "error"]);
 const mutationReasons = new Set([...Object.keys(messages), "none"]);

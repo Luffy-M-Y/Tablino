@@ -14,8 +14,21 @@ import {
 
 type StructureDatabase = typeof sharedDb;
 
+const PROGRAM_NAME_MAX_LENGTH = 255;
+const CYCLE_NAME_MAX_LENGTH = 100;
+const SUBJECT_NAME_MAX_LENGTH = 255;
+
 async function resolveDatabase(database?: StructureDatabase): Promise<StructureDatabase> {
   return database ?? (await import("./client")).db;
+}
+
+function normalizeName(name: string): string {
+  return typeof name === "string" ? name.trim() : "";
+}
+
+function isNameValid(name: string, maxLength: number): boolean {
+  const length = [...name].length;
+  return length >= 1 && length <= maxLength;
 }
 
 export type UpdateCycleYearsCountResult =
@@ -50,6 +63,34 @@ export type UpdateProgramStatusResult =
 export type CreateCycleResult =
   | { ok: true; cycleId: string }
   | { ok: false; reason: "invalid_cycle" | "duplicate_short_code" | "university_not_found" };
+
+export type RenameProgramResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid_name" | "program_not_found" };
+
+export type RenameCycleResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid_name" | "cycle_not_found" };
+
+export type RenameSubjectResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid_name" | "not_found" };
+
+export type DeleteSubjectResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "has_dependents" };
+
+export type DeleteProgramCycleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "has_levels" };
+
+export type DeleteCycleResult =
+  | { ok: true }
+  | { ok: false; reason: "cycle_not_found" | "has_dependents" };
+
+export type DeleteProgramResult =
+  | { ok: true }
+  | { ok: false; reason: "program_not_found" | "has_dependents" };
 
 function isUniqueConstraintViolation(error: unknown, constraint: string): boolean {
   if (typeof error !== "object" || error === null) return false;
@@ -386,5 +427,301 @@ export async function updateProgramStatus(
       .returning({ id: schema.programs.id });
 
     return updated ? { ok: true } : { ok: false, reason: "program_not_found" };
+  });
+}
+
+export async function renameProgram(
+  universityId: string,
+  programId: string,
+  name: string,
+  database?: StructureDatabase,
+): Promise<RenameProgramResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [program] = await tx
+      .select({ id: schema.programs.id })
+      .from(schema.programs)
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!program) return { ok: false, reason: "program_not_found" };
+
+    const normalizedName = normalizeName(name);
+    if (!isNameValid(normalizedName, PROGRAM_NAME_MAX_LENGTH)) {
+      return { ok: false, reason: "invalid_name" };
+    }
+
+    await tx
+      .update(schema.programs)
+      .set({ name: normalizedName })
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function renameCycle(
+  universityId: string,
+  cycleId: string,
+  name: string,
+  database?: StructureDatabase,
+): Promise<RenameCycleResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [cycle] = await tx
+      .select({ id: schema.cycles.id })
+      .from(schema.cycles)
+      .where(and(
+        eq(schema.cycles.universityId, universityId),
+        eq(schema.cycles.id, cycleId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!cycle) return { ok: false, reason: "cycle_not_found" };
+
+    const normalizedName = normalizeName(name);
+    if (!isNameValid(normalizedName, CYCLE_NAME_MAX_LENGTH)) {
+      return { ok: false, reason: "invalid_name" };
+    }
+
+    await tx
+      .update(schema.cycles)
+      .set({ name: normalizedName })
+      .where(and(
+        eq(schema.cycles.universityId, universityId),
+        eq(schema.cycles.id, cycleId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function renameSubject(
+  universityId: string,
+  subjectId: string,
+  name: string,
+  database?: StructureDatabase,
+): Promise<RenameSubjectResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [subject] = await tx
+      .select({ id: schema.subjects.id })
+      .from(schema.subjects)
+      .where(and(
+        eq(schema.subjects.universityId, universityId),
+        eq(schema.subjects.id, subjectId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!subject) return { ok: false, reason: "not_found" };
+
+    const normalizedName = normalizeName(name);
+    if (!isNameValid(normalizedName, SUBJECT_NAME_MAX_LENGTH)) {
+      return { ok: false, reason: "invalid_name" };
+    }
+
+    await tx
+      .update(schema.subjects)
+      .set({ name: normalizedName })
+      .where(and(
+        eq(schema.subjects.universityId, universityId),
+        eq(schema.subjects.id, subjectId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function deleteSubject(
+  universityId: string,
+  subjectId: string,
+  database?: StructureDatabase,
+): Promise<DeleteSubjectResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [subject] = await tx
+      .select({ id: schema.subjects.id })
+      .from(schema.subjects)
+      .where(and(
+        eq(schema.subjects.universityId, universityId),
+        eq(schema.subjects.id, subjectId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!subject) return { ok: false, reason: "not_found" };
+
+    const [resource, assignment] = await Promise.all([
+      tx.select({ id: schema.resources.id })
+        .from(schema.resources)
+        .where(and(
+          eq(schema.resources.universityId, universityId),
+          eq(schema.resources.subjectId, subjectId),
+        ))
+        .limit(1),
+      tx.select({ id: schema.assignments.id })
+        .from(schema.assignments)
+        .where(and(
+          eq(schema.assignments.universityId, universityId),
+          eq(schema.assignments.subjectId, subjectId),
+        ))
+        .limit(1),
+    ]);
+
+    if (resource || assignment) return { ok: false, reason: "has_dependents" };
+
+    await tx
+      .delete(schema.subjects)
+      .where(and(
+        eq(schema.subjects.universityId, universityId),
+        eq(schema.subjects.id, subjectId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function deleteProgramCycle(
+  universityId: string,
+  programId: string,
+  cycleId: string,
+  database?: StructureDatabase,
+): Promise<DeleteProgramCycleResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [programCycle] = await tx
+      .select({ programId: schema.programCycles.programId })
+      .from(schema.programCycles)
+      .where(and(
+        eq(schema.programCycles.universityId, universityId),
+        eq(schema.programCycles.programId, programId),
+        eq(schema.programCycles.cycleId, cycleId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!programCycle) return { ok: false, reason: "not_found" };
+
+    const [level] = await tx
+      .select({ id: schema.levels.id })
+      .from(schema.levels)
+      .where(and(
+        eq(schema.levels.universityId, universityId),
+        eq(schema.levels.programId, programId),
+        eq(schema.levels.cycleId, cycleId),
+      ))
+      .limit(1);
+
+    if (level) return { ok: false, reason: "has_levels" };
+
+    await tx
+      .delete(schema.programCycles)
+      .where(and(
+        eq(schema.programCycles.universityId, universityId),
+        eq(schema.programCycles.programId, programId),
+        eq(schema.programCycles.cycleId, cycleId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function deleteCycle(
+  universityId: string,
+  cycleId: string,
+  database?: StructureDatabase,
+): Promise<DeleteCycleResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [cycle] = await tx
+      .select({ id: schema.cycles.id })
+      .from(schema.cycles)
+      .where(and(
+        eq(schema.cycles.universityId, universityId),
+        eq(schema.cycles.id, cycleId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!cycle) return { ok: false, reason: "cycle_not_found" };
+
+    const [programCycle, level] = await Promise.all([
+      tx.select({ programId: schema.programCycles.programId })
+        .from(schema.programCycles)
+        .where(and(
+          eq(schema.programCycles.universityId, universityId),
+          eq(schema.programCycles.cycleId, cycleId),
+        ))
+        .limit(1),
+      tx.select({ id: schema.levels.id })
+        .from(schema.levels)
+        .where(and(
+          eq(schema.levels.universityId, universityId),
+          eq(schema.levels.cycleId, cycleId),
+        ))
+        .limit(1),
+    ]);
+
+    if (programCycle || level) return { ok: false, reason: "has_dependents" };
+
+    await tx
+      .delete(schema.cycles)
+      .where(and(
+        eq(schema.cycles.universityId, universityId),
+        eq(schema.cycles.id, cycleId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function deleteProgram(
+  universityId: string,
+  programId: string,
+  database?: StructureDatabase,
+): Promise<DeleteProgramResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const [program] = await tx
+      .select({ id: schema.programs.id })
+      .from(schema.programs)
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!program) return { ok: false, reason: "program_not_found" };
+
+    const [programCycle, level] = await Promise.all([
+      tx.select({ cycleId: schema.programCycles.cycleId })
+        .from(schema.programCycles)
+        .where(and(
+          eq(schema.programCycles.universityId, universityId),
+          eq(schema.programCycles.programId, programId),
+        ))
+        .limit(1),
+      tx.select({ id: schema.levels.id })
+        .from(schema.levels)
+        .where(and(
+          eq(schema.levels.universityId, universityId),
+          eq(schema.levels.programId, programId),
+        ))
+        .limit(1),
+    ]);
+
+    if (programCycle || level) return { ok: false, reason: "has_dependents" };
+
+    await tx
+      .delete(schema.programs)
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ));
+
+    return { ok: true };
   });
 }

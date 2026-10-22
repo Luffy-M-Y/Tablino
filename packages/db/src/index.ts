@@ -9,6 +9,13 @@ export {
   updateCycleShortCode,
   updateLevelYearNumber,
   updateProgramStatus,
+  renameProgram,
+  renameCycle,
+  renameSubject,
+  deleteSubject,
+  deleteProgramCycle,
+  deleteCycle,
+  deleteProgram,
 } from "./structure";
 export {
   isYearNumberInRange,
@@ -27,4 +34,11 @@ export type {
   UpdateCycleShortCodeResult,
   UpdateLevelYearNumberResult,
   UpdateProgramStatusResult,
+  RenameProgramResult,
+  RenameCycleResult,
+  RenameSubjectResult,
+  DeleteSubjectResult,
+  DeleteProgramCycleResult,
+  DeleteCycleResult,
+  DeleteProgramResult,
 } from "./structure";
