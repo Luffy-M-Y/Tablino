@@ -84,6 +84,22 @@ export type DeleteProgramCycleResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "has_levels" };
 
+export type AddProgramCycleResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "program_not_found" | "cycle_not_found" | "years_out_of_range" | "already_linked";
+    };
+
+export type UpdateProgramCycleYearsCountResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "years_out_of_range" }
+  | {
+      ok: false;
+      reason: "blocking_levels";
+      blockingLevels: { name: string; yearNumber: number }[];
+    };
+
 export type DeleteCycleResult =
   | { ok: true }
   | { ok: false; reason: "cycle_not_found" | "has_dependents" };
@@ -622,6 +638,112 @@ export async function deleteProgramCycle(
 
     await tx
       .delete(schema.programCycles)
+      .where(and(
+        eq(schema.programCycles.universityId, universityId),
+        eq(schema.programCycles.programId, programId),
+        eq(schema.programCycles.cycleId, cycleId),
+      ));
+
+    return { ok: true };
+  });
+}
+
+export async function addProgramCycle(
+  universityId: string,
+  programId: string,
+  cycleId: string,
+  yearsCount: number,
+  database?: StructureDatabase,
+): Promise<AddProgramCycleResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const programs = await tx
+      .select({ id: schema.programs.id })
+      .from(schema.programs)
+      .where(and(
+        eq(schema.programs.universityId, universityId),
+        eq(schema.programs.id, programId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!(programs.length > 0)) return { ok: false, reason: "program_not_found" };
+
+    const cycles = await tx
+      .select({ id: schema.cycles.id })
+      .from(schema.cycles)
+      .where(and(
+        eq(schema.cycles.universityId, universityId),
+        eq(schema.cycles.id, cycleId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!(cycles.length > 0)) return { ok: false, reason: "cycle_not_found" };
+    if (!isYearNumberInRange(yearsCount, 10)) {
+      return { ok: false, reason: "years_out_of_range" };
+    }
+
+    const programCycles = await tx
+      .select({ programId: schema.programCycles.programId })
+      .from(schema.programCycles)
+      .where(and(
+        eq(schema.programCycles.universityId, universityId),
+        eq(schema.programCycles.programId, programId),
+        eq(schema.programCycles.cycleId, cycleId),
+      ))
+      .limit(1);
+
+    if (programCycles.length > 0) return { ok: false, reason: "already_linked" };
+
+    await tx
+      .insert(schema.programCycles)
+      .values({ universityId, programId, cycleId, yearsCount });
+
+    return { ok: true };
+  });
+}
+
+export async function updateProgramCycleYearsCount(
+  universityId: string,
+  programId: string,
+  cycleId: string,
+  newYearsCount: number,
+  database?: StructureDatabase,
+): Promise<UpdateProgramCycleYearsCountResult> {
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const programCycles = await tx
+      .select({ programId: schema.programCycles.programId })
+      .from(schema.programCycles)
+      .where(and(
+        eq(schema.programCycles.universityId, universityId),
+        eq(schema.programCycles.programId, programId),
+        eq(schema.programCycles.cycleId, cycleId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!(programCycles.length > 0)) return { ok: false, reason: "not_found" };
+    if (!isYearNumberInRange(newYearsCount, 10)) {
+      return { ok: false, reason: "years_out_of_range" };
+    }
+
+    const blockingLevels = await tx
+      .select({ name: schema.levels.name, yearNumber: schema.levels.yearNumber })
+      .from(schema.levels)
+      .where(and(
+        eq(schema.levels.universityId, universityId),
+        eq(schema.levels.programId, programId),
+        eq(schema.levels.cycleId, cycleId),
+        gt(schema.levels.yearNumber, newYearsCount),
+      ));
+
+    if (blockingLevels.length > 0) {
+      return { ok: false, reason: "blocking_levels", blockingLevels };
+    }
+
+    await tx
+      .update(schema.programCycles)
+      .set({ yearsCount: newYearsCount })
       .where(and(
         eq(schema.programCycles.universityId, universityId),
         eq(schema.programCycles.programId, programId),

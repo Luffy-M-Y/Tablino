@@ -3,8 +3,10 @@ export { getDashboardCounts } from "./dashboard";
 export { and, asc, count, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {
+  addProgramCycle,
   canReduceYearsCount,
   createCycle,
+  updateProgramCycleYearsCount,
   updateCycleYearsCount,
   updateCycleShortCode,
   updateLevelYearNumber,
@@ -28,8 +30,10 @@ export {
   buildLevelSlug,
 } from "./structure-validation";
 export type {
+  AddProgramCycleResult,
   CanReduceYearsCountResult,
   CreateCycleResult,
+  UpdateProgramCycleYearsCountResult,
   UpdateCycleYearsCountResult,
   UpdateCycleShortCodeResult,
   UpdateLevelYearNumberResult,

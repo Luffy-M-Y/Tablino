@@ -8,6 +8,8 @@ export type ActionReason =
   | "has_levels"
   | "has_dependents"
   | "blocking_levels"
+  | "already_linked"
+  | "years_out_of_range"
   | "short_code_taken"
   | "out_of_range"
   | "invalid_short_code"
