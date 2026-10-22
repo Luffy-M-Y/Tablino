@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
 
 type Subject = {
   id: string;
@@ -10,13 +11,6 @@ type Subject = {
 type Props = {
   subjects: Subject[];
 };
-
-function normalizeSearchValue(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLocaleLowerCase();
-}
 
 export function SubjectsSearch({ subjects }: Props) {
   const [query, setQuery] = useState("");
@@ -33,13 +27,28 @@ export function SubjectsSearch({ subjects }: Props) {
   return (
     <div>
       <label htmlFor="subject-search">Rechercher une matière</label>
-      <input
-        id="subject-search"
-        type="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        className="mt-2 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2"
-      />
+      <div className="mt-2 flex gap-3">
+        <input
+          id="subject-search"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setQuery("");
+          }}
+          className="w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2"
+        />
+        <button
+          type="button"
+          onClick={() => setQuery("")}
+          className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+        >
+          Effacer
+        </button>
+      </div>
+      <p className="mt-3" aria-live="polite">
+        {matchingSubjects.length} {matchingSubjects.length === 1 ? "résultat" : "résultats"}
+      </p>
       {matchingSubjects.length === 0 ? (
         <p className="mt-4">Aucune matière trouvée.</p>
       ) : (

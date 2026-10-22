@@ -42,7 +42,7 @@ export default async function ProgramDetailPage({
         { label: program.name },
       ]}
     >
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <section className="flex flex-col items-start gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="text-xl font-semibold">{program.name}</h2>
         <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
         <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
@@ -50,16 +50,15 @@ export default async function ProgramDetailPage({
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-        <h2 className="text-xl font-semibold">Cycles de la filière</h2>
+        <h2 className="mb-4 text-xl font-semibold">Cycles de la filière</h2>
         {program.cycles.length === 0 ? (
           <p>Aucun cycle dans cette filière.</p>
         ) : (
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {program.cycles.map((cycle) => (
-              <li key={cycle.cycleId} className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+              <li key={cycle.cycleId} className="space-y-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
                 <h3 className="text-xl font-semibold">{cycle.name}</h3>
                 <p>{cycle.shortCode}</p>
-                <p>{countLabel(cycle.yearsCount, "an", "ans")}</p>
                 <p>{countLabel(cycle.levelsCount, "niveau", "niveaux")}</p>
               </li>
             ))}
@@ -68,7 +67,7 @@ export default async function ProgramDetailPage({
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-        <h2 className="text-xl font-semibold">Matières</h2>
+        <h2 className="mb-4 text-xl font-semibold">Matières</h2>
         <SubjectsSearch subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))} />
       </section>
 
