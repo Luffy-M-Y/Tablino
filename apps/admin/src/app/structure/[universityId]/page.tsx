@@ -1,13 +1,13 @@
 import { getStructureOverview } from "@/lib/structure-queries";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { forbidden } from "next/navigation";
+import Link from "next/link";
 import { StructureActionForm } from "./structure-action-form";
 import {
   createCycleAction,
   updateCycleShortCodeAction,
   updateCycleYearsCountAction,
   updateLevelYearNumberAction,
-  updateProgramStatusAction,
 } from "./actions";
 import AdminPage from "@/components/admin-page";
 
@@ -53,28 +53,10 @@ export default async function UniversityStructurePage({
         </StructureActionForm>
       </section>
 
-      <section aria-labelledby="programs-heading">
-        <h2 id="programs-heading">Filières</h2>
-        {overview.programs.length === 0 ? (
-          <p>Aucune filière.</p>
-        ) : (
-          <ul>
-            {overview.programs.map((program) => (
-              <li key={program.id}>
-                <p>{program.name} <span>({program.status})</span></p>
-                <StructureActionForm action={updateProgramStatusAction} buttonLabel="Enregistrer le statut">
-                  <input type="hidden" name="universityId" value={universityId} />
-                  <input type="hidden" name="programId" value={program.id} />
-                  <label htmlFor={`program-status-${program.id}`}>Statut de la filière</label>
-                  <select id={`program-status-${program.id}`} name="status" defaultValue={program.status} required>
-                    <option value="draft">Brouillon</option>
-                    <option value="published">Publiée</option>
-                  </select>
-                </StructureActionForm>
-              </li>
-            ))}
-          </ul>
-        )}
+      <section aria-labelledby="programs-heading" className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+        <h2 id="programs-heading" className="text-xl font-semibold">Filières</h2>
+        <p>{overview.programs.length} filières</p>
+        <Link href={`/structure/${universityId}/programs`}>Ouvrir</Link>
       </section>
 
       <section aria-labelledby="cycles-heading">
@@ -143,7 +125,7 @@ export default async function UniversityStructurePage({
                           <ul aria-label={`Matières de ${level.name}`}>
                             {level.subjects.map((subject) => (
                               <li key={subject.id}>
-                                {subject.name} ({subject.academicYearLabel})
+                                {subject.name}
                               </li>
                             ))}
                           </ul>

@@ -76,7 +76,7 @@ async function runMutation(
     }
 
     console.info("structure_mutation", createStructureMutationLog(action, "success", "none"));
-    revalidatePath(`/structure/${universityId}`);
+    revalidatePath(`/structure/${universityId}`, "layout");
     return { ok: true, message: "Modification enregistrée." };
   } catch {
     console.info("structure_mutation", createStructureMutationLog(action, "error", "unexpected_error"));
