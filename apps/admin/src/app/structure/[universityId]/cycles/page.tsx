@@ -1,8 +1,9 @@
 import AdminPage from "@/components/admin-page";
 import { assertCurrentUniversity } from "@/lib/current-university";
 import { getStructureOverview } from "@/lib/structure-queries";
-import { createCycleAction } from "../actions";
+import { createCycleAction, deleteCycleAction, renameCycleAction } from "../actions";
 import { StructureActionForm } from "../structure-action-form";
+import { DeleteControl, RenameControl } from "../structure-edit-controls";
 
 export default async function CyclesPage({
   params,
@@ -25,9 +26,30 @@ export default async function CyclesPage({
         {overview.cycles.length === 0 ? (
           <p>Aucun cycle.</p>
         ) : (
-          <ul>
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {overview.cycles.map((cycle) => (
-              <li key={cycle.id}>{cycle.name} ({cycle.shortCode})</li>
+              <li key={cycle.id} className="space-y-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+                <h3 className="text-xl font-semibold">{cycle.name}</h3>
+                <p>{cycle.shortCode}</p>
+                <div className="flex items-center gap-2">
+                  <RenameControl
+                    action={renameCycleAction}
+                    universityId={universityId}
+                    idField="cycleId"
+                    idValue={cycle.id}
+                    currentName={cycle.name}
+                    maxLength={100}
+                    label="Modifier le nom du cycle"
+                  />
+                  <DeleteControl
+                    action={deleteCycleAction}
+                    universityId={universityId}
+                    fields={{ cycleId: cycle.id }}
+                    itemName={cycle.name}
+                    label="Supprimer le cycle"
+                  />
+                </div>
+              </li>
             ))}
           </ul>
         )}

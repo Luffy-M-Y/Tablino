@@ -3,8 +3,9 @@ import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
-import { updateProgramStatusAction } from "../../actions";
+import { deleteProgramCycleAction, renameCycleAction, updateProgramStatusAction } from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
+import { DeleteControl, RenameControl } from "../../structure-edit-controls";
 import { SubjectsSearch } from "./subjects-search";
 
 function statusLabel(status: "draft" | "published") {
@@ -60,6 +61,24 @@ export default async function ProgramDetailPage({
                 <h3 className="text-xl font-semibold">{cycle.name}</h3>
                 <p>{cycle.shortCode}</p>
                 <p>{countLabel(cycle.levelsCount, "niveau", "niveaux")}</p>
+                <div className="flex items-center gap-2">
+                  <RenameControl
+                    action={renameCycleAction}
+                    universityId={universityId}
+                    idField="cycleId"
+                    idValue={cycle.cycleId}
+                    currentName={cycle.name}
+                    maxLength={100}
+                    label="Modifier le nom du cycle"
+                  />
+                  <DeleteControl
+                    action={deleteProgramCycleAction}
+                    universityId={universityId}
+                    fields={{ programId: program.id, cycleId: cycle.cycleId }}
+                    itemName={cycle.name}
+                    label="Retirer le cycle de la filière"
+                  />
+                </div>
               </li>
             ))}
           </ul>
