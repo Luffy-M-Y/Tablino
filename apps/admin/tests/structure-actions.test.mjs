@@ -40,7 +40,7 @@ test("translates expected mutation reasons without exposing raw errors", () => {
   assert.equal(messageForReason("invalid_cycle"), "Le nom du cycle ou son code court est invalide.");
   assert.equal(messageForReason("university_not_found"), "Université introuvable.");
   assert.equal(messageForReason("year_taken"), "Cette année est déjà utilisée dans la filière.");
-  assert.equal(messageForReason("blocking_levels"), "Des niveaux dépassent la nouvelle durée du cycle.");
+  assert.equal(messageForReason("blocking_levels"), "Des niveaux à supprimer contiennent des matières. Supprimez d'abord ces matières.");
   assert.equal(messageForReason("invalid_short_code"), "Le code doit contenir de 1 à 10 lettres.");
   assert.equal(messageForReason("unknown-error"), "La modification n'a pas pu être effectuée.");
 });

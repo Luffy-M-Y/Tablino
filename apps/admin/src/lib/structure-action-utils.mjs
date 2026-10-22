@@ -7,7 +7,7 @@ const messages = {
   slug_taken: "Ce nom de niveau est déjà utilisé dans la filière.",
   has_levels: "Le code ne peut pas changer tant que des niveaux y sont rattachés.",
   has_dependents: "La suppression est impossible tant que des éléments en dépendent.",
-  blocking_levels: "Des niveaux dépassent la nouvelle durée du cycle.",
+  blocking_levels: "Des niveaux à supprimer contiennent des matières. Supprimez d'abord ces matières.",
   already_linked: "Ce cycle est déjà dans la filière.",
   years_out_of_range: "Le nombre d'années doit être un entier de 1 à 10.",
   short_code_taken: "Ce code est déjà utilisé dans cette université.",
