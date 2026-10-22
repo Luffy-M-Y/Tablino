@@ -5,6 +5,7 @@ import { forbidden, redirect } from "next/navigation";
 import {
   addProgramCycle,
   createCycle,
+  createSubject,
   deleteCycle,
   deleteProgram,
   deleteProgramCycle,
@@ -84,6 +85,7 @@ async function runMutation(
     | "cycle_rename"
     | "program_rename"
     | "subject_rename"
+    | "subject_create"
     | "subject_delete"
     | "program_cycle_delete"
     | "cycle_delete"
@@ -303,4 +305,18 @@ export async function updateProgramCycleYearsCountAction(
 
   return runMutation("program_cycle_years_count", universityId, () =>
     updateProgramCycleYearsCount(universityId, programId, cycleId, yearsCount));
+}
+
+export async function createSubjectAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const levelId = readStringField(formData, "levelId");
+  const academicYearId = readStringField(formData, "academicYearId");
+  const name = readStringField(formData, "name");
+  if (!isUuid(levelId) || !isUuid(academicYearId)) return failure("not_found");
+
+  return runMutation("subject_create", universityId, () =>
+    createSubject(universityId, levelId, academicYearId, name ?? ""));
 }

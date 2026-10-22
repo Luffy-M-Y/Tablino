@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound, forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
-import { getProgramDetail } from "@/lib/structure-queries";
+import { getProgramDetail, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
 import {
   deleteProgramAction,
   deleteProgramCycleAction,
   renameCycleAction,
+  createSubjectAction,
   updateProgramStatusAction,
 } from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
@@ -36,8 +37,17 @@ export default async function ProgramDetailPage({
   if (!university || university.id !== universityId) forbidden();
   if (!isUuid(programId)) notFound();
 
-  const program = await getProgramDetail(universityId, programId);
+  const [program, overview] = await Promise.all([
+    getProgramDetail(universityId, programId),
+    getStructureOverview(universityId),
+  ]);
   if (!program) notFound();
+
+  const programLevels = overview.cycles.flatMap((cycle) =>
+    cycle.levels
+      .filter((level) => level.programId === program.id)
+      .map((level) => ({ ...level, cycleName: cycle.name })),
+  );
 
   return (
     <AdminPage
@@ -111,6 +121,43 @@ export default async function ProgramDetailPage({
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="mb-4 text-xl font-semibold">Matières</h2>
+        {programLevels.length === 0 && <p>Ajoutez d'abord un cycle à la filière.</p>}
+        {overview.academicYears.length === 0 && <p>Aucune année académique.</p>}
+        {programLevels.length > 0 && overview.academicYears.length > 0 && (
+          <StructureActionForm action={createSubjectAction} buttonLabel="Ajouter la matière">
+            <input type="hidden" name="universityId" value={universityId} />
+            <div>
+              <label htmlFor={`subject-level-${program.id}`}>Niveau</label>
+              <select id={`subject-level-${program.id}`} name="levelId" required>
+                {programLevels.map((level) => (
+                  <option key={level.id} value={level.id}>
+                    {level.name} ({level.cycleName})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor={`subject-academic-year-${program.id}`}>Année académique</label>
+              <select id={`subject-academic-year-${program.id}`} name="academicYearId" required>
+                {overview.academicYears.map((academicYear) => (
+                  <option key={academicYear.id} value={academicYear.id}>
+                    {academicYear.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor={`subject-name-${program.id}`}>Nom de la matière</label>
+              <input
+                id={`subject-name-${program.id}`}
+                name="name"
+                type="text"
+                maxLength={255}
+                required
+              />
+            </div>
+          </StructureActionForm>
+        )}
         <SubjectsSearch
           universityId={universityId}
           subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))}
