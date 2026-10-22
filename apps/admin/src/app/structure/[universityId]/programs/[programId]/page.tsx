@@ -3,7 +3,13 @@ import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
-import { deleteProgramCycleAction, renameCycleAction, updateProgramStatusAction } from "../../actions";
+import {
+  deleteProgramAction,
+  deleteProgramCycleAction,
+  renameCycleAction,
+  renameProgramAction,
+  updateProgramStatusAction,
+} from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
 import { DeleteControl, RenameControl } from "../../structure-edit-controls";
 import { SubjectsSearch } from "./subjects-search";
@@ -48,6 +54,24 @@ export default async function ProgramDetailPage({
         <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
         <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
         <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
+        <div className="flex items-center gap-2">
+          <RenameControl
+            action={renameProgramAction}
+            universityId={universityId}
+            idField="programId"
+            idValue={program.id}
+            currentName={program.name}
+            maxLength={255}
+            label="Modifier le nom de la filière"
+          />
+          <DeleteControl
+            action={deleteProgramAction}
+            universityId={universityId}
+            fields={{ programId: program.id, redirectTo: `/structure/${universityId}/programs` }}
+            itemName={program.name}
+            label="Supprimer la filière"
+          />
+        </div>
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">

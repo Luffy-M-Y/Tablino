@@ -264,5 +264,9 @@ export async function deleteProgramAction(
     return failure("confirmation_required");
   }
 
-  return runMutation("program_delete", universityId, () => deleteProgram(universityId, programId));
+  const result = await runMutation("program_delete", universityId, () => deleteProgram(universityId, programId));
+  if (result.ok && formData.get("redirectTo") === `/structure/${universityId}/programs`) {
+    redirect(`/structure/${universityId}/programs`);
+  }
+  return result;
 }
