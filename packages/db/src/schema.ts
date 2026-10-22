@@ -52,7 +52,7 @@ export const cycles = pgTable("cycles", {
     .notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   shortCode: varchar("short_code", { length: 10 }).notNull(),
-  yearsCount: integer("years_count").notNull(),
+  yearsCount: integer("years_count"),
   order: integer("order").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
@@ -73,6 +73,7 @@ export const programCycles = pgTable("program_cycles", {
   programId: uuid("program_id").notNull(),
   universityId: uuid("university_id").notNull(),
   cycleId: uuid("cycle_id").notNull(),
+  yearsCount: integer("years_count").notNull(),
 }, (t) => [
   primaryKey({ name: "program_cycles_pk", columns: [t.programId, t.cycleId] }),
   foreignKey({
@@ -86,6 +87,7 @@ export const programCycles = pgTable("program_cycles", {
     foreignColumns: [cycles.id, cycles.universityId],
   }).onDelete("cascade"),
   index("program_cycles_university_idx").on(t.universityId),
+  check("program_cycles_years_count_range", sql`${t.yearsCount} >= 1 AND ${t.yearsCount} <= 10`),
 ]).enableRLS();
 
 // ─── Levels (niveaux : L1, L2, M1…) ──────────────────────────────────────────

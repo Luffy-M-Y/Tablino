@@ -21,7 +21,7 @@ export type StructureCycle = {
   id: string;
   name: string;
   shortCode: string;
-  yearsCount: number;
+  yearsCount: number | null;
   order: number;
   levels: StructureLevel[];
 };

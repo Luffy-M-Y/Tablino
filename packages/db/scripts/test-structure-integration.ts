@@ -86,6 +86,7 @@ async function main() {
       programId,
       universityId,
       cycleId,
+      yearsCount: 4,
     });
 
     const [firstLevel] = await guardedDb

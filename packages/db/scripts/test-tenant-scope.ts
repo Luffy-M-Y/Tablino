@@ -322,8 +322,8 @@ async function createFixtures(db: DbContext["db"]) {
   if (!cycleA || !cycleB) throw new Error("Fixture creation failed");
 
   await db.insert(schema.programCycles).values([
-    { universityId: universityA.id, programId: programA.id, cycleId: cycleA.id },
-    { universityId: universityB.id, programId: programB.id, cycleId: cycleB.id },
+    { universityId: universityA.id, programId: programA.id, cycleId: cycleA.id, yearsCount: 3 },
+    { universityId: universityB.id, programId: programB.id, cycleId: cycleB.id, yearsCount: 3 },
   ]);
   const [levelA] = await db.insert(schema.levels).values({
     universityId: universityA.id,

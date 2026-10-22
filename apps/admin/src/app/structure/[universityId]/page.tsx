@@ -56,7 +56,7 @@ export default async function UniversityStructurePage({
             {overview.cycles.map((cycle) => (
               <li key={cycle.id}>
                 <h3>{cycle.name} ({cycle.shortCode})</h3>
-                <p>{cycle.yearsCount} ans</p>
+                <p>{cycle.yearsCount ?? ""} ans</p>
                 <StructureActionForm action={updateCycleYearsCountAction} buttonLabel="Enregistrer la durée">
                   <input type="hidden" name="universityId" value={universityId} />
                   <input type="hidden" name="cycleId" value={cycle.id} />
@@ -68,7 +68,7 @@ export default async function UniversityStructurePage({
                     min={1}
                     max={10}
                     step={1}
-                    defaultValue={cycle.yearsCount}
+                    defaultValue={cycle.yearsCount ?? ""}
                     required
                   />
                 </StructureActionForm>
@@ -103,7 +103,7 @@ export default async function UniversityStructurePage({
                             name="yearNumber"
                             type="number"
                             min={1}
-                            max={cycle.yearsCount}
+                            max={cycle.yearsCount ?? undefined}
                             step={1}
                             defaultValue={level.yearNumber}
                             required
