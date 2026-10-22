@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
+import { deleteProgramAction, renameProgramAction } from "../actions";
+import { DeleteControl, RenameControl } from "../structure-edit-controls";
 
 type Program = {
   id: string;
@@ -73,17 +75,36 @@ export function ProgramsSearch({ universityId, programs }: Props) {
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {matchingPrograms.map((program) => (
-            <Link
+            <div
               key={program.id}
-              href={`/structure/${universityId}/programs/${program.id}`}
-              className="flex flex-col gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]"
+              className="relative flex flex-col gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]"
             >
-              <h2 className="text-xl font-semibold">{program.name}</h2>
-              <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
-              <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
-              <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
-              <span>Ouvrir</span>
-            </Link>
+              <Link href={`/structure/${universityId}/programs/${program.id}`}>
+                <h2 className="text-xl font-semibold">{program.name}</h2>
+                <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
+                <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
+                <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
+                <span>Ouvrir</span>
+              </Link>
+              <div className="flex items-center gap-2">
+                <RenameControl
+                  action={renameProgramAction}
+                  universityId={universityId}
+                  idField="programId"
+                  idValue={program.id}
+                  currentName={program.name}
+                  maxLength={255}
+                  label="Modifier le nom de la filière"
+                />
+                <DeleteControl
+                  action={deleteProgramAction}
+                  universityId={universityId}
+                  fields={{ programId: program.id }}
+                  itemName={program.name}
+                  label="Supprimer la filière"
+                />
+              </div>
+            </div>
           ))}
         </div>
       )}
