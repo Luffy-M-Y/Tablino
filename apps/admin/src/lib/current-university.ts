@@ -1,4 +1,5 @@
 import { getCurrentUniversityId } from "@tablino/auth";
+import { forbidden } from "next/navigation";
 import { requireAdminAccess } from "@/lib/authorization";
 import { getStructureOverview, getStructureUniversities } from "@/lib/structure-queries";
 import { selectUniversityId } from "./current-university.mjs";
@@ -46,4 +47,10 @@ export async function getCurrentUniversity(): Promise<CurrentUniversity | null> 
   }
 
   return null;
+}
+
+export async function assertCurrentUniversity(universityId: string): Promise<CurrentUniversity> {
+  const university = await getCurrentUniversity();
+  if (!university || university.id !== universityId) forbidden();
+  return university;
 }
