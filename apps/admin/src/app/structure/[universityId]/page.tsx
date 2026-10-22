@@ -1,4 +1,6 @@
 import { getStructureOverview } from "@/lib/structure-queries";
+import { getCurrentUniversity } from "@/lib/current-university";
+import { forbidden } from "next/navigation";
 import { StructureActionForm } from "./structure-action-form";
 import {
   createCycleAction,
@@ -13,6 +15,8 @@ export default async function UniversityStructurePage({
   params,
 }: PageProps<"/structure/[universityId]">) {
   const { universityId } = await params;
+  const university = await getCurrentUniversity();
+  if (!university || university.id !== universityId) forbidden();
   const overview = await getStructureOverview(universityId);
 
   return (
