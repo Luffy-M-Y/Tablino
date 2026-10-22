@@ -4,6 +4,7 @@ export { and, asc, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {
   canReduceYearsCount,
+  createCycle,
   updateCycleYearsCount,
   updateCycleShortCode,
   updateLevelYearNumber,
@@ -11,6 +12,8 @@ export {
 } from "./structure";
 export {
   isYearNumberInRange,
+  isCycleValid,
+  normalizeCycleName,
   isProgramStatusValid,
   isShortCodeValid,
   normalizeShortCode,
@@ -19,6 +22,7 @@ export {
 } from "./structure-validation";
 export type {
   CanReduceYearsCountResult,
+  CreateCycleResult,
   UpdateCycleYearsCountResult,
   UpdateCycleShortCodeResult,
   UpdateLevelYearNumberResult,

@@ -16,6 +16,18 @@ export function normalizeShortCode(shortCode: string): string {
   return shortCode.trim().toUpperCase();
 }
 
+export function normalizeCycleName(name: string): string {
+  return name.trim();
+}
+
+export function isCycleValid(name: string, shortCode: string): boolean {
+  const normalizedName = normalizeCycleName(name);
+  const nameLength = [...normalizedName].length;
+  return nameLength >= 1
+    && nameLength <= 100
+    && isShortCodeValid(normalizeShortCode(shortCode));
+}
+
 export function buildLevelName(shortCode: string, yearNumber: number): string {
   return `${shortCode}${yearNumber}`;
 }

@@ -1,4 +1,7 @@
 export type ActionReason =
+  | "invalid_cycle"
+  | "duplicate_short_code"
+  | "university_not_found"
   | "year_taken"
   | "slug_taken"
   | "has_levels"

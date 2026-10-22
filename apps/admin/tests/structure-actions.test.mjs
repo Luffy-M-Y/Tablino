@@ -36,6 +36,9 @@ test("accepts only complete UUID strings, case-insensitively", () => {
 });
 
 test("translates expected mutation reasons without exposing raw errors", () => {
+  assert.equal(messageForReason("duplicate_short_code"), "Ce code court est déjà utilisé dans cette université.");
+  assert.equal(messageForReason("invalid_cycle"), "Le nom du cycle ou son code court est invalide.");
+  assert.equal(messageForReason("university_not_found"), "Université introuvable.");
   assert.equal(messageForReason("year_taken"), "Cette année est déjà utilisée dans la filière.");
   assert.equal(messageForReason("blocking_levels"), "Des niveaux dépassent la nouvelle durée du cycle.");
   assert.equal(messageForReason("invalid_short_code"), "Le code doit contenir de 1 à 10 lettres.");
