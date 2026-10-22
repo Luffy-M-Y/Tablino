@@ -16,6 +16,7 @@ export type ActionReason =
   | "level_not_found"
   | "program_not_found"
   | "not_found"
+  | "confirmation_required"
   | "unexpected_error";
 
 export type StructureActionState =

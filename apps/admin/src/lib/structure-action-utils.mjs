@@ -16,6 +16,7 @@ const messages = {
   level_not_found: "Niveau introuvable.",
   program_not_found: "Filière introuvable.",
   not_found: "Élément introuvable.",
+  confirmation_required: "Confirmez la suppression.",
   unexpected_error: "La modification n'a pas pu être effectuée.",
 };
 
