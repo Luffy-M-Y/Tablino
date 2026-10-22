@@ -556,7 +556,7 @@ export async function deleteSubject(
 
     if (!subject) return { ok: false, reason: "not_found" };
 
-    const [resource, assignment] = await Promise.all([
+    const [resources, assignments] = await Promise.all([
       tx.select({ id: schema.resources.id })
         .from(schema.resources)
         .where(and(
@@ -573,7 +573,9 @@ export async function deleteSubject(
         .limit(1),
     ]);
 
-    if (resource || assignment) return { ok: false, reason: "has_dependents" };
+    if (resources.length > 0 || assignments.length > 0) {
+      return { ok: false, reason: "has_dependents" };
+    }
 
     await tx
       .delete(schema.subjects)
@@ -648,7 +650,7 @@ export async function deleteCycle(
 
     if (!cycle) return { ok: false, reason: "cycle_not_found" };
 
-    const [programCycle, level] = await Promise.all([
+    const [programCycles, levels] = await Promise.all([
       tx.select({ programId: schema.programCycles.programId })
         .from(schema.programCycles)
         .where(and(
@@ -665,7 +667,9 @@ export async function deleteCycle(
         .limit(1),
     ]);
 
-    if (programCycle || level) return { ok: false, reason: "has_dependents" };
+    if (programCycles.length > 0 || levels.length > 0) {
+      return { ok: false, reason: "has_dependents" };
+    }
 
     await tx
       .delete(schema.cycles)
@@ -696,7 +700,7 @@ export async function deleteProgram(
 
     if (!program) return { ok: false, reason: "program_not_found" };
 
-    const [programCycle, level] = await Promise.all([
+    const [programCycles, levels] = await Promise.all([
       tx.select({ cycleId: schema.programCycles.cycleId })
         .from(schema.programCycles)
         .where(and(
@@ -713,7 +717,9 @@ export async function deleteProgram(
         .limit(1),
     ]);
 
-    if (programCycle || level) return { ok: false, reason: "has_dependents" };
+    if (programCycles.length > 0 || levels.length > 0) {
+      return { ok: false, reason: "has_dependents" };
+    }
 
     await tx
       .delete(schema.programs)
