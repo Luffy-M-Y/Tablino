@@ -11,10 +11,6 @@ import {
 import { StructureActionForm } from "../../../structure-action-form";
 import { RenameControl } from "../../../structure-edit-controls";
 
-function countLabel(count: number, singular: string, plural: string) {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
 export default async function EditProgramPage({
   params,
 }: PageProps<"/structure/[universityId]/programs/[programId]/edit">) {
@@ -71,7 +67,7 @@ export default async function EditProgramPage({
                 <div>
                   <h3 className="font-semibold">{cycle.name}</h3>
                   <p>{cycle.shortCode}</p>
-                  <p>{countLabel(cycle.levelsCount, "niveau", "niveaux")}</p>
+                  <p>Années : {cycle.yearsCount}</p>
                 </div>
                 <StructureActionForm
                   action={updateProgramCycleYearsCountAction}
@@ -81,7 +77,10 @@ export default async function EditProgramPage({
                   <input type="hidden" name="programId" value={program.id} />
                   <input type="hidden" name="cycleId" value={cycle.cycleId} />
                   <div>
-                    <label htmlFor={`program-cycle-years-${cycle.cycleId}`}>
+                    <label
+                      htmlFor={`program-cycle-years-${cycle.cycleId}`}
+                      className="mb-2 block"
+                    >
                       Années de {cycle.name}
                     </label>
                     <input

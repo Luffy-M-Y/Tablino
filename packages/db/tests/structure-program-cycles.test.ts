@@ -20,6 +20,7 @@ function createMemoryDatabase(rows: unknown[][]) {
   const selections = [...rows];
   const inserts: Mutation[] = [];
   const updates: Mutation[] = [];
+  const deletes: Mutation[] = [];
   const lockedTables: unknown[] = [];
 
   function selectChain(): SelectChain {
@@ -58,6 +59,11 @@ function createMemoryDatabase(rows: unknown[][]) {
         },
       }),
     }),
+    delete: (table: unknown) => ({
+      where: async () => {
+        deletes.push({ table });
+      },
+    }),
   };
 
   return {
@@ -66,6 +72,7 @@ function createMemoryDatabase(rows: unknown[][]) {
     } as never,
     inserts,
     updates,
+    deletes,
     lockedTables,
   };
 }
@@ -75,21 +82,56 @@ const UNIVERSITY_B = "university-b";
 const PROGRAM_A = "program-a";
 const CYCLE_A = "cycle-a";
 
-test("addProgramCycle inserts a new link and locks program before cycle", async () => {
-  const fake = createMemoryDatabase([[{ id: PROGRAM_A }], [{ id: CYCLE_A }], []]);
+test("addProgramCycle inserts the link and creates the requested levels", async () => {
+  const fake = createMemoryDatabase([
+    [{ id: PROGRAM_A }],
+    [{ id: CYCLE_A, shortCode: "L" }],
+    [],
+  ]);
 
   const result = await addProgramCycle(UNIVERSITY_A, PROGRAM_A, CYCLE_A, 3, fake.database);
 
   assert.deepEqual(result, { ok: true });
-  assert.deepEqual(fake.inserts, [{
-    table: schema.programCycles,
-    values: {
-      universityId: UNIVERSITY_A,
-      programId: PROGRAM_A,
-      cycleId: CYCLE_A,
-      yearsCount: 3,
+  assert.deepEqual(fake.inserts, [
+    {
+      table: schema.programCycles,
+      values: {
+        universityId: UNIVERSITY_A,
+        programId: PROGRAM_A,
+        cycleId: CYCLE_A,
+        yearsCount: 3,
+      },
     },
-  }]);
+    {
+      table: schema.levels,
+      values: [
+        {
+          universityId: UNIVERSITY_A,
+          programId: PROGRAM_A,
+          cycleId: CYCLE_A,
+          name: "L1",
+          slug: "l1",
+          yearNumber: 1,
+        },
+        {
+          universityId: UNIVERSITY_A,
+          programId: PROGRAM_A,
+          cycleId: CYCLE_A,
+          name: "L2",
+          slug: "l2",
+          yearNumber: 2,
+        },
+        {
+          universityId: UNIVERSITY_A,
+          programId: PROGRAM_A,
+          cycleId: CYCLE_A,
+          name: "L3",
+          slug: "l3",
+          yearNumber: 3,
+        },
+      ],
+    },
+  ]);
   assert.deepEqual(fake.lockedTables, [schema.programs, schema.cycles]);
 });
 
@@ -112,7 +154,7 @@ test("addProgramCycle refuses a missing program or cycle", async () => {
 test("addProgramCycle refuses an existing link", async () => {
   const fake = createMemoryDatabase([
     [{ id: PROGRAM_A }],
-    [{ id: CYCLE_A }],
+    [{ id: CYCLE_A, shortCode: "L" }],
     [{ programId: PROGRAM_A }],
   ]);
 
@@ -125,7 +167,7 @@ test("addProgramCycle refuses an existing link", async () => {
 
 test("addProgramCycle refuses years counts outside 1 through 10", async () => {
   for (const yearsCount of [0, 11, 2.5]) {
-    const fake = createMemoryDatabase([[{ id: PROGRAM_A }], [{ id: CYCLE_A }]]);
+    const fake = createMemoryDatabase([[{ id: PROGRAM_A }], [{ id: CYCLE_A, shortCode: "L" }]]);
 
     assert.deepEqual(
       await addProgramCycle(UNIVERSITY_A, PROGRAM_A, CYCLE_A, yearsCount, fake.database),
@@ -147,7 +189,7 @@ test("updateProgramCycleYearsCount refuses a missing link", async () => {
 
 test("updateProgramCycleYearsCount refuses years counts outside 1 through 10", async () => {
   for (const yearsCount of [0, 11, 2.5]) {
-    const fake = createMemoryDatabase([[{ programId: PROGRAM_A }]]);
+    const fake = createMemoryDatabase([[{ programId: PROGRAM_A, yearsCount: 3 }]]);
 
     assert.deepEqual(
       await updateProgramCycleYearsCount(UNIVERSITY_A, PROGRAM_A, CYCLE_A, yearsCount, fake.database),
@@ -157,25 +199,78 @@ test("updateProgramCycleYearsCount refuses years counts outside 1 through 10", a
   }
 });
 
-test("updateProgramCycleYearsCount refuses to block existing levels", async () => {
-  const blockingLevels = [{ name: "L3", yearNumber: 3 }];
-  const fake = createMemoryDatabase([[{ programId: PROGRAM_A }], blockingLevels]);
+test("updateProgramCycleYearsCount refuses to remove levels that have subjects", async () => {
+  const blockingLevels = [{ id: "level-3", name: "L3", yearNumber: 3 }];
+  const fake = createMemoryDatabase([
+    [{ programId: PROGRAM_A, yearsCount: 3 }],
+    [{ shortCode: "L" }],
+    blockingLevels,
+    [{ levelId: "level-3" }],
+  ]);
 
   assert.deepEqual(
     await updateProgramCycleYearsCount(UNIVERSITY_A, PROGRAM_A, CYCLE_A, 2, fake.database),
-    { ok: false, reason: "blocking_levels", blockingLevels },
+    {
+      ok: false,
+      reason: "blocking_levels",
+      blockingLevels: [{ name: "L3", yearNumber: 3 }],
+    },
   );
+  assert.deepEqual(fake.deletes, []);
   assert.deepEqual(fake.updates, []);
 });
 
-test("updateProgramCycleYearsCount updates only the program cycle link", async () => {
-  const fake = createMemoryDatabase([[{ programId: PROGRAM_A }], []]);
+test("updateProgramCycleYearsCount deletes unused extra levels and updates the link", async () => {
+  const fake = createMemoryDatabase([
+    [{ programId: PROGRAM_A, yearsCount: 3 }],
+    [{ shortCode: "L" }],
+    [
+      { id: "level-1", name: "L1", yearNumber: 1 },
+      { id: "level-2", name: "L2", yearNumber: 2 },
+      { id: "level-3", name: "L3", yearNumber: 3 },
+    ],
+    [],
+  ]);
+
+  const result = await updateProgramCycleYearsCount(UNIVERSITY_A, PROGRAM_A, CYCLE_A, 2, fake.database);
+
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(fake.deletes, [{ table: schema.levels }]);
+  assert.deepEqual(fake.inserts, []);
+  assert.deepEqual(fake.updates, [{
+    table: schema.programCycles,
+    values: { yearsCount: 2 },
+  }]);
+});
+
+test("updateProgramCycleYearsCount creates missing levels and updates only the program cycle link", async () => {
+  const fake = createMemoryDatabase([
+    [{ programId: PROGRAM_A, yearsCount: 3 }],
+    [{ shortCode: "L" }],
+    [
+      { id: "level-1", name: "L1", yearNumber: 1 },
+      { id: "level-2", name: "L2", yearNumber: 2 },
+      { id: "level-3", name: "L3", yearNumber: 3 },
+    ],
+  ]);
 
   const result = await updateProgramCycleYearsCount(UNIVERSITY_A, PROGRAM_A, CYCLE_A, 4, fake.database);
 
   assert.deepEqual(result, { ok: true });
+  assert.deepEqual(fake.inserts, [{
+    table: schema.levels,
+    values: [{
+      universityId: UNIVERSITY_A,
+      programId: PROGRAM_A,
+      cycleId: CYCLE_A,
+      name: "L4",
+      slug: "l4",
+      yearNumber: 4,
+    }],
+  }]);
   assert.deepEqual(fake.updates, [{
     table: schema.programCycles,
     values: { yearsCount: 4 },
   }]);
+  assert.deepEqual(fake.lockedTables, [schema.programCycles, schema.cycles, schema.levels]);
 });

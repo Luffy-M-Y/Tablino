@@ -1,4 +1,4 @@
-import { and, eq, gt, max, ne } from "drizzle-orm";
+import { and, eq, gt, inArray, max, ne } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 import {
@@ -669,7 +669,7 @@ export async function addProgramCycle(
     if (!(programs.length > 0)) return { ok: false, reason: "program_not_found" };
 
     const cycles = await tx
-      .select({ id: schema.cycles.id })
+      .select({ id: schema.cycles.id, shortCode: schema.cycles.shortCode })
       .from(schema.cycles)
       .where(and(
         eq(schema.cycles.universityId, universityId),
@@ -679,6 +679,8 @@ export async function addProgramCycle(
       .limit(1);
 
     if (!(cycles.length > 0)) return { ok: false, reason: "cycle_not_found" };
+    const cycle = cycles[0];
+    if (!cycle) return { ok: false, reason: "cycle_not_found" };
     if (!isYearNumberInRange(yearsCount, 10)) {
       return { ok: false, reason: "years_out_of_range" };
     }
@@ -698,6 +700,20 @@ export async function addProgramCycle(
     await tx
       .insert(schema.programCycles)
       .values({ universityId, programId, cycleId, yearsCount });
+
+    await tx
+      .insert(schema.levels)
+      .values(Array.from({ length: yearsCount }, (_, index) => {
+        const yearNumber = index + 1;
+        return {
+          universityId,
+          programId,
+          cycleId,
+          name: buildLevelName(cycle.shortCode, yearNumber),
+          slug: buildLevelSlug(cycle.shortCode, yearNumber),
+          yearNumber,
+        };
+      }));
 
     return { ok: true };
   });
@@ -727,18 +743,82 @@ export async function updateProgramCycleYearsCount(
       return { ok: false, reason: "years_out_of_range" };
     }
 
-    const blockingLevels = await tx
-      .select({ name: schema.levels.name, yearNumber: schema.levels.yearNumber })
+    const cycles = await tx
+      .select({ shortCode: schema.cycles.shortCode })
+      .from(schema.cycles)
+      .where(and(
+        eq(schema.cycles.universityId, universityId),
+        eq(schema.cycles.id, cycleId),
+      ))
+      .for("update")
+      .limit(1);
+
+    if (!(cycles.length > 0)) return { ok: false, reason: "not_found" };
+    const cycle = cycles[0];
+    if (!cycle) return { ok: false, reason: "not_found" };
+
+    const levels = await tx
+      .select({
+        id: schema.levels.id,
+        name: schema.levels.name,
+        yearNumber: schema.levels.yearNumber,
+      })
       .from(schema.levels)
       .where(and(
         eq(schema.levels.universityId, universityId),
         eq(schema.levels.programId, programId),
         eq(schema.levels.cycleId, cycleId),
-        gt(schema.levels.yearNumber, newYearsCount),
-      ));
+      ))
+      .for("update");
 
-    if (blockingLevels.length > 0) {
-      return { ok: false, reason: "blocking_levels", blockingLevels };
+    const removedLevels = levels.filter((level) => level.yearNumber > newYearsCount);
+    let blockingLevels: { name: string; yearNumber: number }[] = [];
+
+    if (removedLevels.length > 0) {
+      const subjects = await tx
+        .select({ levelId: schema.subjects.levelId })
+        .from(schema.subjects)
+        .where(and(
+          eq(schema.subjects.universityId, universityId),
+          inArray(schema.subjects.levelId, removedLevels.map((level) => level.id)),
+        ));
+      const levelIdsWithSubjects = new Set(subjects.map((subject) => subject.levelId));
+      blockingLevels = removedLevels
+        .filter((level) => levelIdsWithSubjects.has(level.id))
+        .map(({ name, yearNumber }) => ({ name, yearNumber }));
+
+      if (blockingLevels.length > 0) {
+        return { ok: false, reason: "blocking_levels", blockingLevels };
+      }
+
+      await tx
+        .delete(schema.levels)
+        .where(and(
+          eq(schema.levels.universityId, universityId),
+          eq(schema.levels.programId, programId),
+          eq(schema.levels.cycleId, cycleId),
+          gt(schema.levels.yearNumber, newYearsCount),
+        ));
+    }
+
+    const existingYearNumbers = new Set(
+      levels
+        .filter((level) => level.yearNumber <= newYearsCount)
+        .map((level) => level.yearNumber),
+    );
+    const missingLevels = Array.from({ length: newYearsCount }, (_, index) => index + 1)
+      .filter((yearNumber) => !existingYearNumbers.has(yearNumber))
+      .map((yearNumber) => ({
+        universityId,
+        programId,
+        cycleId,
+        name: buildLevelName(cycle.shortCode, yearNumber),
+        slug: buildLevelSlug(cycle.shortCode, yearNumber),
+        yearNumber,
+      }));
+
+    if (missingLevels.length > 0) {
+      await tx.insert(schema.levels).values(missingLevels);
     }
 
     await tx
