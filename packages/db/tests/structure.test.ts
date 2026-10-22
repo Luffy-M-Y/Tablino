@@ -3,11 +3,24 @@ import test from "node:test";
 import {
   buildLevelName,
   buildLevelSlug,
+  isCycleValid,
   isProgramStatusValid,
   isShortCodeValid,
   isYearNumberInRange,
   normalizeShortCode,
+  normalizeCycleName,
 } from "../src/structure-validation";
+
+test("cycle validation trims a 1 to 100 character name and normalizes the short code", () => {
+  assert.equal(normalizeCycleName("  Licence  "), "Licence");
+  assert.equal(isCycleValid("  Licence  ", " l "), true);
+  assert.equal(isCycleValid("x", "L"), true);
+  assert.equal(isCycleValid("x".repeat(100), "L"), true);
+  assert.equal(isCycleValid("   ", "L"), false);
+  assert.equal(isCycleValid("x".repeat(101), "L"), false);
+  assert.equal(isCycleValid("Licence", "ABCDEFGHIJK"), false);
+  assert.equal(isCycleValid("Licence", "A1"), false);
+});
 
 test("program status validation accepts only draft and published", () => {
   assert.equal(isProgramStatusValid("draft"), true);

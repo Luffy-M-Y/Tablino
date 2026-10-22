@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import {
+  createCycle,
+  isCycleValid,
   isProgramStatusValid,
   isShortCodeValid,
   normalizeShortCode,
@@ -58,7 +60,7 @@ async function requireUniversityForAction(formData: FormData): Promise<string> {
 }
 
 async function runMutation(
-  action: "cycle_years_count" | "cycle_short_code" | "level_year_number" | "program_status",
+  action: "cycle_create" | "cycle_years_count" | "cycle_short_code" | "level_year_number" | "program_status",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
 ): Promise<StructureActionState> {
@@ -89,6 +91,19 @@ export async function updateCycleYearsCountAction(
   if (yearsCount === null) return failure("out_of_range");
 
   return runMutation("cycle_years_count", universityId, () => updateCycleYearsCount(universityId, cycleId, yearsCount));
+}
+
+export async function createCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const name = readStringField(formData, "name");
+  const shortCode = readStringField(formData, "shortCode");
+  if (!isCycleValid(name ?? "", shortCode ?? "")) return failure("invalid_cycle");
+
+  return runMutation("cycle_create", universityId, () =>
+    createCycle(universityId, name ?? "", shortCode ?? ""));
 }
 
 export async function updateCycleShortCodeAction(

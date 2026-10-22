@@ -1,13 +1,15 @@
-import { and, eq, gt, ne } from "drizzle-orm";
+import { and, eq, gt, max, ne } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 import {
   buildLevelName,
   buildLevelSlug,
+  isCycleValid,
   isShortCodeValid,
   isProgramStatusValid,
   isYearNumberInRange,
   normalizeShortCode,
+  normalizeCycleName,
 } from "./structure-validation";
 
 type StructureDatabase = typeof sharedDb;
@@ -45,11 +47,65 @@ export type UpdateProgramStatusResult =
   | { ok: true }
   | { ok: false; reason: "program_not_found" | "invalid_status" };
 
+export type CreateCycleResult =
+  | { ok: true; cycleId: string }
+  | { ok: false; reason: "invalid_cycle" | "duplicate_short_code" | "university_not_found" };
+
 function isUniqueConstraintViolation(error: unknown, constraint: string): boolean {
   if (typeof error !== "object" || error === null) return false;
   const candidate = error as { code?: unknown; constraint?: unknown; cause?: unknown };
   if (candidate.code === "23505" && candidate.constraint === constraint) return true;
   return candidate.cause !== undefined && isUniqueConstraintViolation(candidate.cause, constraint);
+}
+
+export async function createCycle(
+  universityId: string,
+  name: string,
+  shortCode: string,
+  database?: StructureDatabase,
+): Promise<CreateCycleResult> {
+  const normalizedName = normalizeCycleName(name);
+  const normalizedShortCode = normalizeShortCode(shortCode);
+  if (!isCycleValid(normalizedName, normalizedShortCode)) {
+    return { ok: false, reason: "invalid_cycle" };
+  }
+
+  try {
+    return await (await resolveDatabase(database)).transaction(async (tx) => {
+      const [university] = await tx
+        .select({ id: schema.universities.id })
+        .from(schema.universities)
+        .where(eq(schema.universities.id, universityId))
+        .for("update")
+        .limit(1);
+
+      if (!university) return { ok: false, reason: "university_not_found" };
+
+      const [lastCycle] = await tx
+        .select({ order: max(schema.cycles.order) })
+        .from(schema.cycles)
+        .where(eq(schema.cycles.universityId, universityId));
+      const order = (lastCycle?.order ?? 0) + 1;
+
+      const [cycle] = await tx
+        .insert(schema.cycles)
+        .values({
+          universityId,
+          name: normalizedName,
+          shortCode: normalizedShortCode,
+          yearsCount: null,
+          order,
+        })
+        .returning({ id: schema.cycles.id });
+
+      return cycle ? { ok: true, cycleId: cycle.id } : { ok: false, reason: "university_not_found" };
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error, "cycles_university_short_code_uq")) {
+      return { ok: false, reason: "duplicate_short_code" };
+    }
+    throw error;
+  }
 }
 
 /** Updates the configured years count, refusing to orphan existing levels. */
