@@ -5,6 +5,7 @@ import { getProgramDetail } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
 import { updateProgramStatusAction } from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
+import { SubjectsSearch } from "./subjects-search";
 
 function statusLabel(status: "draft" | "published") {
   return status === "published" ? "Publiée" : "Brouillon";
@@ -12,8 +13,12 @@ function statusLabel(status: "draft" | "published") {
 
 function statusClassName(status: "draft" | "published") {
   return status === "published"
-    ? "bg-emerald-100 text-emerald-800"
-    : "bg-slate-100 text-slate-700";
+    ? "rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800"
+    : "rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700";
+}
+
+function countLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 export default async function ProgramDetailPage({
@@ -40,8 +45,8 @@ export default async function ProgramDetailPage({
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="text-xl font-semibold">{program.name}</h2>
         <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
-        <p>{program.cyclesCount} cycles</p>
-        <p>{program.subjectsCount} matières</p>
+        <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
+        <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
@@ -49,13 +54,13 @@ export default async function ProgramDetailPage({
         {program.cycles.length === 0 ? (
           <p>Aucun cycle dans cette filière.</p>
         ) : (
-          <ul>
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {program.cycles.map((cycle) => (
-              <li key={cycle.cycleId}>
-                <p>{cycle.name}</p>
+              <li key={cycle.cycleId} className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+                <h3 className="text-xl font-semibold">{cycle.name}</h3>
                 <p>{cycle.shortCode}</p>
-                <p>{cycle.yearsCount} ans</p>
-                <p>{cycle.levelsCount} niveaux</p>
+                <p>{countLabel(cycle.yearsCount, "an", "ans")}</p>
+                <p>{countLabel(cycle.levelsCount, "niveau", "niveaux")}</p>
               </li>
             ))}
           </ul>
@@ -64,15 +69,7 @@ export default async function ProgramDetailPage({
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="text-xl font-semibold">Matières</h2>
-        {program.subjects.length === 0 ? (
-          <p>Aucune matière dans cette filière.</p>
-        ) : (
-          <ul>
-            {program.subjects.map((subject) => (
-              <li key={subject.id}>{subject.name} ({subject.levelName})</li>
-            ))}
-          </ul>
-        )}
+        <SubjectsSearch subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))} />
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
