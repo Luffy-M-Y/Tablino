@@ -132,7 +132,6 @@ export async function updateLevelYearNumber(
         .select({
           id: schema.cycles.id,
           shortCode: schema.cycles.shortCode,
-          yearsCount: schema.cycles.yearsCount,
         })
         .from(schema.cycles)
         .where(and(
@@ -161,7 +160,19 @@ export async function updateLevelYearNumber(
         return { ok: false, reason: "level_not_found" };
       }
 
-      if (!isYearNumberInRange(newYearNumber, cycle.yearsCount)) {
+      const [programCycle] = await tx
+        .select({ yearsCount: schema.programCycles.yearsCount })
+        .from(schema.programCycles)
+        .where(and(
+          eq(schema.programCycles.universityId, universityId),
+          eq(schema.programCycles.programId, level.programId),
+          eq(schema.programCycles.cycleId, level.cycleId),
+        ))
+        .limit(1);
+
+      if (!programCycle) return { ok: false, reason: "level_not_found" };
+
+      if (!isYearNumberInRange(newYearNumber, programCycle.yearsCount)) {
         return { ok: false, reason: "out_of_range" };
       }
 

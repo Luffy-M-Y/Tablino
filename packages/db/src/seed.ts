@@ -95,6 +95,7 @@ async function seed(db: ReturnType<typeof openGuardedDatabase>["db"]) {
       programId,
       universityId: ID.university,
       cycleId: cycleIds[cycle.shortCode],
+      yearsCount: cycle.yearsCount,
     })),
   );
   await db.insert(schema.programCycles)

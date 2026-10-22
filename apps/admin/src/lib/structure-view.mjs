@@ -5,7 +5,7 @@
 
 /**
  * Groups levels by cycle, then program and year; sorts subjects by year and name.
- * @param {{ id: string, name: string, shortCode: string, yearsCount: number, order: number }[]} cycles
+ * @param {{ id: string, name: string, shortCode: string, yearsCount: number | null, order: number }[]} cycles
  * @param {LevelRow[]} levels
  * @param {SubjectRow[]} subjects
  */
