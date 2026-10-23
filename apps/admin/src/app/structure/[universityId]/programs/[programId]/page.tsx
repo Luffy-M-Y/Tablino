@@ -94,7 +94,7 @@ export default async function ProgramDetailPage({
               <li key={cycle.cycleId} className="space-y-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
                 <h3 className="text-xl font-semibold">{cycle.name}</h3>
                 <p>{cycle.shortCode}</p>
-                <p>{countLabel(cycle.levelsCount, "niveau", "niveaux")}</p>
+                <p>Années : {cycle.yearsCount}</p>
                 <div className="flex items-center gap-2">
                   <RenameControl
                     action={renameCycleAction}
