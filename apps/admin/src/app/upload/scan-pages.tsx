@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { buildPdfFromImages } from "./build-pdf-from-images";
+import { buildScanFileName } from "@/lib/scan-pages.mjs";
 
 type ScanPage = {
   id: number;
@@ -13,12 +15,22 @@ const MAX_PAGES = 20;
 export function ScanPages() {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [ignoredFiles, setIgnoredFiles] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isBuilding, setIsBuilding] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
   const pagesRef = useRef<ScanPage[]>([]);
+  const pdfUrlRef = useRef<string | null>(null);
 
   function replacePages(nextPages: ScanPage[]) {
+    if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+    pdfUrlRef.current = null;
+    setPdfFile(null);
+    setPdfUrl(null);
+    setPdfError(null);
     pagesRef.current = nextPages;
     setPages(nextPages);
   }
@@ -85,9 +97,31 @@ export function ScanPages() {
     replacePages(pagesRef.current.filter((item) => item.id !== id));
   }
 
+  async function handleBuildPdf() {
+    if (isBuilding || pagesRef.current.length === 0) return;
+
+    setIsBuilding(true);
+    setPdfError(null);
+    try {
+      const bytes = await buildPdfFromImages(pagesRef.current.map((page) => page.file));
+      const file = new File([new Uint8Array(bytes)], buildScanFileName(new Date()), { type: "application/pdf" });
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      const url = URL.createObjectURL(file);
+      pdfUrlRef.current = url;
+      setPdfFile(file);
+      setPdfUrl(url);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : "Création du PDF impossible.");
+    } finally {
+      setIsBuilding(false);
+    }
+  }
+
   useEffect(() => () => {
     pagesRef.current.forEach((page) => URL.revokeObjectURL(page.url));
+    if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
     pagesRef.current = [];
+    pdfUrlRef.current = null;
   }, []);
 
   return (
@@ -183,6 +217,29 @@ export function ScanPages() {
           );
         })}
       </ol>
+      <button
+        type="button"
+        onClick={handleBuildPdf}
+        disabled={pages.length === 0 || isBuilding}
+        className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isBuilding ? "Création..." : "Créer le PDF"}
+      </button>
+      {pdfError && <p role="alert">{pdfError}</p>}
+      {pdfFile && pdfUrl && (
+        <>
+          <p>
+            {pdfFile.name} (
+            {pdfFile.size >= 1048576
+              ? (pdfFile.size / 1048576).toFixed(1) + " Mo"
+              : Math.round(pdfFile.size / 1024) + " Ko"}
+            )
+          </p>
+          <a href={pdfUrl} target="_blank" rel="noopener">
+            Ouvrir le PDF
+          </a>
+        </>
+      )}
     </section>
   );
 }
