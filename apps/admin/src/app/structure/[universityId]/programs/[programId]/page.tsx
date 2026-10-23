@@ -100,6 +100,7 @@ export default async function ProgramDetailPage({
                     currentName={cycle.name}
                     maxLength={100}
                     label="Modifier le nom du cycle"
+                    helpText="Ce nom est partagé par toutes les filières."
                   />
                   <DeleteControl
                     action={deleteProgramCycleAction}

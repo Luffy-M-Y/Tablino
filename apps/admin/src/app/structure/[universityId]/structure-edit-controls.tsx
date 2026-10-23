@@ -11,6 +11,7 @@ type RenameControlProps = {
   currentName: string;
   maxLength: number;
   label: string;
+  helpText?: string;
 };
 
 export function RenameControl({
@@ -21,6 +22,7 @@ export function RenameControl({
   currentName,
   maxLength,
   label,
+  helpText,
 }: RenameControlProps) {
   const [state, formAction, pending] = useActionState(action, null);
   const [isEditing, setIsEditing] = useState(false);
@@ -64,6 +66,7 @@ export function RenameControl({
               required
               className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2"
             />
+            {helpText && <p className="text-sm">{helpText}</p>}
           </div>
           <button
             type="submit"
