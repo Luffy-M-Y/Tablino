@@ -1,5 +1,5 @@
 /**
- * @typedef {{ id: "structure" | "upload", title: string, description: string, href: string, active: true, disabled: false } | { id: "scanner", title: string, active: false, disabled: true, availabilityLabel: string }} AdminHomeCard
+ * @typedef {{ id: "structure" | "upload" | "scanner", title: string, description: string, href: string, active: true, disabled: false } | { id: "scanner", title: string, active: false, disabled: true, availabilityLabel: string }} AdminHomeCard
  */
 
 /** @type {readonly AdminHomeCard[]} */
@@ -23,8 +23,9 @@ export const ADMIN_HOME_CARDS = Object.freeze([
   Object.freeze({
     id: "scanner",
     title: "Scanner",
-    active: false,
-    disabled: true,
-    availabilityLabel: "Bientôt disponible",
+    description: "Photographier un document avec le mobile",
+    href: "/scan",
+    active: true,
+    disabled: false,
   }),
 ]);

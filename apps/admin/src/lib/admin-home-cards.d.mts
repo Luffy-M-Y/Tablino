@@ -1,6 +1,6 @@
 export type AdminHomeCard =
   | {
-      id: "structure" | "upload";
+      id: "structure" | "upload" | "scanner";
       title: string;
       description: string;
       href: string;

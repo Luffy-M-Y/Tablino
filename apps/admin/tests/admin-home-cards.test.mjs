@@ -13,7 +13,7 @@ test("defines the active structure card", () => {
   });
 });
 
-test("enables upload and keeps scanner disabled without a link", () => {
+test("enables upload and has no disabled cards", () => {
   assert.deepEqual(ADMIN_HOME_CARDS[1], {
     id: "upload",
     title: "Uploader un fichier",
@@ -23,18 +23,16 @@ test("enables upload and keeps scanner disabled without a link", () => {
     disabled: false,
   });
 
-  const disabledCards = ADMIN_HOME_CARDS.filter((card) => card.disabled);
+  assert.deepEqual(ADMIN_HOME_CARDS.filter((card) => card.disabled), []);
+});
 
-  assert.deepEqual(
-    disabledCards.map(({ id, title, active, availabilityLabel }) => ({
-      id,
-      title,
-      active,
-      availabilityLabel,
-    })),
-    [
-      { id: "scanner", title: "Scanner", active: false, availabilityLabel: "Bientôt disponible" },
-    ],
-  );
-  assert.equal(disabledCards.every((card) => !("href" in card)), true);
+test("enables scanner card", () => {
+  assert.deepEqual(ADMIN_HOME_CARDS[2], {
+    id: "scanner",
+    title: "Scanner",
+    description: "Photographier un document avec le mobile",
+    href: "/scan",
+    active: true,
+    disabled: false,
+  });
 });
