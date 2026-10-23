@@ -131,7 +131,8 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - PR #29 chore/db-inspect-resources fusionnée (fusion 1ab869f) : script db:inspect-resources, lecture seule, transaction READ ONLY.
 - PR #30 feat/admin-upload-optional-title fusionnée (fusion fb4573d) : titre facultatif à l'envoi ; sans titre, nom du fichier sans extension, limité à 255 points de code (buildUploadTitle).
 - PR #31 feat/admin-cycle-rename-help fusionnée (fusion 2e7f64b) : aide « Ce nom est partagé par toutes les filières. » sous le renommage d'un cycle dans le détail d'une filière. Renommer un cycle renomme le cycle global.
-- Fusions faites sans accord explicite : 13 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié.
+- PR #32 docs/agents-md-state fusionnée (fusion 2ccb635) : mise à jour de rules/AGENTS.md (état, règles 12 à 16, vocabulaire).
+- Fusions faites sans accord explicite : 14 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31, 32). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié.
 - La ligne de test de l'envoi (table resources) a été supprimée. Lecture après suppression : 3 lignes, 0 brouillon. Origine des 3 lignes restantes : non prouvée.
 - Points ouverts : vrai stockage R2 bloqué (aucune dépendance @aws-sdk dans apps/admin) ; envoi de type Devoir jamais testé ; refus blocking_levels non reproduit, message de refus générique laissé tel quel ; valeur d'années par défaut à l'ajout d'un cycle à une filière : laissée vide, abandonnée.
 - Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
