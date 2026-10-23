@@ -42,11 +42,14 @@ export function SubjectCreateForm({
     );
   }, [academicYearLabel]);
 
-  function handleAcademicYearInput(value: string) {
+  function handleAcademicYearInput(value: string, previousValue: string) {
     const digits = value.replace(/\D/g, "").slice(0, 8);
+    const isTypingForward = value.length > previousValue.length;
     const formatted = digits.length > 4
       ? `${digits.slice(0, 4)}-${digits.slice(4)}`
-      : digits;
+      : digits.length === 4 && isTypingForward
+        ? `${digits}-`
+        : digits;
     setSelectedAcademicYearLabel("");
     setAcademicYearLabel(formatted);
   }
@@ -115,12 +118,20 @@ export function SubjectCreateForm({
               inputMode="numeric"
               placeholder="2025-2026"
               className={fieldClassName}
+              aria-describedby={`subject-academic-year-help-${programId}`}
               value={academicYearLabel}
               readOnly={Boolean(selectedAcademicYearLabel)}
-              onChange={(event) => handleAcademicYearInput(event.target.value)}
+              onChange={(event) =>
+                handleAcademicYearInput(event.target.value, academicYearLabel)}
               required
             />
           </div>
+          <p
+            id={`subject-academic-year-help-${programId}`}
+            className="text-sm"
+          >
+            En saisie manuelle, tapez 8 chiffres, le tiret s'ajoute seul.
+          </p>
         </div>
         <div>
           <label htmlFor={`subject-name-${programId}`} className="mb-2 block">
