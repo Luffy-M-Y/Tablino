@@ -8,18 +8,18 @@ test("defines home and structure navigation links", () => {
     [
       { label: "Accueil", href: "/" },
       { label: "Structure", href: "/structure" },
+      { label: "Upload", href: "/upload" },
     ],
   );
 });
 
-test("keeps scan and upload disabled without links", () => {
+test("keeps scan disabled without a link", () => {
   const disabledItems = ADMIN_MENU_ITEMS.filter((item) => item.disabled);
 
   assert.deepEqual(
     disabledItems.map(({ label, availabilityLabel }) => ({ label, availabilityLabel })),
     [
       { label: "Scan", availabilityLabel: "Bientôt disponible" },
-      { label: "Upload", availabilityLabel: "Bientôt disponible" },
     ],
   );
   assert.equal(disabledItems.every((item) => !("href" in item)), true);

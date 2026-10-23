@@ -19,6 +19,9 @@ const messages = {
   level_not_found: "Niveau introuvable.",
   program_not_found: "Filière introuvable.",
   not_found: "Élément introuvable.",
+  invalid_title: "Le titre est invalide.",
+  invalid_format: "Le format est invalide.",
+  invalid_file: "Le fichier est invalide.",
   confirmation_required: "Confirmez la suppression.",
   subject_exists: "Cette matière existe déjà pour ce niveau et cette année.",
   academic_year_not_found: "Année académique introuvable.",
@@ -43,6 +46,8 @@ const mutationActions = new Set([
   "program_cycle_delete",
   "cycle_delete",
   "program_delete",
+  "upload_resource",
+  "upload_assignment",
 ]);
 const mutationResults = new Set(["success", "rejected", "error"]);
 const mutationReasons = new Set([...Object.keys(messages), "none"]);

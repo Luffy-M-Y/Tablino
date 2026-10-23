@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: { authInterrupts: true },
+  experimental: {
+    authInterrupts: true,
+    serverActions: { bodySizeLimit: "25mb" },
+  },
   transpilePackages: ["@tablino/db", "@tablino/auth"],
   reactCompiler: true,
   turbopack: {

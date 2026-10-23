@@ -39,6 +39,10 @@ test("translates expected mutation reasons without exposing raw errors", () => {
   assert.equal(messageForReason("duplicate_short_code"), "Ce code court est déjà utilisé dans cette université.");
   assert.equal(messageForReason("invalid_cycle"), "Le nom du cycle ou son code court est invalide.");
   assert.equal(messageForReason("program_exists"), "Cette filière existe déjà.");
+  assert.equal(messageForReason("not_found"), "Élément introuvable.");
+  assert.equal(messageForReason("invalid_title"), "Le titre est invalide.");
+  assert.equal(messageForReason("invalid_format"), "Le format est invalide.");
+  assert.equal(messageForReason("invalid_file"), "Le fichier est invalide.");
   assert.equal(messageForReason("university_not_found"), "Université introuvable.");
   assert.equal(messageForReason("year_taken"), "Cette année est déjà utilisée dans la filière.");
   assert.equal(messageForReason("blocking_levels"), "Des niveaux à supprimer contiennent des matières. Supprimez d'abord ces matières.");
@@ -65,5 +69,10 @@ test("mutation journal contains only allowlisted action, result, and generic rea
     action: "program_status",
     result: "rejected",
     reason: "invalid_status",
+  });
+  assert.deepEqual(createStructureMutationLog("upload_resource", "success", "none"), {
+    action: "upload_resource",
+    result: "success",
+    reason: "none",
   });
 });
