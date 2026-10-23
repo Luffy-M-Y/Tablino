@@ -115,6 +115,16 @@ export async function getStructureOverview(universityId: string) {
   };
 }
 
+type StructureOverview = Awaited<ReturnType<typeof getStructureOverview>>;
+
+export function getProgramLevels(overview: StructureOverview, programId: string) {
+  return overview.cycles.flatMap((cycle) =>
+    cycle.levels
+      .filter((level) => level.programId === programId)
+      .map((level) => ({ id: level.id, name: level.name, cycleName: cycle.name })),
+  );
+}
+
 export async function getProgramsSummary(universityId: string) {
   await requireUniversityAdminAccess(universityId);
 

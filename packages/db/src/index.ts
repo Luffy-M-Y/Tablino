@@ -3,12 +3,23 @@ export { getDashboardCounts } from "./dashboard";
 export { and, asc, count, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {
+  addProgramCycle,
   canReduceYearsCount,
   createCycle,
+  createProgram,
+  updateProgramCycleYearsCount,
   updateCycleYearsCount,
   updateCycleShortCode,
   updateLevelYearNumber,
   updateProgramStatus,
+  renameProgram,
+  renameCycle,
+  renameSubject,
+  deleteSubject,
+  deleteProgramCycle,
+  deleteCycle,
+  deleteProgram,
+  createSubject,
 } from "./structure";
 export {
   isYearNumberInRange,
@@ -19,12 +30,26 @@ export {
   normalizeShortCode,
   buildLevelName,
   buildLevelSlug,
+  buildProgramSlug,
+  buildSubjectSlug,
 } from "./structure-validation";
 export type {
+  AddProgramCycleResult,
   CanReduceYearsCountResult,
   CreateCycleResult,
+  CreateProgramResult,
+  UpdateProgramCycleYearsCountResult,
   UpdateCycleYearsCountResult,
   UpdateCycleShortCodeResult,
   UpdateLevelYearNumberResult,
   UpdateProgramStatusResult,
+  RenameProgramResult,
+  RenameCycleResult,
+  RenameSubjectResult,
+  DeleteSubjectResult,
+  DeleteProgramCycleResult,
+  DeleteCycleResult,
+  DeleteProgramResult,
+  CreateSubjectAcademicYear,
+  CreateSubjectResult,
 } from "./structure";

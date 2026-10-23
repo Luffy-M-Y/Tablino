@@ -1,11 +1,16 @@
 const messages = {
   invalid_cycle: "Le nom du cycle ou son code court est invalide.",
+  invalid_name: "Le nom est invalide.",
+  program_exists: "Cette filière existe déjà.",
   duplicate_short_code: "Ce code court est déjà utilisé dans cette université.",
   university_not_found: "Université introuvable.",
   year_taken: "Cette année est déjà utilisée dans la filière.",
   slug_taken: "Ce nom de niveau est déjà utilisé dans la filière.",
   has_levels: "Le code ne peut pas changer tant que des niveaux y sont rattachés.",
-  blocking_levels: "Des niveaux dépassent la nouvelle durée du cycle.",
+  has_dependents: "La suppression est impossible tant que des éléments en dépendent.",
+  blocking_levels: "Des niveaux à supprimer contiennent des matières. Supprimez d'abord ces matières.",
+  already_linked: "Ce cycle est déjà dans la filière.",
+  years_out_of_range: "Le nombre d'années doit être un entier de 1 à 10.",
   short_code_taken: "Ce code est déjà utilisé dans cette université.",
   out_of_range: "La valeur doit être un entier dans la plage autorisée.",
   invalid_short_code: "Le code doit contenir de 1 à 10 lettres.",
@@ -14,15 +19,30 @@ const messages = {
   level_not_found: "Niveau introuvable.",
   program_not_found: "Filière introuvable.",
   not_found: "Élément introuvable.",
+  confirmation_required: "Confirmez la suppression.",
+  subject_exists: "Cette matière existe déjà pour ce niveau et cette année.",
+  academic_year_not_found: "Année académique introuvable.",
+  invalid_academic_year: "L'année académique doit respecter le format AAAA-AAAA avec des années consécutives.",
   unexpected_error: "La modification n'a pas pu être effectuée.",
 };
 
 const mutationActions = new Set([
   "cycle_create",
+  "program_create",
   "cycle_years_count",
   "cycle_short_code",
   "level_year_number",
   "program_status",
+  "program_cycle_add",
+  "program_cycle_years_count",
+  "cycle_rename",
+  "program_rename",
+  "subject_rename",
+  "subject_create",
+  "subject_delete",
+  "program_cycle_delete",
+  "cycle_delete",
+  "program_delete",
 ]);
 const mutationResults = new Set(["success", "rejected", "error"]);
 const mutationReasons = new Set([...Object.keys(messages), "none"]);

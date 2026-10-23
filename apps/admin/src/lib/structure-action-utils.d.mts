@@ -1,11 +1,16 @@
 export type ActionReason =
   | "invalid_cycle"
+  | "invalid_name"
+  | "program_exists"
   | "duplicate_short_code"
   | "university_not_found"
   | "year_taken"
   | "slug_taken"
   | "has_levels"
+  | "has_dependents"
   | "blocking_levels"
+  | "already_linked"
+  | "years_out_of_range"
   | "short_code_taken"
   | "out_of_range"
   | "invalid_short_code"
@@ -14,6 +19,10 @@ export type ActionReason =
   | "level_not_found"
   | "program_not_found"
   | "not_found"
+  | "confirmation_required"
+  | "subject_exists"
+  | "academic_year_not_found"
+  | "invalid_academic_year"
   | "unexpected_error";
 
 export type StructureActionState =

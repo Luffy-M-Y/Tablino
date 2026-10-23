@@ -1,10 +1,18 @@
+import Link from "next/link";
 import { notFound, forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
-import { getProgramDetail } from "@/lib/structure-queries";
+import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
-import { updateProgramStatusAction } from "../../actions";
+import {
+  deleteProgramAction,
+  deleteProgramCycleAction,
+  renameCycleAction,
+  updateProgramStatusAction,
+} from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
+import { DeleteControl, RenameControl } from "../../structure-edit-controls";
+import { SubjectCreateForm } from "./subject-create-form";
 import { SubjectsSearch } from "./subjects-search";
 
 function statusLabel(status: "draft" | "published") {
@@ -29,8 +37,13 @@ export default async function ProgramDetailPage({
   if (!university || university.id !== universityId) forbidden();
   if (!isUuid(programId)) notFound();
 
-  const program = await getProgramDetail(universityId, programId);
+  const [program, overview] = await Promise.all([
+    getProgramDetail(universityId, programId),
+    getStructureOverview(universityId),
+  ]);
   if (!program) notFound();
+
+  const programLevels = getProgramLevels(overview, program.id);
 
   return (
     <AdminPage
@@ -47,6 +60,24 @@ export default async function ProgramDetailPage({
         <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
         <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
         <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/structure/${universityId}/programs/${program.id}/edit`}
+            aria-label="Modifier la filière"
+            className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-2 text-[color:var(--color-university-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          >
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
+              <path d="m16 5 3 3M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
+            </svg>
+          </Link>
+          <DeleteControl
+            action={deleteProgramAction}
+            universityId={universityId}
+            fields={{ programId: program.id, redirectTo: `/structure/${universityId}/programs` }}
+            itemName={program.name}
+            label="Supprimer la filière"
+          />
+        </div>
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
@@ -59,7 +90,25 @@ export default async function ProgramDetailPage({
               <li key={cycle.cycleId} className="space-y-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
                 <h3 className="text-xl font-semibold">{cycle.name}</h3>
                 <p>{cycle.shortCode}</p>
-                <p>{countLabel(cycle.levelsCount, "niveau", "niveaux")}</p>
+                <p>Années : {cycle.yearsCount}</p>
+                <div className="flex items-center gap-2">
+                  <RenameControl
+                    action={renameCycleAction}
+                    universityId={universityId}
+                    idField="cycleId"
+                    idValue={cycle.cycleId}
+                    currentName={cycle.name}
+                    maxLength={100}
+                    label="Modifier le nom du cycle"
+                  />
+                  <DeleteControl
+                    action={deleteProgramCycleAction}
+                    universityId={universityId}
+                    fields={{ programId: program.id, cycleId: cycle.cycleId }}
+                    itemName={cycle.name}
+                    label="Retirer le cycle de la filière"
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -68,7 +117,16 @@ export default async function ProgramDetailPage({
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="mb-4 text-xl font-semibold">Matières</h2>
-        <SubjectsSearch subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))} />
+        <SubjectsSearch
+          universityId={universityId}
+          subjects={program.subjects.map((subject) => ({ id: subject.id, name: subject.name }))}
+        />
+        <SubjectCreateForm
+          universityId={universityId}
+          programId={program.id}
+          levels={programLevels}
+          academicYears={overview.academicYears}
+        />
       </section>
 
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">

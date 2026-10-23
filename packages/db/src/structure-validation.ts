@@ -35,3 +35,25 @@ export function buildLevelName(shortCode: string, yearNumber: number): string {
 export function buildLevelSlug(shortCode: string, yearNumber: number): string {
   return `${shortCode.toLowerCase()}${yearNumber}`;
 }
+
+export function buildSubjectSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100)
+    .replace(/-+$/g, "");
+}
+
+export function buildProgramSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100)
+    .replace(/-+$/g, "");
+}

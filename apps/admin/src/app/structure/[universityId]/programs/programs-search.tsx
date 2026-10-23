@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
+import { deleteProgramAction } from "../actions";
+import { DeleteControl } from "../structure-edit-controls";
 
 type Program = {
   id: string;
@@ -73,17 +75,39 @@ export function ProgramsSearch({ universityId, programs }: Props) {
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {matchingPrograms.map((program) => (
-            <Link
+            <div
               key={program.id}
-              href={`/structure/${universityId}/programs/${program.id}`}
-              className="flex flex-col gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]"
+              className="relative flex flex-col gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]"
             >
-              <h2 className="text-xl font-semibold">{program.name}</h2>
-              <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
-              <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
-              <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
-              <span>Ouvrir</span>
-            </Link>
+              <Link
+                href={`/structure/${universityId}/programs/${program.id}`}
+                className="flex flex-col gap-2"
+              >
+                <h2 className="text-xl font-semibold">{program.name}</h2>
+                <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
+                <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
+                <p>{countLabel(program.subjectsCount, "matière", "matières")}</p>
+                <span>Ouvrir</span>
+              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/structure/${universityId}/programs/${program.id}/edit`}
+                  aria-label="Modifier la filière"
+                  className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-2 text-[color:var(--color-university-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+                >
+                  <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
+                    <path d="m16 5 3 3M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
+                  </svg>
+                </Link>
+                <DeleteControl
+                  action={deleteProgramAction}
+                  universityId={universityId}
+                  fields={{ programId: program.id }}
+                  itemName={program.name}
+                  label="Supprimer la filière"
+                />
+              </div>
+            </div>
           ))}
         </div>
       )}

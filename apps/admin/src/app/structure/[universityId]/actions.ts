@@ -3,14 +3,25 @@
 import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import {
+  addProgramCycle,
   createCycle,
+  createProgram,
+  createSubject,
+  deleteCycle,
+  deleteProgram,
+  deleteProgramCycle,
+  deleteSubject,
   isCycleValid,
   isProgramStatusValid,
   isShortCodeValid,
   normalizeShortCode,
+  renameCycle,
+  renameProgram,
+  renameSubject,
   updateCycleShortCode,
   updateCycleYearsCount,
   updateLevelYearNumber,
+  updateProgramCycleYearsCount,
   updateProgramStatus,
 } from "@tablino/db";
 import {
@@ -64,7 +75,23 @@ async function requireUniversityForAction(formData: FormData): Promise<string> {
 }
 
 async function runMutation(
-  action: "cycle_create" | "cycle_years_count" | "cycle_short_code" | "level_year_number" | "program_status",
+  action:
+    | "cycle_create"
+    | "program_create"
+    | "cycle_years_count"
+    | "cycle_short_code"
+    | "level_year_number"
+    | "program_status"
+    | "program_cycle_add"
+    | "program_cycle_years_count"
+    | "cycle_rename"
+    | "program_rename"
+    | "subject_rename"
+    | "subject_create"
+    | "subject_delete"
+    | "program_cycle_delete"
+    | "cycle_delete"
+    | "program_delete",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
 ): Promise<StructureActionState> {
@@ -110,6 +137,26 @@ export async function createCycleAction(
     createCycle(universityId, name ?? "", shortCode ?? ""));
 }
 
+export async function createProgramAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const name = readStringField(formData, "name");
+  let programId: string | null = null;
+
+  const result = await runMutation("program_create", universityId, async () => {
+    const createdProgram = await createProgram(universityId, name ?? "");
+    if (createdProgram.ok) programId = createdProgram.programId;
+    return createdProgram;
+  });
+
+  if (result.ok && programId) {
+    redirect(`/structure/${universityId}/programs/${programId}/edit`);
+  }
+  return result;
+}
+
 export async function updateCycleShortCodeAction(
   _previousState: StructureActionInitialState,
   formData: FormData,
@@ -149,4 +196,155 @@ export async function updateProgramStatusAction(
   if (!isProgramStatusValid(status)) return failure("invalid_status");
 
   return runMutation("program_status", universityId, () => updateProgramStatus(universityId, programId, status));
+}
+
+export async function renameProgramAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const name = readStringField(formData, "name");
+  if (!isUuid(programId)) return failure("not_found");
+
+  return runMutation("program_rename", universityId, () =>
+    renameProgram(universityId, programId, name ?? ""));
+}
+
+export async function renameCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const cycleId = readStringField(formData, "cycleId");
+  const name = readStringField(formData, "name");
+  if (!isUuid(cycleId)) return failure("not_found");
+
+  return runMutation("cycle_rename", universityId, () =>
+    renameCycle(universityId, cycleId, name ?? ""));
+}
+
+export async function renameSubjectAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const subjectId = readStringField(formData, "subjectId");
+  const name = readStringField(formData, "name");
+  if (!isUuid(subjectId)) return failure("not_found");
+
+  return runMutation("subject_rename", universityId, () =>
+    renameSubject(universityId, subjectId, name ?? ""));
+}
+
+export async function deleteSubjectAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const subjectId = readStringField(formData, "subjectId");
+  if (!isUuid(subjectId)) return failure("not_found");
+  if (formData.get("confirm") !== "supprimer") {
+    return failure("confirmation_required");
+  }
+
+  return runMutation("subject_delete", universityId, () => deleteSubject(universityId, subjectId));
+}
+
+export async function deleteProgramCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const cycleId = readStringField(formData, "cycleId");
+  if (!isUuid(programId) || !isUuid(cycleId)) return failure("not_found");
+  if (formData.get("confirm") !== "supprimer") {
+    return failure("confirmation_required");
+  }
+
+  return runMutation("program_cycle_delete", universityId, () =>
+    deleteProgramCycle(universityId, programId, cycleId));
+}
+
+export async function deleteCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const cycleId = readStringField(formData, "cycleId");
+  if (!isUuid(cycleId)) return failure("not_found");
+  if (formData.get("confirm") !== "supprimer") {
+    return failure("confirmation_required");
+  }
+
+  return runMutation("cycle_delete", universityId, () => deleteCycle(universityId, cycleId));
+}
+
+export async function deleteProgramAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  if (!isUuid(programId)) return failure("not_found");
+  if (formData.get("confirm") !== "supprimer") {
+    return failure("confirmation_required");
+  }
+
+  const result = await runMutation("program_delete", universityId, () => deleteProgram(universityId, programId));
+  if (result.ok && formData.get("redirectTo") === `/structure/${universityId}/programs`) {
+    redirect(`/structure/${universityId}/programs`);
+  }
+  return result;
+}
+
+export async function addProgramCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const cycleId = readStringField(formData, "cycleId");
+  const yearsCount = readIntegerField(formData, "yearsCount");
+  if (!isUuid(programId) || !isUuid(cycleId)) return failure("not_found");
+  if (yearsCount === null) return failure("years_out_of_range");
+
+  return runMutation("program_cycle_add", universityId, () =>
+    addProgramCycle(universityId, programId, cycleId, yearsCount));
+}
+
+export async function updateProgramCycleYearsCountAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const cycleId = readStringField(formData, "cycleId");
+  const yearsCount = readIntegerField(formData, "yearsCount");
+  if (!isUuid(programId) || !isUuid(cycleId)) return failure("not_found");
+  if (yearsCount === null) return failure("years_out_of_range");
+
+  return runMutation("program_cycle_years_count", universityId, () =>
+    updateProgramCycleYearsCount(universityId, programId, cycleId, yearsCount));
+}
+
+export async function createSubjectAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const levelId = readStringField(formData, "levelId");
+  const academicYearId = readStringField(formData, "academicYearId");
+  const academicYearLabel = readStringField(formData, "academicYearLabel");
+  const name = readStringField(formData, "name");
+  if (!isUuid(levelId) || (!academicYearLabel && !isUuid(academicYearId))) return failure("not_found");
+
+  return runMutation("subject_create", universityId, () =>
+    createSubject(
+      universityId,
+      levelId,
+      { id: academicYearId, label: academicYearLabel },
+      name ?? "",
+    ));
 }
