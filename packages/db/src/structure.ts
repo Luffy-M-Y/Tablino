@@ -4,6 +4,7 @@ import * as schema from "./schema";
 import {
   buildLevelName,
   buildLevelSlug,
+  buildProgramSlug,
   buildSubjectSlug,
   isCycleValid,
   isShortCodeValid,
@@ -64,6 +65,10 @@ export type UpdateProgramStatusResult =
 export type CreateCycleResult =
   | { ok: true; cycleId: string }
   | { ok: false; reason: "invalid_cycle" | "duplicate_short_code" | "university_not_found" };
+
+export type CreateProgramResult =
+  | { ok: true }
+  | { ok: false; reason: "invalid_name" | "program_exists" };
 
 export type RenameProgramResult =
   | { ok: true }
@@ -452,6 +457,33 @@ export async function updateProgramStatus(
       .returning({ id: schema.programs.id });
 
     return updated ? { ok: true } : { ok: false, reason: "program_not_found" };
+  });
+}
+
+export async function createProgram(
+  universityId: string,
+  name: string,
+  database?: StructureDatabase,
+): Promise<CreateProgramResult> {
+  const normalizedName = normalizeName(name);
+  if (!isNameValid(normalizedName, PROGRAM_NAME_MAX_LENGTH)) {
+    return { ok: false, reason: "invalid_name" };
+  }
+
+  const slug = buildProgramSlug(normalizedName);
+  if (!slug) return { ok: false, reason: "invalid_name" };
+
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const programs = await tx
+      .insert(schema.programs)
+      .values({ universityId, name: normalizedName, slug })
+      .onConflictDoNothing({
+        target: [schema.programs.universityId, schema.programs.slug],
+      })
+      .returning({ id: schema.programs.id });
+
+    if (!(programs.length > 0)) return { ok: false, reason: "program_exists" };
+    return { ok: true };
   });
 }
 

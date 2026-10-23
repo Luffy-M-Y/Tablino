@@ -1,6 +1,7 @@
 export type ActionReason =
   | "invalid_cycle"
   | "invalid_name"
+  | "program_exists"
   | "duplicate_short_code"
   | "university_not_found"
   | "year_taken"

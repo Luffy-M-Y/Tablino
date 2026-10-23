@@ -1,6 +1,7 @@
 const messages = {
   invalid_cycle: "Le nom du cycle ou son code court est invalide.",
   invalid_name: "Le nom est invalide.",
+  program_exists: "Cette filière existe déjà.",
   duplicate_short_code: "Ce code court est déjà utilisé dans cette université.",
   university_not_found: "Université introuvable.",
   year_taken: "Cette année est déjà utilisée dans la filière.",
@@ -27,6 +28,7 @@ const messages = {
 
 const mutationActions = new Set([
   "cycle_create",
+  "program_create",
   "cycle_years_count",
   "cycle_short_code",
   "level_year_number",

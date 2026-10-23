@@ -6,6 +6,7 @@ export {
   addProgramCycle,
   canReduceYearsCount,
   createCycle,
+  createProgram,
   updateProgramCycleYearsCount,
   updateCycleYearsCount,
   updateCycleShortCode,
@@ -29,12 +30,14 @@ export {
   normalizeShortCode,
   buildLevelName,
   buildLevelSlug,
+  buildProgramSlug,
   buildSubjectSlug,
 } from "./structure-validation";
 export type {
   AddProgramCycleResult,
   CanReduceYearsCountResult,
   CreateCycleResult,
+  CreateProgramResult,
   UpdateProgramCycleYearsCountResult,
   UpdateCycleYearsCountResult,
   UpdateCycleShortCodeResult,

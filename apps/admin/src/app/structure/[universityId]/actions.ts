@@ -5,6 +5,7 @@ import { forbidden, redirect } from "next/navigation";
 import {
   addProgramCycle,
   createCycle,
+  createProgram,
   createSubject,
   deleteCycle,
   deleteProgram,
@@ -76,6 +77,7 @@ async function requireUniversityForAction(formData: FormData): Promise<string> {
 async function runMutation(
   action:
     | "cycle_create"
+    | "program_create"
     | "cycle_years_count"
     | "cycle_short_code"
     | "level_year_number"
@@ -133,6 +135,17 @@ export async function createCycleAction(
 
   return runMutation("cycle_create", universityId, () =>
     createCycle(universityId, name ?? "", shortCode ?? ""));
+}
+
+export async function createProgramAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const name = readStringField(formData, "name");
+
+  return runMutation("program_create", universityId, () =>
+    createProgram(universityId, name ?? ""));
 }
 
 export async function updateCycleShortCodeAction(

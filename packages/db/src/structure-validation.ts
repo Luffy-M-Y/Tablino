@@ -46,3 +46,14 @@ export function buildSubjectSlug(name: string): string {
     .slice(0, 100)
     .replace(/-+$/g, "");
 }
+
+export function buildProgramSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100)
+    .replace(/-+$/g, "");
+}
