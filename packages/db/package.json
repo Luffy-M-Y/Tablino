@@ -18,6 +18,7 @@
     "db:test-structure": "tsx scripts/test-structure-integration.ts",
     "db:test-tenant-scope": "tsx scripts/test-tenant-scope.ts",
     "db:inspect-tenant-scope": "tsx scripts/inspect-tenant-scope.ts",
+    "db:inspect-resources": "tsx scripts/inspect-resources.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
