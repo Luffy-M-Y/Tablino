@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 3001",
     "lint": "eslint",
-    "test": "node --test tests/structure-view.test.mjs tests/structure-actions.test.mjs tests/admin-menu.test.mjs tests/admin-profile.test.mjs tests/admin-home-cards.test.mjs tests/current-university.test.mjs"
+    "test": "node --test tests/structure-view.test.mjs tests/structure-actions.test.mjs tests/admin-menu.test.mjs tests/admin-profile.test.mjs tests/admin-home-cards.test.mjs tests/current-university.test.mjs tests/scan-pages.test.mjs"
   },
   "dependencies": {
     "@tablino/auth": "workspace:*",
