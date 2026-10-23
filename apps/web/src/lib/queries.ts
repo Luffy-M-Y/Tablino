@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db, schema } from "@tablino/db";
-import { eq, and, count, sql, getTableColumns } from "drizzle-orm";
+import { eq, and, count, sql, getTableColumns, desc } from "drizzle-orm";
 import { requireStudentUniversityAccess } from "@/lib/authorization";
 
 // ─── Accueil ──────────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ export async function getAcademicYearsByLevel(universityId: string, levelId: str
         eq(schema.programs.status, "published"),
       ),
     )
-    .orderBy(schema.academicYears.label);
+    .orderBy(desc(schema.academicYears.label));
   return rows;
 }
 
