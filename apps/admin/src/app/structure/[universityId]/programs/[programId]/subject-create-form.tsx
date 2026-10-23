@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createSubjectAction } from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
 
@@ -31,6 +31,25 @@ export function SubjectCreateForm({
   academicYears,
 }: Props) {
   const [academicYearLabel, setAcademicYearLabel] = useState("");
+  const [selectedAcademicYearLabel, setSelectedAcademicYearLabel] = useState("");
+  const academicYearInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const match = /^(\d{4})-(\d{4})$/.exec(academicYearLabel);
+    const invalidSequence = match && Number(match[2]) !== Number(match[1]) + 1;
+    academicYearInputRef.current?.setCustomValidity(
+      invalidSequence ? "La seconde année doit suivre la première." : "",
+    );
+  }, [academicYearLabel]);
+
+  function handleAcademicYearInput(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    const formatted = digits.length > 4
+      ? `${digits.slice(0, 4)}-${digits.slice(4)}`
+      : digits;
+    setSelectedAcademicYearLabel("");
+    setAcademicYearLabel(formatted);
+  }
 
   if (levels.length === 0) {
     return (
@@ -64,36 +83,44 @@ export function SubjectCreateForm({
           </select>
         </div>
         <div>
-          <label htmlFor={`subject-academic-year-${programId}`} className="mb-2 block">
+          <label htmlFor={`subject-academic-year-label-${programId}`} className="mb-2 block">
             Année académique
           </label>
-          <select
-            id={`subject-academic-year-${programId}`}
-            name="academicYearId"
-            className={fieldClassName}
-            required={!academicYearLabel.trim()}
-          >
-            <option value="">Sélectionner une année</option>
-            {academicYears.map((academicYear) => (
-              <option key={academicYear.id} value={academicYear.id}>
-                {academicYear.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor={`subject-academic-year-label-${programId}`} className="mb-2 block">
-            Autre année (ex. 2025-2026)
-          </label>
-          <input
-            id={`subject-academic-year-label-${programId}`}
-            name="academicYearLabel"
-            type="text"
-            maxLength={20}
-            className={fieldClassName}
-            value={academicYearLabel}
-            onChange={(event) => setAcademicYearLabel(event.target.value)}
-          />
+          <div className="flex gap-2">
+            <select
+              aria-label="Choisir une année académique existante"
+              className={fieldClassName}
+              value={selectedAcademicYearLabel}
+              disabled={Boolean(academicYearLabel && !selectedAcademicYearLabel)}
+              onChange={(event) => {
+                const label = event.target.value;
+                setSelectedAcademicYearLabel(label);
+                setAcademicYearLabel(label);
+              }}
+            >
+              <option value="">Saisie manuelle</option>
+              {academicYears.map((academicYear) => (
+                <option key={academicYear.id} value={academicYear.label}>
+                  {academicYear.label}
+                </option>
+              ))}
+            </select>
+            <input
+              ref={academicYearInputRef}
+              id={`subject-academic-year-label-${programId}`}
+              name="academicYearLabel"
+              type="text"
+              maxLength={9}
+              pattern="\d{4}-\d{4}"
+              inputMode="numeric"
+              placeholder="2025-2026"
+              className={fieldClassName}
+              value={academicYearLabel}
+              readOnly={Boolean(selectedAcademicYearLabel)}
+              onChange={(event) => handleAcademicYearInput(event.target.value)}
+              required
+            />
+          </div>
         </div>
         <div>
           <label htmlFor={`subject-name-${programId}`} className="mb-2 block">
