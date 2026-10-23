@@ -91,7 +91,7 @@ export default async function ProgramDetailPage({
                 <h3 className="text-xl font-semibold">{cycle.name}</h3>
                 <p>{cycle.shortCode}</p>
                 <p>Années : {cycle.yearsCount}</p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-2">
                   <RenameControl
                     action={renameCycleAction}
                     universityId={universityId}
