@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
 import { uploadFileAction } from "../structure/[universityId]/actions";
-import { ScanCapture } from "./scan-capture";
 
 type Program = {
   id: string;
@@ -201,9 +200,6 @@ export function UploadForm({ universityId, programs, cycles }: Props) {
           className={fieldClassName}
           required
         />
-      </div>
-      <div>
-        <ScanCapture />
       </div>
     </StructureActionForm>
   );
