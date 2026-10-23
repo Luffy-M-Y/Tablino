@@ -1,7 +1,7 @@
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
-import { ScanCapture } from "../upload/scan-capture";
+import { ScanPages } from "../upload/scan-pages";
 
 export default async function ScanPage() {
   const university = await getCurrentUniversity();
@@ -16,7 +16,7 @@ export default async function ScanPage() {
       ]}
     >
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-        <ScanCapture />
+        <ScanPages />
       </section>
     </AdminPage>
   );

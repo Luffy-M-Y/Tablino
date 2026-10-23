@@ -10,9 +10,11 @@ type ScanPage = {
 
 const MAX_PAGES = 20;
 
-export function ScanCapture() {
+export function ScanPages() {
   const [pages, setPages] = useState<ScanPage[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [ignoredFiles, setIgnoredFiles] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
   const pagesRef = useRef<ScanPage[]>([]);
 
@@ -21,10 +23,11 @@ export function ScanCapture() {
     setPages(nextPages);
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleCameraFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     const file = input.files?.[0];
     input.value = "";
+    setIgnoredFiles(false);
 
     if (!file || pagesRef.current.length >= MAX_PAGES) return;
 
@@ -35,6 +38,32 @@ export function ScanCapture() {
     };
     nextId.current += 1;
     replacePages([...pagesRef.current, page]);
+  }
+
+  function handleGalleryFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const files = Array.from(input.files ?? []);
+    input.value = "";
+    setIgnoredFiles(false);
+
+    const nextPages = [...pagesRef.current];
+    let skippedFiles = false;
+    for (const file of files) {
+      if (nextPages.length >= MAX_PAGES) {
+        skippedFiles = true;
+        continue;
+      }
+
+      nextPages.push({
+        id: nextId.current,
+        file,
+        url: URL.createObjectURL(file),
+      });
+      nextId.current += 1;
+    }
+
+    if (nextPages.length !== pagesRef.current.length) replacePages(nextPages);
+    setIgnoredFiles(skippedFiles);
   }
 
   function movePage(id: number, direction: -1 | 1) {
@@ -64,22 +93,46 @@ export function ScanCapture() {
   return (
     <section aria-label="Capture de pages" className="space-y-3">
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="sr-only"
-        onChange={handleFileChange}
+        onChange={handleCameraFileChange}
       />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={pages.length >= MAX_PAGES}
-        className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        Ajouter une page
-      </button>
-      {pages.length >= MAX_PAGES && <p>Maximum 20 pages.</p>}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="sr-only"
+        onChange={handleGalleryFilesChange}
+      />
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={pages.length >= MAX_PAGES}
+          className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Prendre une photo
+        </button>
+        <button
+          type="button"
+          onClick={() => galleryInputRef.current?.click()}
+          disabled={pages.length >= MAX_PAGES}
+          className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Choisir des images
+        </button>
+      </div>
+      {pages.length >= MAX_PAGES && (
+        <p>
+          {ignoredFiles
+            ? "Maximum 20 pages. Certaines images ont été ignorées."
+            : "Maximum 20 pages."}
+        </p>
+      )}
       <p aria-live="polite">
         {pages.length} {pages.length === 1 ? "page" : "pages"}
       </p>
