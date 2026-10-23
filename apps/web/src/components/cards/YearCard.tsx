@@ -5,9 +5,10 @@ interface YearCardProps {
   label: string;
   basePath: string;
   variant: "cours" | "devoirs";
+  isRecent?: boolean;
 }
 
-export function YearCard({ label, basePath, variant }: YearCardProps) {
+export function YearCard({ label, basePath, variant, isRecent = false }: YearCardProps) {
   const accent =
     variant === "devoirs"
       ? "hover:border-teal-500 hover:bg-teal-50"
@@ -27,7 +28,14 @@ export function YearCard({ label, basePath, variant }: YearCardProps) {
         <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${iconBg}`}>
           <Calendar size={20} aria-hidden="true" />
         </div>
-        <p className="font-semibold text-slate-800">{label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold text-slate-800">{label}</p>
+          {isRecent && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+              Récente
+            </span>
+          )}
+        </div>
       </div>
       <ChevronRight
         size={18}

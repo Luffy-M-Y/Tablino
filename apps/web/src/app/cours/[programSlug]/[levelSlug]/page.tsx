@@ -66,12 +66,13 @@ export default async function CoursAnneesPage({
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {years.map((y) => (
+          {years.map((y, index) => (
             <YearCard
               key={y.id}
               label={y.label}
               basePath={`/cours/${programSlug}/${levelSlug}`}
               variant="cours"
+              isRecent={index === 0}
             />
           ))}
         </div>
