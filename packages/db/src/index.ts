@@ -1,5 +1,14 @@
 export { db } from "./client";
 export { getDashboardCounts } from "./dashboard";
+export {
+  createResource,
+  createAssignment,
+  inferResourceFormat,
+} from "./uploads";
+export type {
+  CreateResourceResult,
+  CreateAssignmentResult,
+} from "./uploads";
 export { and, asc, count, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {
