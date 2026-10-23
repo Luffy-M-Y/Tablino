@@ -61,6 +61,11 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 9. Ne jamais utiliser `git add .` ni `git add -A` ; indexer les chemins explicitement.
 10. `.worktree-develop/` est exclu localement via `.git/info/exclude`.
 11. Ne jamais lancer `next dev` ni `pnpm dev` sans demande explicite du propriétaire dans le message courant. `next dev` génère `apps/admin/AGENTS.md` (exclu localement via `.git/info/exclude`).
+12. Déstructuration d'un résultat de requête : tester avec .length > 0.
+13. Un redirect() ne va jamais dans un try/catch (runMutation en a un) : l'appeler après runMutation.
+14. Un message d'erreur partagé (structure-action-utils.mjs) ne se modifie jamais sans contrôle de tous les usages de la raison dans packages/db/src et dans les tests.
+15. Toute écriture en base, même une ligne via l'interface, exige le SQL (ou son équivalent lu dans le code) puis l'accord du propriétaire. Un accord autorise un seul envoi.
+16. Ne jamais supposer le nom, l'existence ou le chemin d'une fonction ou d'un fichier : auditer d'abord.
 
 ## Sécurité
 - Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. Les fichiers `.env*` ne doivent jamais apparaître dans une capture. Ils sont ignorés par Git : vérifier avec `git status` avant chaque commit.
@@ -93,6 +98,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Navigation par routes : `/cours/[programSlug]/[levelSlug]/[year]/[subjectSlug]`, idem `/devoirs/...`. Année dans l'URL = libellé (ex. 2026-2027).
 - Pas de barre de recherche, d'avatar ni de promesses non vérifiées (« données sécurisées ») tant que non réalisés.
 - Slugs créés par le dashboard : via une vraie fonction de slug (accents, doublons).
+- Vocabulaire produit : niveau = année. L1 = Licence année 1. Le nombre d'années d'un cycle dans une filière définit ses niveaux : N années = L1 à LN. Interface : « Années : N ». Ne pas utiliser « niveaux » et « années » comme deux notions.
 
 ## Fonctionnalités prévues (ne pas implémenter sans demande)
 - Authentification restante : email/mot de passe, interface de creation d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisee.
@@ -110,7 +116,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
    4. `test/db-isolation-cycles`
    5. `test/db-tenant-scope`
    Fusionnées dans `develop` (PR #6 à #10) ; `origin/develop` = `77b16ff`.
-4. `feat/admin-upload` (R2)
+4. `feat/admin-upload` (R2) — lots db et page faits et fusionnés (PR #28), stockage simulé ; vrai stockage R2 bloqué.
 5. `feat/admin-scan`
 6. `feat/payments`
 7. `feat/pwa`
@@ -119,6 +125,15 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 ## État d'avancement (à mettre à jour après chaque branche)
 - `feat/admin-shell` fusionnée (PR #12) ; PR #13 (état admin-shell) ; PR #14 `fix/auth-google-timeout` (`httpOptions.timeout` 10 s sur le provider Google, logger JSON sans métadonnées dans `packages/auth`) ; PR #15 `fix/admin-global-css` (import de `globals.css` dans le layout admin) ; `origin/develop` = `77b16ff`. Connexion Google admin confirmée en fenêtre privée, rendu de l'accueil admin vérifié à l'écran.
 - `feat/admin-shell`, étapes 1 à 5 : identité visuelle, navigation responsive avec profil et déconnexion, composant `AdminPage` avec fil d'Ariane sur l'accueil et les pages de structure, cartes d'accueil Structure, Uploader un fichier et Scanner. Aucune lecture de base ajoutée ; gardes inchangées ; `packages/auth` intact. Le propriétaire a vérifié 13/13 tests admin, build OK et tsc code 0. Rendu visuel non vérifié.
+- PR #19 à #22 fusionnées : durée portée par `program_cycles.years_count`, création de cycles dans l’administration, styles de structure et résolution d’une université courante pour la navigation et les actions.
+- PR #23, #25, #26, #27 fusionnées. admin-structure terminée avec la PR #26. Rendu visuel validé à l'écran par le propriétaire.
+- PR #28 feat/admin-upload-page fusionnée (fusion 4a5af2c) : page /upload, formulaire (Type, Filière, Niveau, Année académique, Matière, Titre, Fichier), uploadFileAction, createResource, createAssignment, inferResourceFormat. Stockage SIMULÉ : aucun objet écrit, statut draft. Taille max 20 Mio dans l'action, bodySizeLimit 25mb côté Next.
+- PR #29 chore/db-inspect-resources fusionnée (fusion 1ab869f) : script db:inspect-resources, lecture seule, transaction READ ONLY.
+- PR #30 feat/admin-upload-optional-title fusionnée (fusion fb4573d) : titre facultatif à l'envoi ; sans titre, nom du fichier sans extension, limité à 255 points de code (buildUploadTitle).
+- PR #31 feat/admin-cycle-rename-help fusionnée (fusion 2e7f64b) : aide « Ce nom est partagé par toutes les filières. » sous le renommage d'un cycle dans le détail d'une filière. Renommer un cycle renomme le cycle global.
+- Fusions faites sans accord explicite : 13 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié.
+- La ligne de test de l'envoi (table resources) a été supprimée. Lecture après suppression : 3 lignes, 0 brouillon. Origine des 3 lignes restantes : non prouvée.
+- Points ouverts : vrai stockage R2 bloqué (aucune dépendance @aws-sdk dans apps/admin) ; envoi de type Devoir jamais testé ; refus blocking_levels non reproduit, message de refus générique laissé tel quel ; valeur d'années par défaut à l'ajout d'un cycle à une filière : laissée vide, abandonnée.
 - Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
 - Vérifications rapportées par l'utilisateur le 21/10/2026 : tests admin 7/7 ; `db:test-structure` 9 OK ; `db:test-tenant-scope` OK ; inspection après identique à l'état avant, ZZ = 0. L'inspecteur n'affiche pas les comptages de `program_cycles` (6) ni de `levels` (16). Build forcé OK ; quatre `tsc --noEmit` avec code 0. Les deux tests de base ont été lancés par l'utilisateur, pas par Codex.
 - `feat/db-command-guards` : garde centralisé pour les commandes de base ; commits clés `74bb3ef`, `0d6c282`, `6f6ac9d`.
