@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildUploadTitle,
   createStructureMutationLog,
   isUuid,
   messageForReason,
@@ -33,6 +34,31 @@ test("accepts only complete UUID strings, case-insensitively", () => {
   assert.equal(isUuid(uuid.slice(0, -1)), false);
   assert.equal(isUuid(`${uuid}-suffix`), false);
   assert.equal(isUuid("123E4567-e89B-12d3-A456-426614174000"), true);
+});
+
+test("buildUploadTitle keeps a provided title after trimming", () => {
+  assert.equal(buildUploadTitle("  Titre fourni  ", "cours.pdf"), "Titre fourni");
+});
+
+test("buildUploadTitle uses a title without the file extension when empty", () => {
+  assert.equal(buildUploadTitle("", "cours.pdf"), "cours");
+  assert.equal(buildUploadTitle("   ", "cours.pdf"), "cours");
+});
+
+test("buildUploadTitle preserves earlier dots in file names", () => {
+  assert.equal(buildUploadTitle("", "rapport.final.pdf"), "rapport.final");
+});
+
+test("buildUploadTitle keeps file names without an extension", () => {
+  assert.equal(buildUploadTitle("", "cours"), "cours");
+});
+
+test("buildUploadTitle keeps file names beginning with a dot", () => {
+  assert.equal(buildUploadTitle("", ".cours"), ".cours");
+});
+
+test("buildUploadTitle limits fallback titles to 255 code points", () => {
+  assert.equal(Array.from(buildUploadTitle("", `${"😀".repeat(256)}.pdf`)).length, 255);
 });
 
 test("translates expected mutation reasons without exposing raw errors", () => {

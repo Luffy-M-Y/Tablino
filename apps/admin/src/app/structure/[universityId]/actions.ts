@@ -34,6 +34,7 @@ import {
   SessionRequiredError,
 } from "@tablino/auth";
 import {
+  buildUploadTitle,
   createStructureMutationLog,
   isUuid,
   messageForReason,
@@ -189,6 +190,7 @@ export async function uploadFileAction(
     return failure("invalid_file");
   }
 
+  const uploadTitle = buildUploadTitle(title, file.name);
   const dot = file.name.lastIndexOf(".");
   const extension = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : "";
   const ext = /^[a-z0-9]{1,10}$/.test(extension) ? extension : "bin";
@@ -200,7 +202,7 @@ export async function uploadFileAction(
     return runMutation("upload_resource", universityId, () =>
       createResource(universityId, userId, {
         subjectId,
-        title: title ?? "",
+        title: uploadTitle,
         format: inferResourceFormat(file.name),
         fileKey,
         fileSizeBytes,
@@ -210,7 +212,7 @@ export async function uploadFileAction(
   return runMutation("upload_assignment", universityId, () =>
     createAssignment(universityId, userId, {
       subjectId,
-      title: title ?? "",
+      title: uploadTitle,
       fileKey,
       fileSizeBytes,
     }));
