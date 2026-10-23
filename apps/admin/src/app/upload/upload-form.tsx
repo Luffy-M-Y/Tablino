@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
 import { uploadFileAction } from "../structure/[universityId]/actions";
 
@@ -39,6 +39,7 @@ type Props = {
 const fieldClassName = "border border-[color:var(--color-border)] rounded px-3 py-2";
 
 export function UploadForm({ universityId, programs, cycles }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState<"resource" | "assignment">("resource");
   const [programId, setProgramId] = useState("");
   const [levelId, setLevelId] = useState("");
@@ -94,6 +95,7 @@ export function UploadForm({ universityId, programs, cycles }: Props) {
             setLevelId("");
             setAcademicYearLabel("");
             setSubjectId("");
+            if (fileInputRef.current) fileInputRef.current.value = "";
           }}
           required
         >
@@ -162,6 +164,7 @@ export function UploadForm({ universityId, programs, cycles }: Props) {
           className={fieldClassName}
           value={subjectId}
           onChange={(event) => setSubjectId(event.target.value)}
+          disabled={!levelId || academicYearLabels.length === 0}
           required
         >
           <option value="">Choisir une matière</option>
@@ -191,6 +194,7 @@ export function UploadForm({ universityId, programs, cycles }: Props) {
         </label>
         <input
           id="upload-file"
+          ref={fileInputRef}
           name="file"
           type="file"
           className={fieldClassName}
