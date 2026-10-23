@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import {
   addProgramCycle,
+  createAssignment,
   createCycle,
   createProgram,
+  createResource,
   createSubject,
   deleteCycle,
   deleteProgram,
@@ -14,6 +16,7 @@ import {
   isCycleValid,
   isProgramStatusValid,
   isShortCodeValid,
+  inferResourceFormat,
   normalizeShortCode,
   renameCycle,
   renameProgram,
@@ -91,7 +94,9 @@ async function runMutation(
     | "subject_delete"
     | "program_cycle_delete"
     | "cycle_delete"
-    | "program_delete",
+    | "program_delete"
+    | "upload_resource"
+    | "upload_assignment",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
 ): Promise<StructureActionState> {
@@ -155,6 +160,60 @@ export async function createProgramAction(
     redirect(`/structure/${universityId}/programs/${programId}/edit`);
   }
   return result;
+}
+
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
+
+export async function uploadFileAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  let userId: string;
+  try {
+    const user = await requireRole("admin", ["super_admin", "university_admin"]);
+    userId = user.id;
+  } catch (error) {
+    return handleGuardFailure(error);
+  }
+
+  const kind = readStringField(formData, "kind");
+  if (kind !== "resource" && kind !== "assignment") return failure("invalid_file");
+
+  const subjectId = readStringField(formData, "subjectId");
+  if (!isUuid(subjectId)) forbidden();
+
+  const title = readStringField(formData, "title");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_SIZE) {
+    return failure("invalid_file");
+  }
+
+  const dot = file.name.lastIndexOf(".");
+  const extension = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : "";
+  const ext = /^[a-z0-9]{1,10}$/.test(extension) ? extension : "bin";
+  const fileKey = `${universityId}/${crypto.randomUUID()}.${ext}`;
+  const fileSizeBytes = file.size;
+
+  // Stockage simulé : aucun objet n'est écrit.
+  if (kind === "resource") {
+    return runMutation("upload_resource", universityId, () =>
+      createResource(universityId, userId, {
+        subjectId,
+        title: title ?? "",
+        format: inferResourceFormat(file.name),
+        fileKey,
+        fileSizeBytes,
+      }));
+  }
+
+  return runMutation("upload_assignment", universityId, () =>
+    createAssignment(universityId, userId, {
+      subjectId,
+      title: title ?? "",
+      fileKey,
+      fileSizeBytes,
+    }));
 }
 
 export async function updateCycleShortCodeAction(

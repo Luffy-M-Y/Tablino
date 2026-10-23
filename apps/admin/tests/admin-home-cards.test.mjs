@@ -13,7 +13,16 @@ test("defines the active structure card", () => {
   });
 });
 
-test("keeps upload and scanner disabled without links", () => {
+test("enables upload and keeps scanner disabled without a link", () => {
+  assert.deepEqual(ADMIN_HOME_CARDS[1], {
+    id: "upload",
+    title: "Uploader un fichier",
+    description: "Envoyer un cours ou un devoir",
+    href: "/upload",
+    active: true,
+    disabled: false,
+  });
+
   const disabledCards = ADMIN_HOME_CARDS.filter((card) => card.disabled);
 
   assert.deepEqual(
@@ -24,7 +33,6 @@ test("keeps upload and scanner disabled without links", () => {
       availabilityLabel,
     })),
     [
-      { id: "upload", title: "Uploader un fichier", active: false, availabilityLabel: "Bientôt disponible" },
       { id: "scanner", title: "Scanner", active: false, availabilityLabel: "Bientôt disponible" },
     ],
   );
