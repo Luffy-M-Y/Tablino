@@ -39,6 +39,7 @@ export type StructureFormAction = (
 ) => Promise<StructureActionState>;
 
 export function readStringField(formData: Pick<FormData, "get">, name: string): string | null;
+export function buildUploadTitle(title: string | null | undefined, fileName: string): string;
 export function readIntegerField(formData: Pick<FormData, "get">, name: string): number | null;
 export function isUuid(value: unknown): value is string;
 export function messageForReason(reason: string): string;

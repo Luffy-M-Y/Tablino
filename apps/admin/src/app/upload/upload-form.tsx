@@ -177,7 +177,7 @@ export function UploadForm({ universityId, programs, cycles }: Props) {
       </div>
       <div>
         <label htmlFor="upload-title" className="mb-2 block">
-          Titre
+          Titre (facultatif)
         </label>
         <input
           id="upload-title"
@@ -185,8 +185,8 @@ export function UploadForm({ universityId, programs, cycles }: Props) {
           type="text"
           maxLength={255}
           className={fieldClassName}
-          required
         />
+        <p className="text-sm">Sans titre, le nom du fichier est utilisé.</p>
       </div>
       <div>
         <label htmlFor="upload-file" className="mb-2 block">

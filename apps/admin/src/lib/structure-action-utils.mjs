@@ -68,6 +68,16 @@ export function readStringField(formData, name) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+export function buildUploadTitle(title, fileName) {
+  const trimmedTitle = title?.trim() ?? "";
+  if (trimmedTitle.length > 0) return trimmedTitle;
+
+  const dot = fileName.lastIndexOf(".");
+  const fileTitle = (dot > 0 ? fileName.slice(0, dot) : fileName).trim();
+  const fallbackTitle = fileTitle.length > 0 ? fileTitle : fileName;
+  return Array.from(fallbackTitle).slice(0, 255).join("");
+}
+
 export function readIntegerField(formData, name) {
   const value = readStringField(formData, name);
   if (value === null || !/^-?\d+$/.test(value)) return null;
