@@ -21,6 +21,7 @@ export type ActionReason =
   | "confirmation_required"
   | "subject_exists"
   | "academic_year_not_found"
+  | "invalid_academic_year"
   | "unexpected_error";
 
 export type StructureActionState =

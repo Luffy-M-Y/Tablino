@@ -314,9 +314,15 @@ export async function createSubjectAction(
   const universityId = await requireUniversityForAction(formData);
   const levelId = readStringField(formData, "levelId");
   const academicYearId = readStringField(formData, "academicYearId");
+  const academicYearLabel = readStringField(formData, "academicYearLabel");
   const name = readStringField(formData, "name");
-  if (!isUuid(levelId) || !isUuid(academicYearId)) return failure("not_found");
+  if (!isUuid(levelId) || (!academicYearLabel && !isUuid(academicYearId))) return failure("not_found");
 
   return runMutation("subject_create", universityId, () =>
-    createSubject(universityId, levelId, academicYearId, name ?? ""));
+    createSubject(
+      universityId,
+      levelId,
+      { id: academicYearId, label: academicYearLabel },
+      name ?? "",
+    ));
 }

@@ -1,7 +1,7 @@
 import { forbidden, notFound } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
-import { getProgramDetail, getStructureOverview } from "@/lib/structure-queries";
+import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
 import {
   addProgramCycleAction,
@@ -10,6 +10,7 @@ import {
 } from "../../../actions";
 import { StructureActionForm } from "../../../structure-action-form";
 import { RenameControl } from "../../../structure-edit-controls";
+import { SubjectCreateForm } from "../subject-create-form";
 
 export default async function EditProgramPage({
   params,
@@ -28,6 +29,7 @@ export default async function EditProgramPage({
   const availableCycles = overview.cycles.filter(
     (cycle) => !program.cycles.some((programCycle) => programCycle.cycleId === cycle.id),
   );
+  const programLevels = getProgramLevels(overview, program.id);
 
   return (
     <AdminPage
@@ -131,6 +133,16 @@ export default async function EditProgramPage({
             </div>
           </StructureActionForm>
         )}
+      </section>
+
+      <section className="mt-6 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+        <h2 className="mb-4 text-xl font-semibold">Ajouter une matière</h2>
+        <SubjectCreateForm
+          universityId={universityId}
+          programId={program.id}
+          levels={programLevels}
+          academicYears={overview.academicYears}
+        />
       </section>
     </AdminPage>
   );

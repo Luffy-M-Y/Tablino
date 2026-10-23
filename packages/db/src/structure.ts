@@ -79,8 +79,12 @@ export type RenameSubjectResult =
 
 export type CreateSubjectResult =
   | { ok: true }
-  | { ok: false; reason: "level_not_found" | "academic_year_not_found" | "invalid_name" | "subject_exists" };
+  | {
+      ok: false;
+      reason: "level_not_found" | "academic_year_not_found" | "invalid_academic_year" | "invalid_name" | "subject_exists";
+    };
 
+export type CreateSubjectAcademicYear = { id?: string | null; label?: string | null };
 export type DeleteSubjectResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "has_dependents" };
@@ -562,7 +566,7 @@ export async function renameSubject(
 export async function createSubject(
   universityId: string,
   levelId: string,
-  academicYearId: string,
+  academicYear: CreateSubjectAcademicYear,
   name: string,
   database?: StructureDatabase,
 ): Promise<CreateSubjectResult> {
@@ -579,19 +583,6 @@ export async function createSubject(
 
     if (!(levels.length > 0)) return { ok: false, reason: "level_not_found" };
 
-    const academicYears = await tx
-      .select({ id: schema.academicYears.id })
-      .from(schema.academicYears)
-      .where(and(
-        eq(schema.academicYears.universityId, universityId),
-        eq(schema.academicYears.id, academicYearId),
-      ))
-      .limit(1);
-
-    if (!(academicYears.length > 0)) {
-      return { ok: false, reason: "academic_year_not_found" };
-    }
-
     const normalizedName = normalizeName(name);
     if (!isNameValid(normalizedName, SUBJECT_NAME_MAX_LENGTH)) {
       return { ok: false, reason: "invalid_name" };
@@ -600,13 +591,87 @@ export async function createSubject(
     const slug = buildSubjectSlug(normalizedName);
     if (!slug) return { ok: false, reason: "invalid_name" };
 
+    let resolvedAcademicYearId: string | null = null;
+    const academicYearLabel = normalizeName(academicYear.label ?? "");
+    if (academicYearLabel) {
+      const academicYearMatch = /^(\d{4})-(\d{4})$/.exec(academicYearLabel);
+      if (!academicYearMatch || Number(academicYearMatch[2]) !== Number(academicYearMatch[1]) + 1) {
+        return { ok: false, reason: "invalid_academic_year" };
+      }
+
+      let academicYears = await tx
+        .select({ id: schema.academicYears.id })
+        .from(schema.academicYears)
+        .where(and(
+          eq(schema.academicYears.universityId, universityId),
+          eq(schema.academicYears.label, academicYearLabel),
+        ))
+        .limit(1);
+
+      if (!(academicYears.length > 0)) {
+        await tx
+          .insert(schema.academicYears)
+          .values({
+            universityId,
+            label: academicYearLabel,
+            startsAt: null,
+            endsAt: null,
+          })
+          .onConflictDoNothing({
+            target: [schema.academicYears.universityId, schema.academicYears.label],
+          });
+
+        academicYears = await tx
+          .select({ id: schema.academicYears.id })
+          .from(schema.academicYears)
+          .where(and(
+            eq(schema.academicYears.universityId, universityId),
+            eq(schema.academicYears.label, academicYearLabel),
+          ))
+          .limit(1);
+      }
+
+      if (!(academicYears.length > 0)) {
+        return { ok: false, reason: "academic_year_not_found" };
+      }
+      const academicYearRow = academicYears[0];
+      if (!academicYearRow) {
+        return { ok: false, reason: "academic_year_not_found" };
+      }
+      resolvedAcademicYearId = academicYearRow.id;
+    } else if (academicYear.id) {
+      const academicYears = await tx
+        .select({ id: schema.academicYears.id })
+        .from(schema.academicYears)
+        .where(and(
+          eq(schema.academicYears.universityId, universityId),
+          eq(schema.academicYears.id, academicYear.id),
+        ))
+        .limit(1);
+
+      if (!(academicYears.length > 0)) {
+        return { ok: false, reason: "academic_year_not_found" };
+      }
+      const academicYearRow = academicYears[0];
+      if (!academicYearRow) {
+        return { ok: false, reason: "academic_year_not_found" };
+      }
+      resolvedAcademicYearId = academicYearRow.id;
+    } else {
+      return { ok: false, reason: "academic_year_not_found" };
+    }
+
+    if (!resolvedAcademicYearId) {
+      return { ok: false, reason: "academic_year_not_found" };
+    }
+
     const existingSubjects = await tx
       .select({ id: schema.subjects.id })
       .from(schema.subjects)
       .where(and(
         eq(schema.subjects.universityId, universityId),
         eq(schema.subjects.levelId, levelId),
-        eq(schema.subjects.academicYearId, academicYearId),
+        eq(schema.subjects.academicYearId, resolvedAcademicYearId),
         eq(schema.subjects.slug, slug),
       ))
       .limit(1);
@@ -617,7 +682,13 @@ export async function createSubject(
 
     await tx
       .insert(schema.subjects)
-      .values({ universityId, levelId, academicYearId, name: normalizedName, slug });
+      .values({
+        universityId,
+        levelId,
+        academicYearId: resolvedAcademicYearId,
+        name: normalizedName,
+        slug,
+      });
 
     return { ok: true };
   });

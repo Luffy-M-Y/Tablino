@@ -9,6 +9,10 @@ type Mutation = {
   values?: unknown;
 };
 
+type ConflictTarget = {
+  target: unknown[];
+};
+
 type SelectChain = {
   from: (table: unknown) => SelectChain;
   where: (condition: unknown) => SelectChain;
@@ -20,6 +24,7 @@ type SelectChain = {
 function createMemoryDatabase(rows: unknown[][]) {
   const selections = [...rows];
   const inserts: Mutation[] = [];
+  const conflictTargets: ConflictTarget[] = [];
   const lockedTables: unknown[] = [];
 
   function selectChain(): SelectChain {
@@ -47,8 +52,13 @@ function createMemoryDatabase(rows: unknown[][]) {
   const tx = {
     select: () => selectChain(),
     insert: (table: unknown) => ({
-      values: async (values: unknown) => {
+      values: (values: unknown) => {
         inserts.push({ table, values });
+        return {
+          onConflictDoNothing: async (conflict: ConflictTarget) => {
+            conflictTargets.push(conflict);
+          },
+        };
       },
     }),
   };
@@ -58,6 +68,7 @@ function createMemoryDatabase(rows: unknown[][]) {
       transaction: async (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx),
     } as never,
     inserts,
+    conflictTargets,
     lockedTables,
   };
 }
@@ -65,10 +76,7 @@ function createMemoryDatabase(rows: unknown[][]) {
 const UNIVERSITY_A = "university-a";
 const LEVEL_A = "level-a";
 const ACADEMIC_YEAR_A = "academic-year-a";
-
-function validSelections() {
-  return [[{ id: LEVEL_A }], [{ id: ACADEMIC_YEAR_A }], []];
-}
+const ACADEMIC_YEAR_LABEL = "2025-2026";
 
 test("buildSubjectSlug removes accents, normalizes spacing, and caps output at 100 characters", () => {
   assert.equal(buildSubjectSlug("  Économie   générale & Analyse  "), "economie-generale-analyse");
@@ -77,12 +85,16 @@ test("buildSubjectSlug removes accents, normalizes spacing, and caps output at 1
 });
 
 test("createSubject inserts a normalized subject and locks the level", async () => {
-  const fake = createMemoryDatabase(validSelections());
+  const fake = createMemoryDatabase([
+    [{ id: LEVEL_A }],
+    [{ id: ACADEMIC_YEAR_A }],
+    [],
+  ]);
 
   const result = await createSubject(
     UNIVERSITY_A,
     LEVEL_A,
-    ACADEMIC_YEAR_A,
+    { label: ACADEMIC_YEAR_LABEL },
     "  Économie générale  ",
     fake.database,
   );
@@ -105,7 +117,7 @@ test("createSubject refuses a missing level", async () => {
   const fake = createMemoryDatabase([[]]);
 
   assert.deepEqual(
-    await createSubject(UNIVERSITY_A, LEVEL_A, ACADEMIC_YEAR_A, "Mathématiques", fake.database),
+    await createSubject(UNIVERSITY_A, LEVEL_A, { id: ACADEMIC_YEAR_A }, "Mathématiques", fake.database),
     { ok: false, reason: "level_not_found" },
   );
   assert.deepEqual(fake.inserts, []);
@@ -115,7 +127,7 @@ test("createSubject refuses an academic year from another university or not foun
   const fake = createMemoryDatabase([[{ id: LEVEL_A }], []]);
 
   assert.deepEqual(
-    await createSubject(UNIVERSITY_A, LEVEL_A, ACADEMIC_YEAR_A, "Mathématiques", fake.database),
+    await createSubject(UNIVERSITY_A, LEVEL_A, { id: ACADEMIC_YEAR_A }, "Mathématiques", fake.database),
     { ok: false, reason: "academic_year_not_found" },
   );
   assert.deepEqual(fake.inserts, []);
@@ -123,14 +135,99 @@ test("createSubject refuses an academic year from another university or not foun
 
 test("createSubject refuses empty, whitespace-only, overlong, and non-alphanumeric names", async () => {
   for (const name of ["", "   ", "a".repeat(256), "!!!"]) {
-    const fake = createMemoryDatabase(validSelections());
+    const fake = createMemoryDatabase([[{ id: LEVEL_A }]]);
 
     assert.deepEqual(
-      await createSubject(UNIVERSITY_A, LEVEL_A, ACADEMIC_YEAR_A, name, fake.database),
+      await createSubject(UNIVERSITY_A, LEVEL_A, { label: ACADEMIC_YEAR_LABEL }, name, fake.database),
       { ok: false, reason: "invalid_name" },
     );
     assert.deepEqual(fake.inserts, []);
   }
+});
+
+test("createSubject refuses invalid academic year labels", async () => {
+  for (const label of ["2025/2026", "2025-2027", "2025-2026-extra-long-label"]) {
+    const fake = createMemoryDatabase([[{ id: LEVEL_A }]]);
+
+    assert.deepEqual(
+      await createSubject(UNIVERSITY_A, LEVEL_A, { label }, "Mathématiques", fake.database),
+      { ok: false, reason: "invalid_academic_year" },
+    );
+    assert.deepEqual(fake.inserts, []);
+  }
+});
+
+test("createSubject resolves a selected academic year by id", async () => {
+  const fake = createMemoryDatabase([
+    [{ id: LEVEL_A }],
+    [{ id: ACADEMIC_YEAR_A }],
+    [],
+  ]);
+
+  assert.deepEqual(
+    await createSubject(
+      UNIVERSITY_A,
+      LEVEL_A,
+      { id: ACADEMIC_YEAR_A },
+      "Mathématiques",
+      fake.database,
+    ),
+    { ok: true },
+  );
+  assert.deepEqual(fake.inserts, [{
+    table: schema.subjects,
+    values: {
+      universityId: UNIVERSITY_A,
+      levelId: LEVEL_A,
+      academicYearId: ACADEMIC_YEAR_A,
+      name: "Mathématiques",
+      slug: "mathematiques",
+    },
+  }]);
+});
+
+test("createSubject creates an academic year with a conflict-safe insert when the label is new", async () => {
+  const fake = createMemoryDatabase([
+    [{ id: LEVEL_A }],
+    [],
+    [{ id: ACADEMIC_YEAR_A }],
+    [],
+  ]);
+
+  assert.deepEqual(
+    await createSubject(
+      UNIVERSITY_A,
+      LEVEL_A,
+      { label: ACADEMIC_YEAR_LABEL },
+      "Mathématiques",
+      fake.database,
+    ),
+    { ok: true },
+  );
+  assert.deepEqual(fake.inserts, [
+    {
+      table: schema.academicYears,
+      values: {
+        universityId: UNIVERSITY_A,
+        label: ACADEMIC_YEAR_LABEL,
+        startsAt: null,
+        endsAt: null,
+      },
+    },
+    {
+      table: schema.subjects,
+      values: {
+        universityId: UNIVERSITY_A,
+        levelId: LEVEL_A,
+        academicYearId: ACADEMIC_YEAR_A,
+        name: "Mathématiques",
+        slug: "mathematiques",
+      },
+    },
+  ]);
+  assert.deepEqual(fake.conflictTargets, [{
+    target: [schema.academicYears.universityId, schema.academicYears.label],
+  }]);
 });
 
 test("createSubject refuses a duplicate subject slug for the same level and academic year", async () => {
@@ -141,7 +238,13 @@ test("createSubject refuses a duplicate subject slug for the same level and acad
   ]);
 
   assert.deepEqual(
-    await createSubject(UNIVERSITY_A, LEVEL_A, ACADEMIC_YEAR_A, "Économie générale", fake.database),
+    await createSubject(
+      UNIVERSITY_A,
+      LEVEL_A,
+      { label: ACADEMIC_YEAR_LABEL },
+      "Économie générale",
+      fake.database,
+    ),
     { ok: false, reason: "subject_exists" },
   );
   assert.deepEqual(fake.inserts, []);

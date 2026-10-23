@@ -21,6 +21,7 @@ const messages = {
   confirmation_required: "Confirmez la suppression.",
   subject_exists: "Cette matière existe déjà pour ce niveau et cette année.",
   academic_year_not_found: "Année académique introuvable.",
+  invalid_academic_year: "L'année académique doit respecter le format AAAA-AAAA avec des années consécutives.",
   unexpected_error: "La modification n'a pas pu être effectuée.",
 };
 

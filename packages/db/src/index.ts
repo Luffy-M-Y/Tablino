@@ -47,5 +47,6 @@ export type {
   DeleteProgramCycleResult,
   DeleteCycleResult,
   DeleteProgramResult,
+  CreateSubjectAcademicYear,
   CreateSubjectResult,
 } from "./structure";
