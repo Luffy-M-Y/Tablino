@@ -56,7 +56,7 @@ test("createProgram inserts a normalized program and its slug", async () => {
 
   assert.deepEqual(
     await createProgram(UNIVERSITY_A, "  Économie générale  ", fake.database),
-    { ok: true },
+    { ok: true, programId: "program-a" },
   );
   assert.deepEqual(fake.inserts, [{
     table: schema.programs,
@@ -108,7 +108,10 @@ test("createProgram returns program_exists when the slug conflicts", async () =>
 test("createProgram ignores conflicts on university and slug", async () => {
   const fake = createMemoryDatabase([{ id: "program-a" }]);
 
-  await createProgram(UNIVERSITY_A, "Informatique", fake.database);
+  assert.deepEqual(
+    await createProgram(UNIVERSITY_A, "Informatique", fake.database),
+    { ok: true, programId: "program-a" },
+  );
 
   assert.deepEqual(fake.conflictTargets, [{
     target: [schema.programs.universityId, schema.programs.slug],

@@ -143,9 +143,18 @@ export async function createProgramAction(
 ): Promise<StructureActionState> {
   const universityId = await requireUniversityForAction(formData);
   const name = readStringField(formData, "name");
+  let programId: string | null = null;
 
-  return runMutation("program_create", universityId, () =>
-    createProgram(universityId, name ?? ""));
+  const result = await runMutation("program_create", universityId, async () => {
+    const createdProgram = await createProgram(universityId, name ?? "");
+    if (createdProgram.ok) programId = createdProgram.programId;
+    return createdProgram;
+  });
+
+  if (result.ok && programId) {
+    redirect(`/structure/${universityId}/programs/${programId}/edit`);
+  }
+  return result;
 }
 
 export async function updateCycleShortCodeAction(

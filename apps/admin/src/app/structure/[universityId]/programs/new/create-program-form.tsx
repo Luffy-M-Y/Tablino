@@ -1,11 +1,11 @@
 "use client";
 
-import { createProgramAction } from "../actions";
-import { StructureActionForm } from "../structure-action-form";
+import { createProgramAction } from "../../actions";
+import { StructureActionForm } from "../../structure-action-form";
 
 export function CreateProgramForm({ universityId }: { universityId: string }) {
   return (
-    <StructureActionForm action={createProgramAction} buttonLabel="Ajouter la filière">
+    <StructureActionForm action={createProgramAction} buttonLabel="Créer la filière">
       <input type="hidden" name="universityId" value={universityId} />
       <div>
         <label htmlFor="new-program-name" className="mb-2 block">

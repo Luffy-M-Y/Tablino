@@ -67,7 +67,7 @@ export type CreateCycleResult =
   | { ok: false; reason: "invalid_cycle" | "duplicate_short_code" | "university_not_found" };
 
 export type CreateProgramResult =
-  | { ok: true }
+  | { ok: true; programId: string }
   | { ok: false; reason: "invalid_name" | "program_exists" };
 
 export type RenameProgramResult =
@@ -483,7 +483,9 @@ export async function createProgram(
       .returning({ id: schema.programs.id });
 
     if (!(programs.length > 0)) return { ok: false, reason: "program_exists" };
-    return { ok: true };
+    const program = programs[0];
+    if (!program) return { ok: false, reason: "program_exists" };
+    return { ok: true, programId: program.id };
   });
 }
 
