@@ -129,6 +129,43 @@ test("createAssignment inserts a draft assignment", async () => {
   }]);
 });
 
+test("createAssignment rejects an empty title", async () => {
+  const fake = createMemoryDatabase([{ id: SUBJECT_ID }], []);
+
+  assert.deepEqual(
+    await createAssignment(UNIVERSITY_ID, USER_ID, {
+      subjectId: SUBJECT_ID,
+      title: "   ",
+      fileKey: "assignment.pdf",
+      fileSizeBytes: 1024,
+    }, fake.database),
+    { ok: false, reason: "invalid_title" },
+  );
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("createAssignment rejects invalid file metadata", async () => {
+  const invalidFiles = [
+    { fileKey: " ", fileSizeBytes: 1024 },
+    { fileKey: "f".repeat(501), fileSizeBytes: 1024 },
+    { fileKey: "assignment.pdf", fileSizeBytes: 0 },
+    { fileKey: "assignment.pdf", fileSizeBytes: 1.5 },
+  ];
+
+  for (const file of invalidFiles) {
+    const fake = createMemoryDatabase([{ id: SUBJECT_ID }], []);
+    assert.deepEqual(
+      await createAssignment(UNIVERSITY_ID, USER_ID, {
+        subjectId: SUBJECT_ID,
+        title: "Devoir",
+        ...file,
+      }, fake.database),
+      { ok: false, reason: "invalid_file" },
+    );
+    assert.deepEqual(fake.inserts, []);
+  }
+});
+
 test("upload mutations reject a missing subject", async () => {
   const fake = createMemoryDatabase([], []);
 
