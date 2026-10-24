@@ -1,8 +1,12 @@
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { computeScaledSize } from "@/lib/scan-pages.mjs";
 
-export async function buildPdfFromImages(files: File[]): Promise<Uint8Array> {
+export async function buildPdfFromImages(
+  files: File[],
+  onProgress?: (current: number, total: number) => void,
+): Promise<Uint8Array> {
   if (files.length === 0) throw new Error("Aucune image.");
+  onProgress?.(0, files.length);
 
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -19,7 +23,8 @@ export async function buildPdfFromImages(files: File[]): Promise<Uint8Array> {
   });
 
   try {
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
+      onProgress?.(index + 1, files.length);
       let bitmap: ImageBitmap;
       try {
         bitmap = await createImageBitmap(file);

@@ -19,6 +19,7 @@ export function ScanPages() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [progressLabel, setProgressLabel] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
@@ -102,8 +103,16 @@ export function ScanPages() {
 
     setIsBuilding(true);
     setPdfError(null);
+    setProgressLabel("Préparation du moteur...");
     try {
-      const bytes = await buildPdfFromImages(pagesRef.current.map((page) => page.file));
+      const bytes = await buildPdfFromImages(
+        pagesRef.current.map((page) => page.file),
+        (current, total) => {
+          setProgressLabel(current === 0
+            ? "Préparation du moteur..."
+            : "Page " + current + " sur " + total + "...");
+        },
+      );
       const file = new File([new Uint8Array(bytes)], buildScanFileName(new Date()), { type: "application/pdf" });
       if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
       const url = URL.createObjectURL(file);
@@ -114,6 +123,7 @@ export function ScanPages() {
       setPdfError(error instanceof Error ? error.message : "Création du PDF impossible.");
     } finally {
       setIsBuilding(false);
+      setProgressLabel(null);
     }
   }
 
@@ -225,6 +235,7 @@ export function ScanPages() {
       >
         {isBuilding ? "Création..." : "Créer le PDF"}
       </button>
+      {isBuilding && progressLabel && <p aria-live="polite">{progressLabel}</p>}
       {pdfError && <p role="alert">{pdfError}</p>}
       {pdfFile && pdfUrl && (
         <>
