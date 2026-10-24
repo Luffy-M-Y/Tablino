@@ -8,4 +8,5 @@ export const ADMIN_MENU_ITEMS = Object.freeze([
   Object.freeze({ id: "structure", label: "Structure", href: "/structure", disabled: false }),
   Object.freeze({ id: "scan", label: "Scan", href: "/scan", disabled: false }),
   Object.freeze({ id: "upload", label: "Upload", href: "/upload", disabled: false }),
+  Object.freeze({ id: "drafts", label: "Brouillons", href: "/drafts", disabled: false }),
 ]);

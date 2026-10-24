@@ -36,3 +36,14 @@ test("enables scanner card", () => {
     disabled: false,
   });
 });
+
+test("enables drafts card", () => {
+  assert.deepEqual(ADMIN_HOME_CARDS[3], {
+    id: "drafts",
+    title: "Brouillons",
+    description: "Publier les cours et devoirs envoyés",
+    href: "/drafts",
+    active: true,
+    disabled: false,
+  });
+});

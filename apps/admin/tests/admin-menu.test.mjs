@@ -10,6 +10,7 @@ test("defines the navigation links", () => {
       { label: "Structure", href: "/structure" },
       { label: "Scan", href: "/scan" },
       { label: "Upload", href: "/upload" },
+      { label: "Brouillons", href: "/drafts" },
     ],
   );
 });
