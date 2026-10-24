@@ -200,6 +200,15 @@ export function DocumentForm({
         />
         <p className="text-sm">Sans titre, le nom du fichier est utilisé.</p>
       </div>
+      <div>
+        <input
+          type="checkbox"
+          id="upload-publish-now"
+          name="publishNow"
+        />
+        <label htmlFor="upload-publish-now">Publier directement</label>
+        <p className="text-sm">Sans cocher, le fichier reste en brouillon.</p>
+      </div>
       {children}
     </StructureActionForm>
   );

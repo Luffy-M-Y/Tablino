@@ -189,6 +189,7 @@ export async function uploadFileAction(
   if (!isUuid(subjectId)) forbidden();
 
   const title = readStringField(formData, "title");
+  const publish = formData.get("publishNow") === "on";
   const file = formData.get("file");
   if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_SIZE) {
     return failure("invalid_file");
@@ -210,6 +211,7 @@ export async function uploadFileAction(
         format: inferResourceFormat(file.name),
         fileKey,
         fileSizeBytes,
+        publish,
       }));
   }
 
@@ -219,6 +221,7 @@ export async function uploadFileAction(
       title: uploadTitle,
       fileKey,
       fileSizeBytes,
+      publish,
     }));
 }
 
