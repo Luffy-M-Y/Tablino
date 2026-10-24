@@ -1,5 +1,5 @@
 /**
- * @typedef {{ id: "structure" | "upload" | "scanner" | "drafts", title: string, description: string, href: string, active: true, disabled: false } | { id: "scanner", title: string, active: false, disabled: true, availabilityLabel: string }} AdminHomeCard
+ * @typedef {{ id: "structure" | "upload" | "scanner" | "drafts" | "resources" | "assignments", title: string, description: string, href: string, active: true, disabled: false } | { id: "scanner", title: string, active: false, disabled: true, availabilityLabel: string }} AdminHomeCard
  */
 
 /** @type {readonly AdminHomeCard[]} */
@@ -33,6 +33,22 @@ export const ADMIN_HOME_CARDS = Object.freeze([
     title: "Brouillons",
     description: "Publier les cours et devoirs envoyés",
     href: "/drafts",
+    active: true,
+    disabled: false,
+  }),
+  Object.freeze({
+    id: "resources",
+    title: "Cours",
+    description: "Voir et supprimer les cours",
+    href: "/resources",
+    active: true,
+    disabled: false,
+  }),
+  Object.freeze({
+    id: "assignments",
+    title: "Devoirs",
+    description: "Voir et supprimer les devoirs",
+    href: "/assignments",
     active: true,
     disabled: false,
   }),

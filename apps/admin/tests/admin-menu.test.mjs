@@ -11,6 +11,8 @@ test("defines the navigation links", () => {
       { label: "Scan", href: "/scan" },
       { label: "Upload", href: "/upload" },
       { label: "Brouillons", href: "/drafts" },
+      { label: "Cours", href: "/resources" },
+      { label: "Devoirs", href: "/assignments" },
     ],
   );
 });

@@ -50,6 +50,8 @@ const mutationActions = new Set([
   "upload_assignment",
   "publish_resource",
   "publish_assignment",
+  "delete_resource",
+  "delete_assignment",
 ]);
 const mutationResults = new Set(["success", "rejected", "error"]);
 const mutationReasons = new Set([...Object.keys(messages), "none"]);
