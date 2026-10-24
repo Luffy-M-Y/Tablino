@@ -9,9 +9,11 @@ import {
   createProgram,
   createResource,
   createSubject,
+  deleteAssignment,
   deleteCycle,
   deleteProgram,
   deleteProgramCycle,
+  deleteResource,
   deleteSubject,
   isCycleValid,
   isProgramStatusValid,
@@ -101,7 +103,9 @@ async function runMutation(
     | "upload_resource"
     | "upload_assignment"
     | "publish_resource"
-    | "publish_assignment",
+    | "publish_assignment"
+    | "delete_resource"
+    | "delete_assignment",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
 ): Promise<StructureActionState> {
@@ -317,6 +321,34 @@ export async function deleteSubjectAction(
   }
 
   return runMutation("subject_delete", universityId, () => deleteSubject(universityId, subjectId));
+}
+
+export async function deleteResourceAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const id = readStringField(formData, "id");
+  if (!isUuid(id)) return failure("not_found");
+  if (formData.get("confirm") !== "supprimer") {
+    return failure("confirmation_required");
+  }
+
+  return runMutation("delete_resource", universityId, () => deleteResource(universityId, id));
+}
+
+export async function deleteAssignmentAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const id = readStringField(formData, "id");
+  if (!isUuid(id)) return failure("not_found");
+  if (formData.get("confirm") !== "supprimer") {
+    return failure("confirmation_required");
+  }
+
+  return runMutation("delete_assignment", universityId, () => deleteAssignment(universityId, id));
 }
 
 export async function deleteProgramCycleAction(

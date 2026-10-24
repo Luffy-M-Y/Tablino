@@ -47,3 +47,25 @@ test("enables drafts card", () => {
     disabled: false,
   });
 });
+
+test("enables resources card", () => {
+  assert.deepEqual(ADMIN_HOME_CARDS[4], {
+    id: "resources",
+    title: "Cours",
+    description: "Voir et supprimer les cours",
+    href: "/resources",
+    active: true,
+    disabled: false,
+  });
+});
+
+test("enables assignments card", () => {
+  assert.deepEqual(ADMIN_HOME_CARDS[5], {
+    id: "assignments",
+    title: "Devoirs",
+    description: "Voir et supprimer les devoirs",
+    href: "/assignments",
+    active: true,
+    disabled: false,
+  });
+});
