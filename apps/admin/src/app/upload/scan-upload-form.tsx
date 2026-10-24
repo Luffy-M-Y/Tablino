@@ -39,12 +39,14 @@ export function ScanUploadForm({ universityId, programs, cycles }: Props) {
       action={scanAction}
       buttonLabel="Envoyer le PDF"
     >
-      <ScanPages
-        key={resetKey}
-        onPdfChange={(file) => {
-          pdfFileRef.current = file;
-        }}
-      />
+      <div className="basis-full">
+        <ScanPages
+          key={resetKey}
+          onPdfChange={(file) => {
+            pdfFileRef.current = file;
+          }}
+        />
+      </div>
     </DocumentForm>
   );
 }
