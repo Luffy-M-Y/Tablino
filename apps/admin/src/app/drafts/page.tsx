@@ -3,7 +3,7 @@ import Link from "next/link";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getDraftProgramsForUniversity, getDraftsForUniversity } from "@/lib/drafts-queries";
-import { PublishDraftForm } from "./publish-draft-form";
+import { DraftsList } from "./drafts-list";
 
 export default async function DraftsPage() {
   const university = await getCurrentUniversity();
@@ -45,33 +45,15 @@ export default async function DraftsPage() {
       </section>
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
         <h2 className="font-semibold">Fichiers en brouillon</h2>
-        {drafts.length === 0 ? (
-          <p>Aucun brouillon.</p>
-        ) : (
-          <ul className="space-y-4">
-            {drafts.map((draft) => (
-              <li
-                key={draft.kind + ":" + draft.id}
-                className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-4"
-              >
-                <h2 className="font-semibold">{draft.title}</h2>
-                <p>{draft.kind === "resource" ? "Cours" : "Devoir"}</p>
-                <p>{draft.programName + ", " + draft.levelName + ", " + draft.subjectName}</p>
-                <p>{draft.createdAt.toLocaleDateString("fr-FR")}</p>
-                {draft.programStatus === "draft" && (
-                  <p>
-                    Filière en brouillon : ce fichier restera invisible sur le site tant que la filière n'est pas publiée.
-                  </p>
-                )}
-                <PublishDraftForm
-                  universityId={university.id}
-                  kind={draft.kind}
-                  id={draft.id}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <DraftsList
+          universityId={university.id}
+          files={drafts.map((draft) => ({
+            ...draft,
+            createdAt: draft.createdAt.toISOString(),
+            status: "draft" as const,
+            academicYearLabel: "",
+          }))}
+        />
       </section>
     </AdminPage>
   );
