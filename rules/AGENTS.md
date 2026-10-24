@@ -66,6 +66,17 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 14. Un message d'erreur partagé (structure-action-utils.mjs) ne se modifie jamais sans contrôle de tous les usages de la raison dans packages/db/src et dans les tests.
 15. Toute écriture en base, même une ligne via l'interface, exige le SQL (ou son équivalent lu dans le code) puis l'accord du propriétaire. Un accord autorise un seul envoi.
 16. Ne jamais supposer le nom, l'existence ou le chemin d'une fonction ou d'un fichier : auditer d'abord.
+17. PowerShell : Select-String sans -Recurse ; utiliser Get-ChildItem -Recurse -Filter. Chemins avec crochets : -LiteralPath, ou git add avec la forme :(literal)chemin entre guillemets.
+18. Composants client : jamais crypto.randomUUID ; compteur dans un useRef.
+19. Le script test de apps/admin/package.json liste les fichiers à la main : tout nouveau fichier de test y est ajouté. packages/db utilise des fichiers dans tests/ dont le nom finit par .test.ts.
+20. Module .mjs importé depuis TypeScript : extension dans l'alias, avec un fichier .d.mts.
+21. Nouvelle dépendance : accord du propriétaire, puis pnpm add par le propriétaire ; jamais pnpm approve-builds sans accord.
+22. Assets (OCR, langue) : locaux dans apps/admin/public, jamais depuis un CDN.
+23. Toute nouvelle action de runMutation s'ajoute à la liste de actions.ts ET au Set mutationActions de structure-action-utils.mjs.
+24. Recherche côté client : filtre pur dans un module .mjs avec test ; le composant client reçoit des données sérialisables (Date en ISO).
+25. Utiliser git --no-pager pour log, diff, show et branch.
+26. Script jetable avec id codé en dur : non gardé. Pour un SELECT ad hoc : script tmp- non commité, supprimé après.
+27. Publication ou écriture visible du site public : base de test seulement.
 
 ## Sécurité
 - Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. Les fichiers `.env*` ne doivent jamais apparaître dans une capture. Ils sont ignorés par Git : vérifier avec `git status` avant chaque commit.
