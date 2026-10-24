@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterFiles } from "../src/lib/files-filter.mjs";
+import { filterFiles, filterPrograms } from "../src/lib/files-filter.mjs";
 
 const files = [
   {
@@ -53,4 +53,19 @@ test("filters draft files", () => {
     filterFiles(files, "", "draft").map((file) => file.id),
     ["file-b"],
   );
+});
+
+test("finds programs with accents regardless of case", () => {
+  const programs = [{ id: "program-a", name: "Économie" }];
+
+  assert.deepEqual(filterPrograms(programs, "ECONOMIE"), programs);
+});
+
+test("keeps programs with duplicate names", () => {
+  const programs = [
+    { id: "program-a", name: "Commerce" },
+    { id: "program-b", name: "Commerce" },
+  ];
+
+  assert.deepEqual(filterPrograms(programs, "commerce"), programs);
 });

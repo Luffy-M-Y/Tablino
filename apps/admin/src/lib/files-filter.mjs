@@ -12,3 +12,11 @@ export function filterFiles(files, query, status) {
     return matchesQuery && matchesStatus;
   });
 }
+
+export function filterPrograms(programs, query) {
+  const normalizedQuery = normalizeSearchValue(query);
+
+  return programs.filter((program) => (
+    normalizedQuery === "" || normalizeSearchValue(program.name).includes(normalizedQuery)
+  ));
+}

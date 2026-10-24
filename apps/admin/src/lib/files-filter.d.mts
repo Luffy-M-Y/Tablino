@@ -14,3 +14,8 @@ export function filterFiles<T extends FilterableFile>(
   query: string,
   status: FileFilterStatus,
 ): T[];
+
+export function filterPrograms<T extends { name: string }>(
+  programs: T[],
+  query: string,
+): T[];
