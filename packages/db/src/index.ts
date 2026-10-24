@@ -11,6 +11,8 @@ export type {
 } from "./uploads";
 export { publishResource, publishAssignment } from "./publish";
 export type { PublishResult } from "./publish";
+export { deleteResource, deleteAssignment } from "./remove-files";
+export type { RemoveFileResult } from "./remove-files";
 export { and, asc, count, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {
