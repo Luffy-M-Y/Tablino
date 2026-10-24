@@ -129,6 +129,68 @@ test("createAssignment inserts a draft assignment", async () => {
   }]);
 });
 
+test("createResource publishes immediately when publish is true", async () => {
+  const fake = createMemoryDatabase([{ id: SUBJECT_ID }], [{ id: "resource-a" }]);
+
+  assert.deepEqual(
+    await createResource(UNIVERSITY_ID, USER_ID, {
+      subjectId: SUBJECT_ID,
+      title: "  Cours de mathématiques  ",
+      format: "pdf",
+      fileKey: "university-a/resource-a.pdf",
+      fileSizeBytes: 1024,
+      publish: true,
+    }, fake.database),
+    { ok: true, id: "resource-a" },
+  );
+  assert.equal(fake.inserts.length, 1);
+  const values = fake.inserts[0].values as Record<string, unknown>;
+  assert.ok(values.publishedAt instanceof Date);
+  const { publishedAt, ...rest } = values;
+  void publishedAt;
+  assert.equal(fake.inserts[0].table, schema.resources);
+  assert.deepEqual(rest, {
+    universityId: UNIVERSITY_ID,
+    subjectId: SUBJECT_ID,
+    uploadedBy: USER_ID,
+    title: "Cours de mathématiques",
+    format: "pdf",
+    fileKey: "university-a/resource-a.pdf",
+    fileSizeBytes: 1024,
+    status: "published",
+  });
+});
+
+test("createAssignment publishes immediately when publish is true", async () => {
+  const fake = createMemoryDatabase([{ id: SUBJECT_ID }], [{ id: "assignment-a" }]);
+
+  assert.deepEqual(
+    await createAssignment(UNIVERSITY_ID, USER_ID, {
+      subjectId: SUBJECT_ID,
+      title: "Devoir de mathématiques",
+      fileKey: "university-a/assignment-a.pdf",
+      fileSizeBytes: 2048,
+      publish: true,
+    }, fake.database),
+    { ok: true, id: "assignment-a" },
+  );
+  assert.equal(fake.inserts.length, 1);
+  const values = fake.inserts[0].values as Record<string, unknown>;
+  assert.ok(values.publishedAt instanceof Date);
+  const { publishedAt, ...rest } = values;
+  void publishedAt;
+  assert.equal(fake.inserts[0].table, schema.assignments);
+  assert.deepEqual(rest, {
+    universityId: UNIVERSITY_ID,
+    subjectId: SUBJECT_ID,
+    uploadedBy: USER_ID,
+    title: "Devoir de mathématiques",
+    fileKey: "university-a/assignment-a.pdf",
+    fileSizeBytes: 2048,
+    status: "published",
+  });
+});
+
 test("createAssignment rejects an empty title", async () => {
   const fake = createMemoryDatabase([{ id: SUBJECT_ID }], []);
 

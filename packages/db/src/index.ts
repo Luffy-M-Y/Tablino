@@ -9,6 +9,8 @@ export type {
   CreateResourceResult,
   CreateAssignmentResult,
 } from "./uploads";
+export { publishResource, publishAssignment } from "./publish";
+export type { PublishResult } from "./publish";
 export { and, asc, count, eq } from "drizzle-orm";
 export * as schema from "./schema";
 export {

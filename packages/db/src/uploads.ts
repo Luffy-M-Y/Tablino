@@ -41,12 +41,14 @@ export async function createResource(
     format,
     fileKey,
     fileSizeBytes,
+    publish,
   }: {
     subjectId: string;
     title: string;
     format: string;
     fileKey: string;
     fileSizeBytes: number;
+    publish?: boolean;
   },
   database?: UploadDatabase,
 ): Promise<CreateResourceResult> {
@@ -81,7 +83,8 @@ export async function createResource(
         format,
         fileKey,
         fileSizeBytes,
-        status: "draft",
+        status: publish ? "published" : "draft",
+        ...(publish ? { publishedAt: new Date() } : {}),
       })
       .returning({ id: schema.resources.id });
     if (!(resources.length > 0)) return { ok: false, reason: "not_found" };
@@ -99,11 +102,13 @@ export async function createAssignment(
     title,
     fileKey,
     fileSizeBytes,
+    publish,
   }: {
     subjectId: string;
     title: string;
     fileKey: string;
     fileSizeBytes: number;
+    publish?: boolean;
   },
   database?: UploadDatabase,
 ): Promise<CreateAssignmentResult> {
@@ -136,7 +141,8 @@ export async function createAssignment(
         title: normalizedTitle,
         fileKey,
         fileSizeBytes,
-        status: "draft",
+        status: publish ? "published" : "draft",
+        ...(publish ? { publishedAt: new Date() } : {}),
       })
       .returning({ id: schema.assignments.id });
     if (!(assignments.length > 0)) return { ok: false, reason: "not_found" };

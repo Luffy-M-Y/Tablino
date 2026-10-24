@@ -18,6 +18,8 @@ import {
   isShortCodeValid,
   inferResourceFormat,
   normalizeShortCode,
+  publishAssignment,
+  publishResource,
   renameCycle,
   renameProgram,
   renameSubject,
@@ -97,7 +99,9 @@ async function runMutation(
     | "cycle_delete"
     | "program_delete"
     | "upload_resource"
-    | "upload_assignment",
+    | "upload_assignment"
+    | "publish_resource"
+    | "publish_assignment",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
 ): Promise<StructureActionState> {
@@ -185,6 +189,7 @@ export async function uploadFileAction(
   if (!isUuid(subjectId)) forbidden();
 
   const title = readStringField(formData, "title");
+  const publish = formData.get("publishNow") === "on";
   const file = formData.get("file");
   if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_SIZE) {
     return failure("invalid_file");
@@ -206,6 +211,7 @@ export async function uploadFileAction(
         format: inferResourceFormat(file.name),
         fileKey,
         fileSizeBytes,
+        publish,
       }));
   }
 
@@ -215,6 +221,7 @@ export async function uploadFileAction(
       title: uploadTitle,
       fileKey,
       fileSizeBytes,
+      publish,
     }));
 }
 
@@ -408,4 +415,22 @@ export async function createSubjectAction(
       { id: academicYearId, label: academicYearLabel },
       name ?? "",
     ));
+}
+
+export async function publishDraftAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const kind = readStringField(formData, "kind");
+  const id = readStringField(formData, "id");
+  if (kind !== "resource" && kind !== "assignment") return failure("not_found");
+  if (!isUuid(id)) return failure("not_found");
+
+  const result = kind === "resource"
+    ? await runMutation("publish_resource", universityId, () => publishResource(universityId, id))
+    : await runMutation("publish_assignment", universityId, () => publishAssignment(universityId, id));
+
+  if (result.ok) revalidatePath("/drafts");
+  return result;
 }
