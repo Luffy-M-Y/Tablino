@@ -9,7 +9,7 @@ Développeur senior full-stack. Le propriétaire (M-Y) est développeur. Vise qu
 PWA multi-universités : archive de cours et de devoirs, organisée par
 Filière → Niveau → Année académique → Matière → Ressources (cours) ou Devoirs.
 - Application étudiants (`apps/web`) : lecture seule, deux sections : Cours et Devoirs.
-- Dashboard administration (`apps/admin`) : scan, upload, gestion de la structure. Les étudiants ne déposent rien.
+- Dashboard administration (apps/admin) : scan, upload, gestion de la structure, gestion des cours, devoirs et brouillons (recherche et suppression). Les étudiants ne déposent rien.
 - Multi-tenant : une plateforme, une base, isolation par `university_id`.
 - Premier pilote visé : l'ISCOM. Aucune donnée réelle d'université dans le code ni dans le seed.
 
@@ -23,6 +23,7 @@ packages/auth   authOptions next-auth partagé
 ```
 Stack : Next.js 16.4.2 (App Router), React 19.3, TypeScript, Tailwind, next-auth v4, Drizzle ORM, PostgreSQL (Supabase), Cloudflare R2 (pas encore configuré), Lucide React pour les icônes.
 Packages internes : `transpilePackages` dans chaque `next.config.ts`.
+Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.0 (allowBuilds tesseract.js: false). Toute autre dépendance : accord du propriétaire.
 
 ## Base de données
 - Supabase. `packages/db/.env` : Session pooler, port 5432 (migrations). `apps/web/.env.local` : Transaction pooler, port 6543.
@@ -66,6 +67,17 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 14. Un message d'erreur partagé (structure-action-utils.mjs) ne se modifie jamais sans contrôle de tous les usages de la raison dans packages/db/src et dans les tests.
 15. Toute écriture en base, même une ligne via l'interface, exige le SQL (ou son équivalent lu dans le code) puis l'accord du propriétaire. Un accord autorise un seul envoi.
 16. Ne jamais supposer le nom, l'existence ou le chemin d'une fonction ou d'un fichier : auditer d'abord.
+17. PowerShell : Select-String sans -Recurse ; utiliser Get-ChildItem -Recurse -Filter. Chemins avec crochets : -LiteralPath, ou git add avec la forme :(literal)chemin entre guillemets.
+18. Composants client : jamais crypto.randomUUID ; compteur dans un useRef.
+19. Le script test de apps/admin/package.json liste les fichiers à la main : tout nouveau fichier de test y est ajouté. packages/db utilise des fichiers dans tests/ dont le nom finit par .test.ts.
+20. Module .mjs importé depuis TypeScript : extension dans l'alias, avec un fichier .d.mts.
+21. Nouvelle dépendance : accord du propriétaire, puis pnpm add par le propriétaire ; jamais pnpm approve-builds sans accord.
+22. Assets (OCR, langue) : locaux dans apps/admin/public, jamais depuis un CDN.
+23. Toute nouvelle action de runMutation s'ajoute à la liste de actions.ts ET au Set mutationActions de structure-action-utils.mjs.
+24. Recherche côté client : filtre pur dans un module .mjs avec test ; le composant client reçoit des données sérialisables (Date en ISO).
+25. Utiliser git --no-pager pour log, diff, show et branch.
+26. Script jetable avec id codé en dur : non gardé. Pour un SELECT ad hoc : script tmp- non commité, supprimé après.
+27. Publication ou écriture visible du site public : base de test seulement.
 
 ## Sécurité
 - Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. Les fichiers `.env*` ne doivent jamais apparaître dans une capture. Ils sont ignorés par Git : vérifier avec `git status` avant chaque commit.
@@ -99,11 +111,14 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Pas de barre de recherche, d'avatar ni de promesses non vérifiées (« données sécurisées ») tant que non réalisés.
 - Slugs créés par le dashboard : via une vraie fonction de slug (accents, doublons).
 - Vocabulaire produit : niveau = année. L1 = Licence année 1. Le nombre d'années d'un cycle dans une filière définit ses niveaux : N années = L1 à LN. Interface : « Années : N ». Ne pas utiliser « niveaux » et « années » comme deux notions.
+- Vocabulaire dashboard : ressource = cours (table resources) ; devoir = table assignments. Upload = envoi d'un fichier ; Scan = page séparée (caméra et images) ; les deux passent par DocumentForm.
+- Brouillon a deux sens : (1) un fichier (cours ou devoir) avec status draft, listé sur /drafts, publié par le bouton Publier ou directement à l'envoi par la case Publier directement ; (2) une filière avec programs.status draft, statut changé sur la page de détail de la filière.
+- Un fichier publié dans une filière en brouillon reste invisible sur le site public : les deux statuts sont filtrés.
 
 ## Fonctionnalités prévues (ne pas implémenter sans demande)
 - Authentification restante : email/mot de passe, interface de creation d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisee.
 - Paiement : mobile money (Orange Money, Moov Money) via agrégateur (CinetPay, PayDunya ou Ligdicash), interface d'abstraction, pas de renouvellement automatique : abonnement par période avec date d'expiration, webhook vérifié côté serveur.
-- Scan (dashboard) : caméra multi-pages, redressement, PDF, OCR (Tesseract), validation avant publication.
+- Scan (dashboard) : caméra multi-pages, redressement, PDF, OCR (Tesseract), validation avant publication. Fait (PR #37 et #38).
 - Remise de devoirs par les étudiants : interdite sans validation préalable.
 
 ## Feuille de route
@@ -117,7 +132,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
    5. `test/db-tenant-scope`
    Fusionnées dans `develop` (PR #6 à #10) ; `origin/develop` = `77b16ff`.
 4. `feat/admin-upload` (R2) — lots db et page faits et fusionnés (PR #28), stockage simulé ; vrai stockage R2 bloqué.
-5. `feat/admin-scan`
+5. `feat/admin-scan` — fait et fusionné (PR #37 et #38)
 6. `feat/payments`
 7. `feat/pwa`
 8. `feat/auth-subdomain`
@@ -134,7 +149,12 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - PR #32 docs/agents-md-state fusionnée (fusion 2ccb635) : mise à jour de rules/AGENTS.md (état, règles 12 à 16, vocabulaire).
 - PR #33 docs/agents-md-pr32 fusionnée (fusion 8b0dbe4) : compteur d'entorses à 14 et PR #32 dans rules/AGENTS.md.
 - PR #34 test/db-create-assignment-invalid fusionnée (fusion d4661e0) : 2 tests createAssignment (titre vide, fichier invalide) dans packages/db/tests/uploads.test.ts.
-- Fusions faites sans accord explicite : 16 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31, 32, 33, 34). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié.
+- PR #35 docs/agents-md-pr34 fusionnée (fusion b9f37f3).
+- PR #36 fix/admin-cycle-delete-alignment fusionnée (fusion 1c2c5de).
+- PR #37 feat/admin-scan-capture fusionnée (fusion eed90e7).
+- PR #38 feat/admin-scan-pdf fusionnée (fusion 95e9ff4) : lot C. Scan multi-pages, PDF image avec texte OCR invisible (français), formulaire partagé Upload et Scan, brouillons, publication directe.
+- PR #39 feat/admin-files-manage fusionnée (fusion 9f99a26) : pages Cours (/resources), Devoirs (/assignments), Brouillons (/drafts) avec recherche et suppression ; deleteResource et deleteAssignment dans packages/db/src/remove-files.ts ; 21 fichiers, 804 insertions, 58 suppressions.
+- Fusions faites sans accord explicite : 20 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié. La PR #39 a été fusionnée après accord.
 - La ligne de test de l'envoi (table resources) a été supprimée. Lecture après suppression : 3 lignes, 0 brouillon. Origine des 3 lignes restantes : non prouvée.
 - Points ouverts : vrai stockage R2 bloqué (aucune dépendance @aws-sdk dans apps/admin) ; envoi de type Devoir jamais testé ; refus blocking_levels non reproduit, message de refus générique laissé tel quel ; valeur d'années par défaut à l'ajout d'un cycle à une filière : laissée vide, abandonnée.
 - Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
