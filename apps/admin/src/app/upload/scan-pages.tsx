@@ -12,7 +12,7 @@ type ScanPage = {
 
 const MAX_PAGES = 20;
 
-export function ScanPages() {
+export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) => void }) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [ignoredFiles, setIgnoredFiles] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -30,6 +30,7 @@ export function ScanPages() {
     if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
     pdfUrlRef.current = null;
     setPdfFile(null);
+    onPdfChange?.(null);
     setPdfUrl(null);
     setPdfError(null);
     pagesRef.current = nextPages;
@@ -118,6 +119,7 @@ export function ScanPages() {
       const url = URL.createObjectURL(file);
       pdfUrlRef.current = url;
       setPdfFile(file);
+      onPdfChange?.(file);
       setPdfUrl(url);
     } catch (error) {
       setPdfError(error instanceof Error ? error.message : "Création du PDF impossible.");

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
 import { uploadFileAction } from "../structure/[universityId]/actions";
+import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
 
 export type Program = {
   id: string;
@@ -34,6 +35,8 @@ type Props = {
   universityId: string;
   programs: Program[];
   cycles: Cycle[];
+  action?: StructureFormAction;
+  buttonLabel?: string;
   onProgramChange?: () => void;
   children: ReactNode;
 };
@@ -44,6 +47,8 @@ export function DocumentForm({
   universityId,
   programs,
   cycles,
+  action = uploadFileAction,
+  buttonLabel = "Envoyer le fichier",
   onProgramChange,
   children,
 }: Props) {
@@ -69,7 +74,7 @@ export function DocumentForm({
     && (academicYearLabels.length === 0 || (Boolean(academicYearLabel) && subjects.length === 0));
 
   return (
-    <StructureActionForm action={uploadFileAction} buttonLabel="Envoyer le fichier">
+    <StructureActionForm action={action} buttonLabel={buttonLabel}>
       <input type="hidden" name="universityId" value={universityId} />
       <input type="hidden" name="subjectId" value={subjectId} />
       <div>
