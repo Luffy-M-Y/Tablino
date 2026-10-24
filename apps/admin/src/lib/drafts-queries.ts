@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, db, eq, schema } from "@tablino/db";
+import { and, asc, db, eq, schema } from "@tablino/db";
 import {
   AuthorizationDeniedError,
   requireRole,
@@ -37,6 +37,23 @@ export type DraftItem = {
   programName: string;
   programStatus: "draft" | "published";
 };
+
+export type DraftProgram = { id: string; name: string };
+
+export async function getDraftProgramsForUniversity(universityId: string): Promise<DraftProgram[]> {
+  await requireUniversityAdminAccess(universityId);
+
+  return db.select({
+    id: schema.programs.id,
+    name: schema.programs.name,
+  })
+    .from(schema.programs)
+    .where(and(
+      eq(schema.programs.universityId, universityId),
+      eq(schema.programs.status, "draft"),
+    ))
+    .orderBy(asc(schema.programs.name));
+}
 
 export async function getDraftsForUniversity(universityId: string): Promise<DraftItem[]> {
   await requireUniversityAdminAccess(universityId);
