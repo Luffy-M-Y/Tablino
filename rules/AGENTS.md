@@ -9,7 +9,7 @@ Développeur senior full-stack. Le propriétaire (M-Y) est développeur. Vise qu
 PWA multi-universités : archive de cours et de devoirs, organisée par
 Filière → Niveau → Année académique → Matière → Ressources (cours) ou Devoirs.
 - Application étudiants (`apps/web`) : lecture seule, deux sections : Cours et Devoirs.
-- Dashboard administration (`apps/admin`) : scan, upload, gestion de la structure. Les étudiants ne déposent rien.
+- Dashboard administration (apps/admin) : scan, upload, gestion de la structure, gestion des cours, devoirs et brouillons (recherche et suppression). Les étudiants ne déposent rien.
 - Multi-tenant : une plateforme, une base, isolation par `university_id`.
 - Premier pilote visé : l'ISCOM. Aucune donnée réelle d'université dans le code ni dans le seed.
 
@@ -23,6 +23,7 @@ packages/auth   authOptions next-auth partagé
 ```
 Stack : Next.js 16.4.2 (App Router), React 19.3, TypeScript, Tailwind, next-auth v4, Drizzle ORM, PostgreSQL (Supabase), Cloudflare R2 (pas encore configuré), Lucide React pour les icônes.
 Packages internes : `transpilePackages` dans chaque `next.config.ts`.
+Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.0 (allowBuilds tesseract.js: false). Toute autre dépendance : accord du propriétaire.
 
 ## Base de données
 - Supabase. `packages/db/.env` : Session pooler, port 5432 (migrations). `apps/web/.env.local` : Transaction pooler, port 6543.
@@ -110,11 +111,14 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - Pas de barre de recherche, d'avatar ni de promesses non vérifiées (« données sécurisées ») tant que non réalisés.
 - Slugs créés par le dashboard : via une vraie fonction de slug (accents, doublons).
 - Vocabulaire produit : niveau = année. L1 = Licence année 1. Le nombre d'années d'un cycle dans une filière définit ses niveaux : N années = L1 à LN. Interface : « Années : N ». Ne pas utiliser « niveaux » et « années » comme deux notions.
+- Vocabulaire dashboard : ressource = cours (table resources) ; devoir = table assignments. Upload = envoi d'un fichier ; Scan = page séparée (caméra et images) ; les deux passent par DocumentForm.
+- Brouillon a deux sens : (1) un fichier (cours ou devoir) avec status draft, listé sur /drafts, publié par le bouton Publier ou directement à l'envoi par la case Publier directement ; (2) une filière avec programs.status draft, statut changé sur la page de détail de la filière.
+- Un fichier publié dans une filière en brouillon reste invisible sur le site public : les deux statuts sont filtrés.
 
 ## Fonctionnalités prévues (ne pas implémenter sans demande)
 - Authentification restante : email/mot de passe, interface de creation d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisee.
 - Paiement : mobile money (Orange Money, Moov Money) via agrégateur (CinetPay, PayDunya ou Ligdicash), interface d'abstraction, pas de renouvellement automatique : abonnement par période avec date d'expiration, webhook vérifié côté serveur.
-- Scan (dashboard) : caméra multi-pages, redressement, PDF, OCR (Tesseract), validation avant publication.
+- Scan (dashboard) : caméra multi-pages, redressement, PDF, OCR (Tesseract), validation avant publication. Fait (PR #37 et #38).
 - Remise de devoirs par les étudiants : interdite sans validation préalable.
 
 ## Feuille de route
