@@ -35,8 +35,8 @@ export default async function DraftsPage() {
               >
                 <p>{program.name}</p>
                 <p>Les fichiers de cette filière restent invisibles sur le site.</p>
-                <Link href={"/structure/" + university.id + "/programs/" + program.id + "/edit"}>
-                  Modifier la filière
+                <Link href={"/structure/" + university.id + "/programs/" + program.id}>
+                  Ouvrir la filière
                 </Link>
               </li>
             ))}
