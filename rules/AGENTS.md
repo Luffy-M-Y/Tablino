@@ -117,7 +117,7 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
    5. `test/db-tenant-scope`
    Fusionnées dans `develop` (PR #6 à #10) ; `origin/develop` = `77b16ff`.
 4. `feat/admin-upload` (R2) — lots db et page faits et fusionnés (PR #28), stockage simulé ; vrai stockage R2 bloqué.
-5. `feat/admin-scan`
+5. `feat/admin-scan` — fait et fusionné (PR #37 et #38)
 6. `feat/payments`
 7. `feat/pwa`
 8. `feat/auth-subdomain`
@@ -134,7 +134,12 @@ Packages internes : `transpilePackages` dans chaque `next.config.ts`.
 - PR #32 docs/agents-md-state fusionnée (fusion 2ccb635) : mise à jour de rules/AGENTS.md (état, règles 12 à 16, vocabulaire).
 - PR #33 docs/agents-md-pr32 fusionnée (fusion 8b0dbe4) : compteur d'entorses à 14 et PR #32 dans rules/AGENTS.md.
 - PR #34 test/db-create-assignment-invalid fusionnée (fusion d4661e0) : 2 tests createAssignment (titre vide, fichier invalide) dans packages/db/tests/uploads.test.ts.
-- Fusions faites sans accord explicite : 16 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31, 32, 33, 34). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié.
+- PR #35 docs/agents-md-pr34 fusionnée (fusion b9f37f3).
+- PR #36 fix/admin-cycle-delete-alignment fusionnée (fusion 1c2c5de).
+- PR #37 feat/admin-scan-capture fusionnée (fusion eed90e7).
+- PR #38 feat/admin-scan-pdf fusionnée (fusion 95e9ff4) : lot C. Scan multi-pages, PDF image avec texte OCR invisible (français), formulaire partagé Upload et Scan, brouillons, publication directe.
+- PR #39 feat/admin-files-manage fusionnée (fusion 9f99a26) : pages Cours (/resources), Devoirs (/assignments), Brouillons (/drafts) avec recherche et suppression ; deleteResource et deleteAssignment dans packages/db/src/remove-files.ts ; 21 fichiers, 804 insertions, 58 suppressions.
+- Fusions faites sans accord explicite : 20 (PR #6, 7, 8, 11, 12, 13, 14, 15, 25, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38). Pour les PR #26 et #27, le respect de la règle n'a pas été vérifié. La PR #39 a été fusionnée après accord.
 - La ligne de test de l'envoi (table resources) a été supprimée. Lecture après suppression : 3 lignes, 0 brouillon. Origine des 3 lignes restantes : non prouvée.
 - Points ouverts : vrai stockage R2 bloqué (aucune dépendance @aws-sdk dans apps/admin) ; envoi de type Devoir jamais testé ; refus blocking_levels non reproduit, message de refus générique laissé tel quel ; valeur d'années par défaut à l'ajout d'un cycle à une filière : laissée vide, abandonnée.
 - Pile admin-structure entièrement fusionnée (PR #6 à #10), 21/10/2026.
