@@ -242,6 +242,24 @@ export const assignments = pgTable("assignments", {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
+export const accessCodes = pgTable("access_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id").references(() => universities.id).notNull(),
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  maxUses: integer("max_uses").notNull(),
+  usesCount: integer("uses_count").default(0).notNull(),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("access_codes_code_hash_uq").on(t.codeHash),
+  index("access_codes_university_idx").on(t.universityId),
+  check(
+    "access_codes_uses_check",
+    sql.raw("max_uses > 0 AND uses_count >= 0 AND uses_count <= max_uses"),
+  ),
+]).enableRLS();
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   universityId: uuid("university_id").references(() => universities.id),
@@ -252,6 +270,8 @@ export const users = pgTable("users", {
   passwordHash: varchar("password_hash", { length: 255 }),
   role: roleEnum("role").default("student").notNull(),
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
+  accessCodeId: uuid("access_code_id").references(() => accessCodes.id),
+  revokedAt: timestamp("revoked_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("users_university_idx").on(t.universityId),
