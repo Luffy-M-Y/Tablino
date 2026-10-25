@@ -29,3 +29,18 @@ export async function requireStudentUniversityAccess(universityId: string) {
   if (decision === "subscription_required") redirect("/choisir-acces");
   return user;
 }
+
+export async function requireStudentSession(): Promise<GuardUser> {
+  let user: GuardUser;
+  try {
+    const universityId = await getCurrentUniversityId();
+    const sessionUser = await requireRole("web", ["student"]);
+    if (sessionUser.universityId !== universityId) throw new AuthorizationDeniedError();
+    user = await requireUniversityAccess("web", universityId);
+  } catch (error) {
+    if (error instanceof SessionRequiredError) redirect("/api/auth/signin");
+    if (error instanceof AuthorizationDeniedError) forbidden();
+    throw error;
+  }
+  return user;
+}
