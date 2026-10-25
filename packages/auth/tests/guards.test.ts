@@ -7,13 +7,33 @@ import {
   type GuardUser,
 } from "../src/guards";
 
-const student = { id: "user-1", role: "student" as const, universityId: "university-a" };
+const student = {
+  id: "user-1",
+  role: "student" as const,
+  universityId: "university-a",
+  revokedAt: null,
+  trialEndsAt: null,
+  subscriptionExpiresAt: null,
+  currentPlan: null,
+};
 const universityAdmin = {
   id: "user-2",
   role: "university_admin" as const,
   universityId: "university-a",
+  revokedAt: null,
+  trialEndsAt: null,
+  subscriptionExpiresAt: null,
+  currentPlan: null,
 };
-const superAdmin = { id: "user-3", role: "super_admin" as const, universityId: null };
+const superAdmin = {
+  id: "user-3",
+  role: "super_admin" as const,
+  universityId: null,
+  revokedAt: null,
+  trialEndsAt: null,
+  subscriptionExpiresAt: null,
+  currentPlan: null,
+};
 
 function harness(initialUser: GuardUser | null) {
   let currentUser = initialUser;

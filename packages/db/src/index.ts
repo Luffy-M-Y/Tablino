@@ -66,3 +66,24 @@ export type {
   CreateSubjectAcademicYear,
   CreateSubjectResult,
 } from "./structure";
+export {
+  PLANS,
+  TRIAL_DAYS,
+  PLAN_CONFIG,
+  isPlanValid,
+  computeTrialEnd,
+  computeRevenueShare,
+  computePaidPeriod,
+  getAccessState,
+  hasAccess,
+  canDownload,
+} from "./plans";
+export type { Plan, AccessState } from "./plans";
+export { startTrial, recordVerifiedPayment } from "./subscriptions";
+export type {
+  StartTrialResult,
+  RecordVerifiedPaymentInput,
+  RecordVerifiedPaymentResult,
+} from "./subscriptions";
+export { decideStudentAccess } from "./access-gate";
+export type { StudentAccessDecision } from "./access-gate";
