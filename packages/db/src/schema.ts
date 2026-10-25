@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 
 export const roleEnum = pgEnum("role", ["super_admin", "university_admin", "student"]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
+export const planEnum = pgEnum("plan", ["premium_pro", "premium_pro_max"]);
 export const resourceFormatEnum = pgEnum("resource_format", [
   "pdf", "video", "audio", "docx", "pptx", "link", "other",
 ]);
@@ -19,7 +20,10 @@ export const universities = pgTable("universities", {
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-}).enableRLS();
+  revenueShareBps: integer("revenue_share_bps").default(3000).notNull(),
+}, (t) => [
+  check("universities_revenue_share_check", sql.raw("revenue_share_bps >= 0 AND revenue_share_bps <= 10000")),
+]).enableRLS();
 
 // ─── Programs (filières) ──────────────────────────────────────────────────────
 
@@ -272,6 +276,9 @@ export const users = pgTable("users", {
   subscriptionExpiresAt: timestamp("subscription_expires_at"),
   accessCodeId: uuid("access_code_id").references(() => accessCodes.id),
   revokedAt: timestamp("revoked_at"),
+  trialStartedAt: timestamp("trial_started_at"),
+  trialEndsAt: timestamp("trial_ends_at"),
+  currentPlan: planEnum("current_plan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("users_university_idx").on(t.universityId),
@@ -280,6 +287,7 @@ export const users = pgTable("users", {
     "users_role_university_scope_check",
     sql`(${t.role} = 'super_admin' AND ${t.universityId} IS NULL) OR (${t.role} <> 'super_admin' AND ${t.universityId} IS NOT NULL)`,
   ),
+  check("users_trial_pair_check", sql.raw("(trial_started_at IS NULL) = (trial_ends_at IS NULL)")),
 ]).enableRLS();
 
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
@@ -338,7 +346,14 @@ export const subscriptions = pgTable("subscriptions", {
   periodStart: timestamp("period_start"),
   periodEnd: timestamp("period_end"),
   webhookVerified: boolean("webhook_verified").default(false).notNull(),
+  plan: planEnum("plan"),
+  universityId: uuid("university_id").references(() => universities.id),
+  shareBps: integer("share_bps"),
+  universityAmount: integer("university_amount"),
+  platformAmount: integer("platform_amount"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("subscriptions_user_idx").on(t.userId),
+  index("subscriptions_university_idx").on(t.universityId),
+  check("subscriptions_split_check", sql.raw("(plan IS NULL AND university_id IS NULL AND share_bps IS NULL AND university_amount IS NULL AND platform_amount IS NULL) OR (plan IS NOT NULL AND university_id IS NOT NULL AND share_bps IS NOT NULL AND university_amount IS NOT NULL AND platform_amount IS NOT NULL AND share_bps >= 0 AND share_bps <= 10000 AND university_amount >= 0 AND platform_amount >= 0 AND university_amount + platform_amount = amount)")),
 ]).enableRLS();
