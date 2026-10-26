@@ -47,8 +47,8 @@ export async function requireStudentSession(): Promise<GuardUser> {
 
 export async function hasStudentSession(): Promise<boolean> {
   try {
-    const sessionUser = await requireRole("web", ["student"]);
     const universityId = await getCurrentUniversityId();
+    const sessionUser = await requireRole("web", ["student"]);
     return sessionUser.universityId === universityId;
   } catch (error) {
     if (error instanceof SessionRequiredError || error instanceof AuthorizationDeniedError) return false;
