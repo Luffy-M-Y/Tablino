@@ -305,9 +305,20 @@ function safeAuthErrorDetails(metadata: unknown) {
   return { name, code: errorCode, message };
 }
 
-export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
+export function getSessionCookieConfig(surface: AuthSurface) {
   const secureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  return {
+    name: (secureCookies ? "__Secure-" : "") + "tablino-" + surface + ".session-token",
+    options: {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      path: "/",
+      secure: secureCookies,
+    },
+  };
+}
 
+export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
   return {
     adapter: createDrizzleAdapter(context),
     providers: [GoogleProvider({
@@ -331,15 +342,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
     },
     session: { strategy: "database" },
     cookies: {
-      sessionToken: {
-        name: `${secureCookies ? "__Secure-" : ""}tablino-${context.surface}.session-token`,
-        options: {
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
-          secure: secureCookies,
-        },
-      },
+      sessionToken: getSessionCookieConfig(context.surface),
     },
     callbacks: {
       async signIn({ user, account, profile }) {

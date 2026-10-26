@@ -19,7 +19,7 @@ export async function requireStudentUniversityAccess(universityId: string) {
     if (sessionUser.universityId !== universityId) throw new AuthorizationDeniedError();
     user = await requireUniversityAccess("web", universityId);
   } catch (error) {
-    if (error instanceof SessionRequiredError) redirect("/api/auth/signin");
+    if (error instanceof SessionRequiredError) redirect("/connexion");
     if (error instanceof AuthorizationDeniedError) forbidden();
     throw error;
   }
@@ -38,7 +38,7 @@ export async function requireStudentSession(): Promise<GuardUser> {
     if (sessionUser.universityId !== universityId) throw new AuthorizationDeniedError();
     user = await requireUniversityAccess("web", universityId);
   } catch (error) {
-    if (error instanceof SessionRequiredError) redirect("/api/auth/signin");
+    if (error instanceof SessionRequiredError) redirect("/connexion");
     if (error instanceof AuthorizationDeniedError) forbidden();
     throw error;
   }
