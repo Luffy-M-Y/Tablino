@@ -87,3 +87,17 @@ export type {
 } from "./subscriptions";
 export { decideStudentAccess } from "./access-gate";
 export type { StudentAccessDecision } from "./access-gate";
+export {
+  createAccessCode,
+  revokeAccessCode,
+  listAccessCodes,
+  getAccessCodeStatus,
+  isMaxUsesValid,
+  ACCESS_CODE_MAX_USES_LIMIT,
+} from "./access-codes";
+export type {
+  CreateAccessCodeResult,
+  RevokeAccessCodeResult,
+  AccessCodeStatus,
+  AccessCodeListItem,
+} from "./access-codes";

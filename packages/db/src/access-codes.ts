@@ -1,5 +1,5 @@
 import { createHash, randomInt } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 
@@ -135,4 +135,39 @@ export async function revokeAccessCode(
 
     return { ok: true };
   });
+}
+
+export type AccessCodeListItem = {
+  id: string;
+  createdAt: Date;
+  expiresAt: Date;
+  maxUses: number;
+  usesCount: number;
+  revokedAt: Date | null;
+  status: AccessCodeStatus;
+};
+
+export async function listAccessCodes(
+  universityId: string,
+  database?: AccessCodeDatabase,
+  now = new Date(),
+): Promise<AccessCodeListItem[]> {
+  const accessCodes = await (await resolveDatabase(database))
+    .select({
+      id: schema.accessCodes.id,
+      createdAt: schema.accessCodes.createdAt,
+      expiresAt: schema.accessCodes.expiresAt,
+      maxUses: schema.accessCodes.maxUses,
+      usesCount: schema.accessCodes.usesCount,
+      revokedAt: schema.accessCodes.revokedAt,
+    })
+    .from(schema.accessCodes)
+    .where(eq(schema.accessCodes.universityId, universityId))
+    .orderBy(desc(schema.accessCodes.createdAt))
+    .limit(50);
+
+  return accessCodes.map((accessCode) => ({
+    ...accessCode,
+    status: getAccessCodeStatus(accessCode, now),
+  }));
 }
