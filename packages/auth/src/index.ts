@@ -9,10 +9,12 @@ import type {
 import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth/next";
-import { db, schema } from "@tablino/db";
+import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@tablino/db";
 import type {} from "./next-auth";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
+
+const googleEmailsByAccount = new Map<string, { email: string; at: number }>();
 
 export type { AuthRole } from "./roles";
 
@@ -140,6 +142,18 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
     },
 
     async linkAccount(account: AdapterAccount) {
+      const googleEmail = googleEmailsByAccount.get(account.providerAccountId);
+      googleEmailsByAccount.delete(account.providerAccountId);
+      const user = await getUserById(account.userId);
+      if (
+        !googleEmail
+        || Date.now() - googleEmail.at > 60000
+        || !user
+        || !googleEmailMatchesUser(user.email, googleEmail.email)
+      ) {
+        throw new Error("Liaison Google refusee.");
+      }
+
       const [linked] = await db.insert(schema.accounts).values({
         userId: account.userId,
         type: account.type,
@@ -155,6 +169,7 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
       }).onConflictDoNothing({
         target: [schema.accounts.provider, schema.accounts.providerAccountId],
       }).returning();
+      if (linked) await markGoogleEmailVerified(account.userId, new Date());
       return linked ? account : null;
     },
 
@@ -305,9 +320,20 @@ function safeAuthErrorDetails(metadata: unknown) {
   return { name, code: errorCode, message };
 }
 
-export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
+export function getSessionCookieConfig(surface: AuthSurface) {
   const secureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  return {
+    name: (secureCookies ? "__Secure-" : "") + "tablino-" + surface + ".session-token",
+    options: {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      path: "/",
+      secure: secureCookies,
+    },
+  };
+}
 
+export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
   return {
     adapter: createDrizzleAdapter(context),
     providers: [GoogleProvider({
@@ -331,15 +357,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
     },
     session: { strategy: "database" },
     cookies: {
-      sessionToken: {
-        name: `${secureCookies ? "__Secure-" : ""}tablino-${context.surface}.session-token`,
-        options: {
-          httpOnly: true,
-          sameSite: "lax",
-          path: "/",
-          secure: secureCookies,
-        },
-      },
+      sessionToken: getSessionCookieConfig(context.surface),
     },
     callbacks: {
       async signIn({ user, account, profile }) {
@@ -347,6 +365,12 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const googleProfile = profile as { email?: string; email_verified?: boolean } | undefined;
         const email = googleProfile?.email ?? user.email;
         if (!email || googleProfile?.email_verified !== true) return false;
+
+        const now = Date.now();
+        for (const [providerAccountId, entry] of googleEmailsByAccount) {
+          if (now - entry.at > 60000) googleEmailsByAccount.delete(providerAccountId);
+        }
+        googleEmailsByAccount.set(account.providerAccountId, { email: email, at: now });
 
         const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
         const emailUser = linkedUser ? null : await getUserByEmail(email);
