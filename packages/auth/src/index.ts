@@ -9,7 +9,7 @@ import type {
 import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth/next";
-import { db, schema } from "@tablino/db";
+import { db, markGoogleEmailVerified, schema } from "@tablino/db";
 import type {} from "./next-auth";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
@@ -155,6 +155,7 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
       }).onConflictDoNothing({
         target: [schema.accounts.provider, schema.accounts.providerAccountId],
       }).returning();
+      if (linked) await markGoogleEmailVerified(account.userId, new Date());
       return linked ? account : null;
     },
 
@@ -354,12 +355,6 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
         const emailUser = linkedUser ? null : await getUserByEmail(email);
         if (emailUser) {
-          const [emailUserPassword] = await db.select({ passwordHash: schema.users.passwordHash })
-            .from(schema.users)
-            .where(eq(schema.users.id, emailUser.id))
-            .limit(1);
-          if (emailUserPassword && emailUserPassword.passwordHash !== null) return false;
-
           const [existingAccount] = await db.select({ userId: schema.accounts.userId })
             .from(schema.accounts)
             .where(eq(schema.accounts.userId, emailUser.id))
