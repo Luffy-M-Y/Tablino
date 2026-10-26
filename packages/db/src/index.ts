@@ -110,3 +110,8 @@ export {
 } from "./password";
 export { registerStudentWithCode } from "./registration";
 export type { RegisterStudentResult } from "./registration";
+export {
+  authenticateStudent,
+  createStudentSession,
+  SESSION_MAX_AGE_DAYS,
+} from "./login";
