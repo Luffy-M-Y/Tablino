@@ -101,3 +101,12 @@ export type {
   AccessCodeStatus,
   AccessCodeListItem,
 } from "./access-codes";
+export {
+  isPasswordValid,
+  hashPassword,
+  verifyPassword,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+} from "./password";
+export { registerStudentWithCode } from "./registration";
+export type { RegisterStudentResult } from "./registration";
