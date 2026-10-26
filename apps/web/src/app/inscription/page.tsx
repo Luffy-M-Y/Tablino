@@ -1,9 +1,13 @@
 export const instant = false;
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasStudentSession } from "@/lib/authorization";
 import { RegisterForm } from "./register-form";
 
-export default function InscriptionPage() {
+export default async function InscriptionPage() {
+  if (await hasStudentSession()) redirect("/");
+
   return (
     <div className="mx-auto max-w-md px-4 py-10 sm:px-6 sm:py-16">
       <h1 className="mb-8 text-2xl font-bold text-uni-900 sm:text-3xl">Inscription étudiante</h1>

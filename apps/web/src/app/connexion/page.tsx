@@ -1,10 +1,14 @@
 export const instant = false;
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasStudentSession } from "@/lib/authorization";
 import { GoogleSignInButton } from "./google-sign-in-button";
 import { LoginForm } from "./login-form";
 
-export default function ConnexionPage() {
+export default async function ConnexionPage() {
+  if (await hasStudentSession()) redirect("/");
+
   return (
     <div className="mx-auto max-w-md px-4 py-10 sm:px-6 sm:py-16">
       <h1 className="mb-8 text-2xl font-bold text-uni-900 sm:text-3xl">Connexion</h1>

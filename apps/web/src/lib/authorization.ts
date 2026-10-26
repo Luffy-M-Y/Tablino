@@ -44,3 +44,14 @@ export async function requireStudentSession(): Promise<GuardUser> {
   }
   return user;
 }
+
+export async function hasStudentSession(): Promise<boolean> {
+  try {
+    const sessionUser = await requireRole("web", ["student"]);
+    const universityId = await getCurrentUniversityId();
+    return sessionUser.universityId === universityId;
+  } catch (error) {
+    if (error instanceof SessionRequiredError || error instanceof AuthorizationDeniedError) return false;
+    throw error;
+  }
+}
