@@ -116,3 +116,5 @@ export {
   SESSION_MAX_AGE_DAYS,
 } from "./login";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
+export { registerGoogleStudentWithCode } from "./google-signup";
+export type { RegisterGoogleStudentResult } from "./google-signup";
