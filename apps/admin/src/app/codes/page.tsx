@@ -17,6 +17,9 @@ export default async function CodesPage() {
   if (!university) forbidden();
 
   const accessCodes = await listAccessCodes(university.id);
+  const visibleCodes = accessCodes.filter(function (accessCode) {
+    return accessCode.status !== "revoked";
+  });
 
   return (
     <AdminPage
@@ -28,7 +31,7 @@ export default async function CodesPage() {
     >
       <div className="space-y-6">
         <CreateCodeForm />
-        {accessCodes.length === 0 ? (
+        {visibleCodes.length === 0 ? (
           <p>Aucun code.</p>
         ) : (
           <div className="overflow-x-auto rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white shadow-[var(--shadow-subtle)]">
@@ -43,7 +46,7 @@ export default async function CodesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--color-border)]">
-                {accessCodes.map((accessCode) => (
+                {visibleCodes.map((accessCode) => (
                   <tr key={accessCode.id}>
                     <td className="px-4 py-3">{statusLabels[accessCode.status]}</td>
                     <td className="px-4 py-3">{accessCode.createdAt.toLocaleString("fr-FR")}</td>
