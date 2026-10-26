@@ -4,6 +4,14 @@ import * as schema from "./schema";
 
 type GoogleLinkDatabase = typeof sharedDb;
 
+export function googleEmailMatchesUser(
+  userEmail: string | null,
+  googleEmail: string | undefined,
+): boolean {
+  if (!userEmail?.trim() || !googleEmail?.trim()) return false;
+  return userEmail.trim().toLowerCase() === googleEmail.trim().toLowerCase();
+}
+
 async function resolveDatabase(database?: GoogleLinkDatabase): Promise<GoogleLinkDatabase> {
   return database ?? (await import("./client")).db;
 }

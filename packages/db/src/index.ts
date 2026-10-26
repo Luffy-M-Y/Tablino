@@ -115,4 +115,4 @@ export {
   createStudentSession,
   SESSION_MAX_AGE_DAYS,
 } from "./login";
-export { markGoogleEmailVerified } from "./google-link";
+export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";

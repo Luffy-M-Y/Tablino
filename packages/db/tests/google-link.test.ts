@@ -1,7 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { markGoogleEmailVerified } from "../src/google-link";
+import { googleEmailMatchesUser, markGoogleEmailVerified } from "../src/google-link";
 import * as schema from "../src/schema";
+
+test("googleEmailMatchesUser ignores case and surrounding whitespace", () => {
+  assert.equal(googleEmailMatchesUser("  Student@Example.com ", "student@example.COM  "), true);
+});
+
+test("googleEmailMatchesUser rejects different email addresses", () => {
+  assert.equal(googleEmailMatchesUser("student@example.com", "other@example.com"), false);
+});
+
+test("googleEmailMatchesUser rejects missing or blank email addresses", () => {
+  assert.equal(googleEmailMatchesUser(null, "student@example.com"), false);
+  assert.equal(googleEmailMatchesUser("student@example.com", undefined), false);
+  assert.equal(googleEmailMatchesUser("   ", "student@example.com"), false);
+  assert.equal(googleEmailMatchesUser("student@example.com", "   "), false);
+});
 
 type SelectQuery = {
   from: (table: unknown) => SelectQuery;
