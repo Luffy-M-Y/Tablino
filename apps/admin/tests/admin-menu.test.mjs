@@ -13,6 +13,7 @@ test("defines the navigation links", () => {
       { label: "Brouillons", href: "/drafts" },
       { label: "Cours", href: "/resources" },
       { label: "Devoirs", href: "/assignments" },
+      { label: "Codes d'accès", href: "/codes" },
     ],
   );
 });

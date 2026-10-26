@@ -9,6 +9,7 @@ import {
   hashAccessCode,
   isAccessCodeFormatValid,
   isMaxUsesValid,
+  listAccessCodes,
   normalizeAccessCode,
   revokeAccessCode,
 } from "../src/access-codes";
@@ -30,6 +31,7 @@ type SelectQuery = {
   from: (table: unknown) => SelectQuery;
   where: (condition: unknown) => SelectQuery;
   for: (mode: "update") => SelectQuery;
+  orderBy: (...columns: unknown[]) => SelectQuery;
   limit: (count: number) => Promise<unknown[]>;
 };
 
@@ -82,6 +84,7 @@ function createMemoryDatabase(
           lockModes.push(mode);
           return query;
         },
+        orderBy: () => query,
         limit: async () => selectedRows,
       };
       return query;
@@ -104,6 +107,7 @@ function createMemoryDatabase(
 
   return {
     database: {
+      select: tx.select,
       transaction: async (callback: (transaction: typeof tx) => Promise<unknown>) => {
         transactionCount++;
         return callback(tx);
@@ -300,4 +304,61 @@ test("revokeAccessCode timestamps an active code after locking it", async () => 
   assert.equal(fake.updates.length, 1);
   assert.equal(fake.updates[0].table, schema.accessCodes);
   assert.equal(fake.updates[0].values.revokedAt, now);
+});
+
+test("listAccessCodes returns each status without exposing codeHash", async () => {
+  const now = new Date("2026-10-24T00:00:00.000Z");
+  const rows = [
+    {
+      id: "usable",
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 1),
+      maxUses: 2,
+      usesCount: 1,
+      revokedAt: null,
+    },
+    {
+      id: "revoked",
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 1),
+      maxUses: 2,
+      usesCount: 0,
+      revokedAt: now,
+    },
+    {
+      id: "expired",
+      createdAt: now,
+      expiresAt: now,
+      maxUses: 2,
+      usesCount: 0,
+      revokedAt: null,
+    },
+    {
+      id: "exhausted",
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 1),
+      maxUses: 1,
+      usesCount: 1,
+      revokedAt: null,
+    },
+  ];
+  const fake = createMemoryDatabase([], rows);
+
+  const result = await listAccessCodes("university-a", fake.database, now);
+
+  assert.deepEqual(result.map(({ status }) => status), [
+    "usable",
+    "revoked",
+    "expired",
+    "exhausted",
+  ]);
+  assert.equal(result.every((item) => !Object.hasOwn(item, "codeHash")), true);
+});
+
+test("listAccessCodes reads schema.accessCodes", async () => {
+  const fake = createMemoryDatabase();
+
+  await listAccessCodes("university-a", fake.database);
+
+  assert.deepEqual(fake.selectedTables, [schema.accessCodes]);
 });
