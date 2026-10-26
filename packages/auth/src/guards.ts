@@ -5,6 +5,10 @@ export type GuardUser = {
   id: string;
   role: GuardRole;
   universityId: string | null;
+  revokedAt: Date | null;
+  trialEndsAt: Date | null;
+  subscriptionExpiresAt: Date | null;
+  currentPlan: string | null;
 };
 
 type GuardSession = { user?: { id?: string | null } | null } | null;
