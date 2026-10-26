@@ -354,6 +354,12 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
         const emailUser = linkedUser ? null : await getUserByEmail(email);
         if (emailUser) {
+          const [emailUserPassword] = await db.select({ passwordHash: schema.users.passwordHash })
+            .from(schema.users)
+            .where(eq(schema.users.id, emailUser.id))
+            .limit(1);
+          if (emailUserPassword && emailUserPassword.passwordHash !== null) return false;
+
           const [existingAccount] = await db.select({ userId: schema.accounts.userId })
             .from(schema.accounts)
             .where(eq(schema.accounts.userId, emailUser.id))
