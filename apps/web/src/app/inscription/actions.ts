@@ -1,9 +1,8 @@
 "use server";
 
-import { getSessionCookieConfig } from "@tablino/auth";
-import { registerStudentWithCode, createStudentSession } from "@tablino/db";
-import { cookies } from "next/headers";
+import { registerStudentWithCode } from "@tablino/db";
 import { redirect } from "next/navigation";
+import { startEmailVerification } from "@/lib/email-verification-flow";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type RegisterActionState = { message: string | null };
@@ -47,14 +46,8 @@ export async function registerAction(
   }
 
   if (result.ok && result.userId) {
-    const session = await createStudentSession(result.userId);
-    const cookieConfig = getSessionCookieConfig("web");
-    const cookieStore = await cookies();
-    cookieStore.set(cookieConfig.name, session.sessionToken, {
-      ...cookieConfig.options,
-      expires: session.expires,
-    });
-    redirect("/");
+    await startEmailVerification(result.userId, email.trim().toLowerCase());
+    redirect("/verification");
   }
   redirect("/connexion");
 }

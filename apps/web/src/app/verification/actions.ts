@@ -7,6 +7,7 @@ import {
 } from "@tablino/auth";
 import {
   createStudentSession,
+  getStudentEmailById,
   issueEmailVerificationCode,
   verifyEmailCode,
 } from "@tablino/db";
@@ -92,6 +93,16 @@ export async function resendCodeAction(
     }
   }
 
-  void sendVerificationEmail;
-  return { message: "Envoi non branché." };
+  const email = await getStudentEmailById(userId);
+  if (email === null) {
+    return { message: "Lien expiré. Recommence ton inscription ou connecte-toi." };
+  }
+
+  try {
+    await sendVerificationEmail(email, issued.code);
+  } catch {
+    return { message: "Envoi impossible pour le moment." };
+  }
+
+  return { message: "Un nouveau code a été envoyé." };
 }
