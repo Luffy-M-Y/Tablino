@@ -448,3 +448,10 @@ export async function requireRole(
 export async function requireUniversityAccess(surface: AuthSurface, universityId: string) {
   return guards.requireUniversityAccess(surface, universityId);
 }
+
+export {
+  createGoogleSignupToken,
+  verifyGoogleSignupToken,
+  GOOGLE_SIGNUP_TOKEN_TTL_MS,
+} from "./google-signup-token";
+export type { GoogleSignupPayload } from "./google-signup-token";
