@@ -118,3 +118,13 @@ export {
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
 export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";
+export {
+  EMAIL_CODE_TTL_MS,
+  EMAIL_CODE_MAX_ATTEMPTS,
+  EMAIL_CODE_RESEND_DELAY_MS,
+  generateEmailVerificationCode,
+  hashEmailVerificationCode,
+  issueEmailVerificationCode,
+  verifyEmailCode,
+} from "./email-verification";
+export type { IssueEmailVerificationResult, VerifyEmailCodeResult } from "./email-verification";
