@@ -11,6 +11,7 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth/next";
 import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@tablino/db";
 import type {} from "./next-auth";
+import { createGoogleSignupToken } from "./google-signup-token";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 
@@ -91,21 +92,7 @@ function toAdapterAccount(account: typeof schema.accounts.$inferSelect): Adapter
 function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
   return {
     async createUser(user: Omit<AdapterUser, "id">) {
-      if (context.surface !== "web") {
-        throw new Error("La création de compte est désactivée dans l’application admin.");
-      }
-
-      const universityId = await context.getCurrentUniversityId();
-      const [created] = await db.insert(schema.users).values({
-        name: user.name ?? null,
-        email: user.email?.trim().toLowerCase() ?? null,
-        emailVerified: user.emailVerified ?? null,
-        image: user.image ?? null,
-        role: "student",
-        universityId,
-      }).returning();
-      if (!created) throw new Error("Échec de création du compte étudiant.");
-      return toAuthUser(created);
+      throw new Error("La création de compte par Google exige un code d'accès.");
     },
 
     async getUser(id) {
@@ -386,7 +373,13 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         if (!storedUser) {
           if (context.surface !== "web") return false;
           await context.getCurrentUniversityId();
-          return true;
+          googleEmailsByAccount.delete(account.providerAccountId);
+          return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken({
+            email: email,
+            name: user.name ?? null,
+            image: user.image ?? null,
+            providerAccountId: account.providerAccountId,
+          }));
         }
 
         if (context.surface === "web") {
