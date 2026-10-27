@@ -290,6 +290,22 @@ export const users = pgTable("users", {
   check("users_trial_pair_check", sql.raw("(trial_started_at IS NULL) = (trial_ends_at IS NULL)")),
 ]).enableRLS();
 
+export const emailVerificationCodes = pgTable("email_verification_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("email_verification_codes_user_id_uq").on(t.userId),
+  check("email_verification_codes_attempts_check", sql.raw("attempts >= 0")),
+]).enableRLS();
+
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
 
 export const accounts = pgTable("accounts", {
