@@ -113,6 +113,7 @@ export type { RegisterStudentResult } from "./registration";
 export {
   authenticateStudent,
   createStudentSession,
+  getStudentEmailById,
   SESSION_MAX_AGE_DAYS,
 } from "./login";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";

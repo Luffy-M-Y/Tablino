@@ -14,7 +14,8 @@ export const SESSION_MAX_AGE_DAYS = 30;
 
 export type AuthenticateStudentResult =
   | { ok: true; userId: string }
-  | { ok: false; reason: "invalid_credentials" };
+  | { ok: false; reason: "invalid_credentials" }
+  | { ok: false; reason: "email_not_verified"; userId: string };
 
 let dummyPasswordHash: string | undefined;
 
@@ -59,6 +60,7 @@ export async function authenticateStudent(
       role: schema.users.role,
       passwordHash: schema.users.passwordHash,
       revokedAt: schema.users.revokedAt,
+      emailVerified: schema.users.emailVerified,
     })
     .from(schema.users)
     .where(eq(schema.users.email, email))
@@ -77,7 +79,24 @@ export async function authenticateStudent(
     return { ok: false, reason: "invalid_credentials" };
   }
 
+  if (user.emailVerified === null) {
+    return { ok: false, reason: "email_not_verified", userId: user.id };
+  }
+
   return { ok: true, userId: user.id };
+}
+
+export async function getStudentEmailById(
+  userId: string,
+  database?: LoginDatabase,
+): Promise<string | null> {
+  const users = await (await resolveDatabase(database))
+    .select({ email: schema.users.email })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  if (!(users.length > 0) || users[0].email === null) return null;
+  return users[0].email;
 }
 
 export async function createStudentSession(

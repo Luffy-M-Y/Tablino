@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authenticateStudent, createStudentSession, SESSION_MAX_AGE_DAYS } from "../src/login";
+import {
+  authenticateStudent,
+  createStudentSession,
+  getStudentEmailById,
+  SESSION_MAX_AGE_DAYS,
+} from "../src/login";
 import { hashPassword } from "../src/password";
 import * as schema from "../src/schema";
 
@@ -51,6 +56,7 @@ function studentRow(overrides: Record<string, unknown> = {}) {
     role: "student",
     passwordHash: hashPassword(validPassword),
     revokedAt: null,
+    emailVerified: new Date("2026-10-01T00:00:00.000Z"),
     ...overrides,
   };
 }
@@ -67,6 +73,24 @@ test("authenticateStudent accepts a matching student account", async () => {
 
 test("authenticateStudent rejects an incorrect password", async () => {
   const fake = createMemoryDatabase([[studentRow()]]);
+
+  assert.deepEqual(
+    await authenticateStudent(universityId, { email: "student@example.com", password: "incorrect password" }, fake.database),
+    { ok: false, reason: "invalid_credentials" },
+  );
+});
+
+test("authenticateStudent reports an unverified email after valid credentials", async () => {
+  const fake = createMemoryDatabase([[studentRow({ emailVerified: null })]]);
+
+  assert.deepEqual(
+    await authenticateStudent(universityId, { email: "student@example.com", password: validPassword }, fake.database),
+    { ok: false, reason: "email_not_verified", userId: "student-id" },
+  );
+});
+
+test("authenticateStudent rejects an incorrect password for an unverified email", async () => {
+  const fake = createMemoryDatabase([[studentRow({ emailVerified: null })]]);
 
   assert.deepEqual(
     await authenticateStudent(universityId, { email: "student@example.com", password: "incorrect password" }, fake.database),
@@ -127,6 +151,19 @@ test("authenticateStudent rejects invalid input", async () => {
     { ok: false, reason: "invalid_credentials" },
   );
   assert.deepEqual(fake.selectedTables, []);
+});
+
+test("getStudentEmailById returns the email for an existing user", async () => {
+  const fake = createMemoryDatabase([[{ email: "student@example.com" }]]);
+
+  assert.equal(await getStudentEmailById("student-id", fake.database), "student@example.com");
+  assert.deepEqual(fake.selectedTables, [schema.users]);
+});
+
+test("getStudentEmailById returns null for an absent user", async () => {
+  const fake = createMemoryDatabase([[]]);
+
+  assert.equal(await getStudentEmailById("absent-user", fake.database), null);
 });
 
 test("createStudentSession stores a 32-byte hexadecimal token and expires after 30 days", async () => {
