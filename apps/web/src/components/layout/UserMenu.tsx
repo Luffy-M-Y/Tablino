@@ -36,7 +36,7 @@ export async function UserMenu() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="flex items-center gap-2 truncate max-w-32 text-sm text-white">
+      <span className="flex items-center gap-2 truncate max-w-48 text-sm text-white">
         <User size={16} aria-hidden="true" />
         <span className="hidden sm:inline truncate">{label}</span>
         <span className="sr-only sm:hidden">{label}</span>
