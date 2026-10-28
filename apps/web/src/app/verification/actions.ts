@@ -6,9 +6,11 @@ import {
   verifyEmailVerificationToken,
 } from "@tablino/auth";
 import {
+  checkRateLimit,
   createStudentSession,
   getStudentEmailById,
   issueEmailVerificationCode,
+  recordFailure,
   verifyEmailCode,
 } from "@tablino/db";
 import { cookies } from "next/headers";
@@ -81,6 +83,9 @@ export async function resendCodeAction(
     return { message: "Lien expiré. Recommence ton inscription ou connecte-toi." };
   }
 
+  const limit = await checkRateLimit("email_send", userId);
+  if (!limit.allowed) return { message: "Trop de demandes. Reessaie plus tard." };
+
   const issued = await issueEmailVerificationCode(userId);
   if (!issued.ok) {
     switch (issued.reason) {
@@ -92,6 +97,8 @@ export async function resendCodeAction(
         return { message: "Lien expiré. Recommence ton inscription ou connecte-toi." };
     }
   }
+
+  await recordFailure("email_send", userId);
 
   const email = await getStudentEmailById(userId);
   if (email === null) {
