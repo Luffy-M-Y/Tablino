@@ -2,8 +2,11 @@
 
 import {
   authenticateStudent,
+  checkRateLimit,
   createStudentSession,
   getStudentEmailById,
+  recordFailure,
+  resetAttempts,
 } from "@tablino/db";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { cookies } from "next/headers";
@@ -22,18 +25,29 @@ export async function loginAction(
   _previousState: LoginActionState,
   formData: FormData,
 ): Promise<LoginActionState> {
-  const result = await authenticateStudent(await getCurrentUniversityId(), {
-    email: readStringField(formData, "email"),
-    password: readStringField(formData, "password"),
+  const universityId = await getCurrentUniversityId();
+  const email = readStringField(formData, "email");
+  const password = readStringField(formData, "password");
+  const limit = await checkRateLimit("login", email);
+  if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+
+  const result = await authenticateStudent(universityId, {
+    email: email,
+    password: password,
   });
   if (!result.ok && result.reason === "email_not_verified") {
-    const email = await getStudentEmailById(result.userId);
-    if (email !== null) {
-      await startEmailVerification(result.userId, email);
+    const verifiedEmail = await getStudentEmailById(result.userId);
+    if (verifiedEmail !== null) {
+      await startEmailVerification(result.userId, verifiedEmail);
     }
     redirect("/verification");
   }
-  if (!result.ok) return { message: "Email ou mot de passe incorrect." };
+  if (!result.ok) {
+    await recordFailure("login", email);
+    return { message: "Email ou mot de passe incorrect." };
+  }
+
+  await resetAttempts("login", email);
 
   const session = await createStudentSession(result.userId);
   const cookieConfig = getSessionCookieConfig("web");
