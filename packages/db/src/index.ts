@@ -123,6 +123,7 @@ export {
   recordFailure,
   resetAttempts,
 } from "./auth-attempts";
+export { deleteStudentSession, getStudentNameById } from "./session-logout";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
 export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";

@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { GraduationCap } from "lucide-react";
+import { Suspense } from "react";
 import { NavLinks } from "./NavLinks";
+import { UserMenu } from "./UserMenu";
 
 export function Navbar() {
   return (
     <header className="relative bg-uni-900 shadow-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
-          {/* Logo */}
           <Link
             href="/"
             aria-label="Tablino — retour à l'accueil"
@@ -19,8 +20,12 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Nav + burger */}
-          <NavLinks />
+          <div className="flex items-center gap-2">
+            <NavLinks />
+            <Suspense fallback={null}>
+              <UserMenu />
+            </Suspense>
+          </div>
         </div>
       </div>
     </header>
