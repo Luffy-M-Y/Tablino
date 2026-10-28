@@ -306,6 +306,18 @@ export const emailVerificationCodes = pgTable("email_verification_codes", {
   check("email_verification_codes_attempts_check", sql.raw("attempts >= 0")),
 ]).enableRLS();
 
+export const authAttempts = pgTable("auth_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  keyHash: varchar("key_hash", { length: 64 }).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+  blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("auth_attempts_key_hash_uq").on(t.keyHash),
+  check("auth_attempts_attempts_check", sql.raw("attempts >= 0")),
+]).enableRLS();
+
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
 
 export const accounts = pgTable("accounts", {
