@@ -11,6 +11,7 @@ import {
   getStudentEmailById,
   issueEmailVerificationCode,
   recordFailure,
+  resetAttempts,
   verifyEmailCode,
 } from "@tablino/db";
 import { cookies } from "next/headers";
@@ -46,18 +47,23 @@ export async function verifyCodeAction(
     return { message: "Lien expiré. Recommence ton inscription ou connecte-toi." };
   }
 
+  const limit = await checkRateLimit("verify_code", userId);
+  if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+
   const result = await verifyEmailCode(userId, readStringField(formData, "code"));
   if (!result.ok) {
     switch (result.reason) {
       case "invalid_input":
         return { message: "Code invalide." };
       case "invalid_code":
+        await recordFailure("verify_code", userId);
         return { message: "Code incorrect." };
       case "code_unavailable":
-        return { message: "Code expiré ou trop d'essais. Demande un nouveau code." };
+        return { message: "Code expiré. Demande un nouveau code." };
     }
   }
 
+  await resetAttempts("verify_code", userId);
   const session = await createStudentSession(userId);
   const sessionCookieConfig = getSessionCookieConfig("web");
   const verificationCookieConfig = getEmailVerificationCookieConfig();
@@ -82,6 +88,9 @@ export async function resendCodeAction(
   if (userId === null) {
     return { message: "Lien expiré. Recommence ton inscription ou connecte-toi." };
   }
+
+  const verifyLimit = await checkRateLimit("verify_code", userId);
+  if (!verifyLimit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
 
   const limit = await checkRateLimit("email_send", userId);
   if (!limit.allowed) return { message: "Trop de demandes. Reessaie plus tard." };
