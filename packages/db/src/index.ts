@@ -116,6 +116,13 @@ export {
   getStudentEmailById,
   SESSION_MAX_AGE_DAYS,
 } from "./login";
+export {
+  RATE_LIMITS,
+  hashAttemptKey,
+  checkRateLimit,
+  recordFailure,
+  resetAttempts,
+} from "./auth-attempts";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
 export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";

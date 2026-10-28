@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { resendCodeAction, verifyCodeAction } from "./actions";
 
 export function VerificationForms() {
@@ -12,6 +12,19 @@ export function VerificationForms() {
     resendCodeAction,
     { message: null },
   );
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  useEffect(function () {
+    if (resendState.message === "Un nouveau code a été envoyé.") setSecondsLeft(60);
+  }, [resendState]);
+  useEffect(function () {
+    if (secondsLeft <= 0) return;
+    const timer = setTimeout(function () {
+      setSecondsLeft(secondsLeft - 1);
+    }, 1000);
+    return function () {
+      clearTimeout(timer);
+    };
+  }, [secondsLeft]);
 
   return (
     <div className="space-y-6">
@@ -45,10 +58,10 @@ export function VerificationForms() {
       <form action={resendAction} className="space-y-3">
         <button
           type="submit"
-          disabled={resendPending}
+          disabled={resendPending || secondsLeft > 0}
           className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-800 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-70"
         >
-          Renvoyer le code
+          {secondsLeft > 0 ? "Renvoyer le code (" + secondsLeft + " s)" : "Renvoyer le code"}
         </button>
         {resendState.message !== null ? (
           <p className="text-sm text-slate-600" role="status">{resendState.message}</p>
