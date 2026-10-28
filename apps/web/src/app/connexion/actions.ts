@@ -1,9 +1,14 @@
 "use server";
 
-import { authenticateStudent, createStudentSession } from "@tablino/db";
+import {
+  authenticateStudent,
+  createStudentSession,
+  getStudentEmailById,
+} from "@tablino/db";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { startEmailVerification } from "@/lib/email-verification-flow";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type LoginActionState = { message: string | null };
@@ -21,6 +26,13 @@ export async function loginAction(
     email: readStringField(formData, "email"),
     password: readStringField(formData, "password"),
   });
+  if (!result.ok && result.reason === "email_not_verified") {
+    const email = await getStudentEmailById(result.userId);
+    if (email !== null) {
+      await startEmailVerification(result.userId, email);
+    }
+    redirect("/verification");
+  }
   if (!result.ok) return { message: "Email ou mot de passe incorrect." };
 
   const session = await createStudentSession(result.userId);

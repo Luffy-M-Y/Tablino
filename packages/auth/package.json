@@ -18,6 +18,6 @@
     "typescript": "^5"
   },
   "scripts": {
-    "test": "tsx --test tests/guards.test.ts tests/google-signup-token.test.ts"
+    "test": "tsx --test tests/guards.test.ts tests/google-signup-token.test.ts tests/email-verification-token.test.ts"
   }
 }

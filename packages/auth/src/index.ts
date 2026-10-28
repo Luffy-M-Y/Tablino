@@ -448,3 +448,9 @@ export {
   GOOGLE_SIGNUP_TOKEN_TTL_MS,
 } from "./google-signup-token";
 export type { GoogleSignupPayload } from "./google-signup-token";
+export {
+  createEmailVerificationToken,
+  verifyEmailVerificationToken,
+  getEmailVerificationCookieConfig,
+  EMAIL_VERIFICATION_TOKEN_TTL_MS,
+} from "./email-verification-token";
