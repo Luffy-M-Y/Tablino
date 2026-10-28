@@ -181,3 +181,13 @@ test("RATE_LIMITS for email send uses a one-hour window and block", () => {
   assert.equal(RATE_LIMITS.email_send.blockMs, 3600000);
   assert.equal(RATE_LIMITS.email_send.maxAttempts, 5);
 });
+
+test("RATE_LIMITS for verify_code allows 5 failures with a 15-minute window and block", () => {
+  assert.equal(RATE_LIMITS.verify_code.maxAttempts, 5);
+  assert.equal(RATE_LIMITS.verify_code.windowMs, 900000);
+  assert.equal(RATE_LIMITS.verify_code.blockMs, 900000);
+});
+
+test("hashAttemptKey separates verify_code from login", () => {
+  assert.notEqual(hashAttemptKey("verify_code", identifier), hashAttemptKey(action, identifier));
+});
