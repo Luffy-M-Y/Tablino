@@ -55,3 +55,15 @@ export async function hasStudentSession(): Promise<boolean> {
     throw error;
   }
 }
+
+export async function hasStudentAccess(): Promise<boolean> {
+  try {
+    const universityId = await getCurrentUniversityId();
+    const sessionUser = await requireRole("web", ["student"]);
+    if (sessionUser.universityId !== universityId) return false;
+    return decideStudentAccess(sessionUser, new Date()) === "allowed";
+  } catch (error) {
+    if (error instanceof SessionRequiredError || error instanceof AuthorizationDeniedError) return false;
+    throw error;
+  }
+}
