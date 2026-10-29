@@ -8,6 +8,7 @@ type ScanPage = {
   id: number;
   file: File;
   url: string;
+  mode: ScanPdfMode;
 };
 
 const MAX_PAGES = 20;
@@ -15,7 +16,7 @@ const MAX_PAGES = 20;
 export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) => void }) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [ignoredFiles, setIgnoredFiles] = useState(false);
-  const [mode, setMode] = useState<ScanPdfMode>("text");
+  const [defaultMode, setDefaultMode] = useState<ScanPdfMode>("text");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
@@ -38,10 +39,23 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
     setPages(nextPages);
   }
 
+  function handlePageModeChange(id: number, nextMode: ScanPdfMode) {
+    const page = pagesRef.current.find((item) => item.id === id);
+    if (!page || page.mode === nextMode) return;
+
+    replacePages(pagesRef.current.map((item) => item.id === id ? { ...item, mode: nextMode } : item));
+  }
+
   function handleModeChange(nextMode: ScanPdfMode) {
-    if (nextMode === mode) return;
-    setMode(nextMode);
-    replacePages([...pagesRef.current]);
+    if (pagesRef.current.length <= 1) {
+      setDefaultMode(nextMode);
+      replacePages(pagesRef.current.map((page) => ({ ...page, mode: nextMode })));
+      return;
+    }
+
+    if (nextMode === defaultMode) return;
+    setDefaultMode(nextMode);
+    replacePages(pagesRef.current.map((page) => ({ ...page, mode: nextMode })));
   }
 
   function handleCameraFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -56,6 +70,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
       id: nextId.current,
       file,
       url: URL.createObjectURL(file),
+      mode: defaultMode,
     };
     nextId.current += 1;
     replacePages([...pagesRef.current, page]);
@@ -79,6 +94,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
         id: nextId.current,
         file,
         url: URL.createObjectURL(file),
+        mode: defaultMode,
       });
       nextId.current += 1;
     }
@@ -120,7 +136,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
             ? "Préparation du moteur..."
             : "Page " + current + " sur " + total + "...");
         },
-        mode,
+        pagesRef.current.map((page) => page.mode),
       );
       const file = new File([new Uint8Array(bytes)], buildScanFileName(new Date()), { type: "application/pdf" });
       if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
@@ -233,38 +249,65 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
                   Supprimer
                 </button>
               </div>
+              <fieldset className="flex flex-wrap items-center gap-2">
+                <legend className="sr-only">Format de la page {pageNumber}</legend>
+                <label className="flex items-center gap-1 text-sm">
+                  <input
+                    type="radio"
+                    name={"pageMode-" + page.id}
+                    value="text"
+                    checked={page.mode === "text"}
+                    disabled={isBuilding}
+                    onChange={() => handlePageModeChange(page.id, "text")}
+                  />
+                  Texte
+                </label>
+                <label className="flex items-center gap-1 text-sm">
+                  <input
+                    type="radio"
+                    name={"pageMode-" + page.id}
+                    value="photo"
+                    checked={page.mode === "photo"}
+                    disabled={isBuilding}
+                    onChange={() => handlePageModeChange(page.id, "photo")}
+                  />
+                  Photo
+                </label>
+              </fieldset>
             </li>
           );
         })}
       </ol>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Format du PDF</legend>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="scanPdfMode"
-              value="text"
-              checked={mode === "text"}
-              disabled={isBuilding}
-              onChange={() => handleModeChange("text")}
-            />
-            PDF texte uniquement (recommandé)
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="radio"
-              name="scanPdfMode"
-              value="photo"
-              checked={mode === "photo"}
-              disabled={isBuilding}
-              onChange={() => handleModeChange("photo")}
-            />
-            PDF photo (secours si le texte est illisible)
-          </label>
-        </div>
-        <p className="text-sm text-slate-600">Si le texte est illisible, choisis PDF photo : la photo reste la référence.</p>
-      </fieldset>
+      {pages.length <= 1 && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Format du PDF</legend>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="scanPdfMode"
+                value="text"
+                checked={(pages[0]?.mode ?? defaultMode) === "text"}
+                disabled={isBuilding}
+                onChange={() => handleModeChange("text")}
+              />
+              PDF texte uniquement (recommandé)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="scanPdfMode"
+                value="photo"
+                checked={(pages[0]?.mode ?? defaultMode) === "photo"}
+                disabled={isBuilding}
+                onChange={() => handleModeChange("photo")}
+              />
+              PDF photo (secours si le texte est illisible)
+            </label>
+          </div>
+          <p className="text-sm text-slate-600">Si le texte est illisible, choisis PDF photo : la photo reste la référence.</p>
+        </fieldset>
+      )}
       <button
         type="button"
         onClick={handleBuildPdf}

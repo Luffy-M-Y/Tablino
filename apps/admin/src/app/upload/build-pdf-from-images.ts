@@ -29,7 +29,12 @@ function sanitizeRecognizedWord(text: string): string {
   return sanitizedText;
 }
 
-function extractTextParagraphs(blocks: Array<{ paragraphs?: Array<{ lines?: Array<{ words?: Array<{ text?: string }> }> }> } | undefined>): string[] {
+type OcrWord = { text?: string };
+type OcrLine = { words?: OcrWord[] };
+type OcrParagraph = { lines?: OcrLine[] };
+type OcrBlock = { paragraphs?: OcrParagraph[] };
+
+function extractTextParagraphs(blocks: (OcrBlock | undefined)[]): string[] {
   const paragraphs: string[] = [];
   for (const block of blocks ?? []) {
     if (!block || !block.paragraphs) continue;
@@ -114,8 +119,8 @@ function wrapTextLines(font: { widthOfTextAtSize: (value: string, size: number) 
 
 export async function buildPdfFromImages(
   files: File[],
-  onProgress?: (current: number, total: number) => void,
-  mode: ScanPdfMode = "photo",
+  onProgress: ((current: number, total: number) => void) | undefined,
+  modes: ScanPdfMode[],
 ): Promise<Uint8Array> {
   if (files.length === 0) throw new Error("Aucune image.");
   onProgress?.(0, files.length);
@@ -133,8 +138,6 @@ export async function buildPdfFromImages(
   }).catch(() => {
     throw new Error("OCR indisponible.");
   });
-
-  let hasWrittenText = false;
 
   try {
     for (const [index, file] of files.entries()) {
@@ -164,29 +167,32 @@ export async function buildPdfFromImages(
       context.drawImage(bitmap, 0, 0, size.width, size.height);
       bitmap.close();
 
+      const mode = modes[index] ?? "text";
+
       if (mode === "text") {
         const result = await worker.recognize(canvas, {}, { blocks: true }).catch(() => {
           throw new Error("OCR impossible : " + file.name);
         });
         const paragraphs = extractTextParagraphs(result.data.blocks ?? []);
-        if (paragraphs.length > 0) {
-          let page = pdf.addPage([595, 842]);
-          let y = 842 - 50;
-          const maxWidth = 595 - 100;
-          const lines = wrapTextLines(font, paragraphs.join("\n\n"), maxWidth);
-          for (const line of lines) {
-            if (!line) {
-              y -= 14;
-              continue;
-            }
-            if (y - 14 < 50) {
-              page = pdf.addPage([595, 842]);
-              y = 842 - 50;
-            }
-            page.drawText(line, { x: 50, y: y, size: 11, font: font, color: rgb(0, 0, 0) });
+        if (paragraphs.length === 0) {
+          throw new Error("Aucun texte détecté : page " + (index + 1) + ".");
+        }
+
+        let page = pdf.addPage([595, 842]);
+        let y = 842 - 50;
+        const maxWidth = 595 - 100;
+        const lines = wrapTextLines(font, paragraphs.join("\n\n"), maxWidth);
+        for (const line of lines) {
+          if (!line) {
             y -= 14;
+            continue;
           }
-          hasWrittenText = true;
+          if (y - 14 < 50) {
+            page = pdf.addPage([595, 842]);
+            y = 842 - 50;
+          }
+          page.drawText(line, { x: 50, y: y, size: 11, font: font, color: rgb(0, 0, 0) });
+          y -= 14;
         }
         continue;
       }
@@ -247,10 +253,6 @@ export async function buildPdfFromImages(
           }
         }
       }
-    }
-
-    if (mode === "text" && !hasWrittenText) {
-      throw new Error("Aucun texte détecté.");
     }
 
     return await pdf.save();
