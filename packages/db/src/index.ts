@@ -126,6 +126,7 @@ export {
 export { deleteStudentSession, getStudentNameById } from "./session-logout";
 export { searchCatalog, SEARCH_RESULT_LIMIT } from "./search-catalog";
 export type { SearchCatalog, SearchResult, SearchResultKind, SearchScope, SearchSubjectRow } from "./search-catalog";
+export { getPublishedSearchCatalog } from "./search-catalog-query";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
 export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";
