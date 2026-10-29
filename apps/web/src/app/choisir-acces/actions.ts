@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { startTrial } from "@tablino/db";
 import { forbidden, redirect } from "next/navigation";
 import { requireStudentSession } from "@/lib/authorization";
@@ -14,7 +15,10 @@ export async function startTrialAction(
   if (user.universityId === null) forbidden();
 
   const result = await startTrial(user.universityId, user.id);
-  if (result.ok) redirect("/");
+  if (result.ok) {
+    revalidatePath("/", "layout");
+    redirect("/");
+  }
 
   switch (result.reason) {
     case "not_found":
