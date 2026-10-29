@@ -6,7 +6,7 @@ import { UserMenu } from "./UserMenu";
 
 export function Navbar() {
   return (
-    <header className="relative bg-uni-900 shadow-md">
+    <header className="sticky top-0 z-50 bg-uni-900 shadow-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link
