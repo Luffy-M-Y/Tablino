@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db, schema } from "@tablino/db";
+import { getPublishedSearchCatalog, searchCatalog, type SearchScope } from "@tablino/db";
 import { eq, and, count, sql, getTableColumns, desc } from "drizzle-orm";
 import { requireStudentUniversityAccess } from "@/lib/authorization";
 
@@ -371,4 +372,10 @@ export async function getAssignmentsBySubject(universityId: string, subjectId: s
       ),
     )
     .orderBy(schema.assignments.dueDate);
+}
+
+export async function searchPublishedCatalog(universityId: string, query: string, scope: SearchScope) {
+  await requireStudentUniversityAccess(universityId);
+  const catalog = await getPublishedSearchCatalog(universityId);
+  return searchCatalog(catalog, query, scope);
 }
