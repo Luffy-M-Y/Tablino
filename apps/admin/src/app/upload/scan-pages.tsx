@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { buildPdfFromImages } from "./build-pdf-from-images";
+import { buildPdfFromImages, type ScanPdfMode } from "./build-pdf-from-images";
 import { buildScanFileName } from "@/lib/scan-pages.mjs";
 
 type ScanPage = {
@@ -15,6 +15,7 @@ const MAX_PAGES = 20;
 export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) => void }) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [ignoredFiles, setIgnoredFiles] = useState(false);
+  const [mode, setMode] = useState<ScanPdfMode>("text");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
@@ -35,6 +36,12 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
     setPdfError(null);
     pagesRef.current = nextPages;
     setPages(nextPages);
+  }
+
+  function handleModeChange(nextMode: ScanPdfMode) {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    replacePages([...pagesRef.current]);
   }
 
   function handleCameraFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -113,6 +120,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
             ? "Préparation du moteur..."
             : "Page " + current + " sur " + total + "...");
         },
+        mode,
       );
       const file = new File([new Uint8Array(bytes)], buildScanFileName(new Date()), { type: "application/pdf" });
       if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
@@ -229,6 +237,34 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
           );
         })}
       </ol>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Format du PDF</legend>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="scanPdfMode"
+              value="text"
+              checked={mode === "text"}
+              disabled={isBuilding}
+              onChange={() => handleModeChange("text")}
+            />
+            PDF texte uniquement (recommandé)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="scanPdfMode"
+              value="photo"
+              checked={mode === "photo"}
+              disabled={isBuilding}
+              onChange={() => handleModeChange("photo")}
+            />
+            PDF photo (secours si le texte est illisible)
+          </label>
+        </div>
+        <p className="text-sm text-slate-600">Si le texte est illisible, choisis PDF photo : la photo reste la référence.</p>
+      </fieldset>
       <button
         type="button"
         onClick={handleBuildPdf}
