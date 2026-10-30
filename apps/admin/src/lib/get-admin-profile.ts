@@ -5,6 +5,7 @@ import { requireAdminAccess } from "./authorization";
 
 export type AdminProfile = {
   email: string | null;
+  name: string | null;
   roleLabel: string;
   initial: string;
 };
@@ -17,8 +18,10 @@ export async function getAdminProfile(): Promise<AdminProfile> {
   }));
 
   const email = session?.user?.email ?? null;
+  const name = session?.user?.name ?? null;
   return {
     email,
+    name,
     roleLabel: getRoleLabel(authorizedUser.role),
     initial: getAvatarInitial(session?.user?.name, email),
   };
