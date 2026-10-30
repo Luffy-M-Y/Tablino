@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  --color-admin-header: #0f2a5e;
   --color-university-primary: #1d4ed8;
   --color-page-background: #f8fafc;
   --color-text: #0f172a;
