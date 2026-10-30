@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
 import { ADMIN_MENU_ITEMS } from "@/lib/admin-menu.mjs";
+import AdminSearchBox from "@/components/admin-search-box";
 
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]";
 const headerFocusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
@@ -47,6 +48,7 @@ export function AdminShell({
           </button>
         </div>
 
+        <AdminSearchBox />
         <div className="flex items-center gap-3">
           <span className="max-w-48 truncate text-sm font-medium">{profile.name ?? profile.email ?? "Mon compte"}</span>
           <span className="hidden text-xs text-white/70 sm:inline">{profile.roleLabel}</span>
