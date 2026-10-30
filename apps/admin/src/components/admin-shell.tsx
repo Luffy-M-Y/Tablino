@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ADMIN_MENU_ITEMS } from "@/lib/admin-menu.mjs";
 
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]";
+const headerFocusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
 type AdminProfile = {
   email: string | null;
+  name: string | null;
   roleLabel: string;
   initial: string;
 };
@@ -23,41 +25,14 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
-  const profileButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!isProfileMenuOpen) return;
-
-    function handlePointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && !profileMenuRef.current?.contains(event.target)) {
-        setIsProfileMenuOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsProfileMenuOpen(false);
-        profileButtonRef.current?.focus();
-      }
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isProfileMenuOpen]);
 
   return (
     <div className="min-h-screen bg-[color:var(--color-page-background)] text-[color:var(--color-text)]">
-      <header className="relative z-40 flex h-16 items-center justify-between border-b border-[color:var(--color-border)] bg-white px-4 shadow-[var(--shadow-subtle)] sm:px-6">
+      <header className="sticky top-0 z-40 flex h-16 items-center justify-between bg-[color:var(--color-admin-header)] text-white px-4 shadow-[var(--shadow-subtle)] sm:px-6">
         <div className="flex items-center gap-4">
           <Link
             href="/"
-            className={`rounded-[var(--radius-rounded)] text-xl font-bold text-[color:var(--color-university-primary)] ${focusStyle}`}
+            className={`rounded-[var(--radius-rounded)] text-xl font-bold text-white ${headerFocusStyle}`}
           >
             Tablino
           </Link>
@@ -66,43 +41,22 @@ export function AdminShell({
             aria-controls="admin-sidebar"
             aria-expanded={isSidebarOpen}
             onClick={() => setIsSidebarOpen((open) => !open)}
-            className={`rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 md:hidden ${focusStyle}`}
+            className={`rounded-[var(--radius-rounded)] border border-white/40 px-3 py-2 md:hidden ${headerFocusStyle}`}
           >
             {isSidebarOpen ? "Fermer le menu" : "Ouvrir le menu"}
           </button>
         </div>
 
-        <div className="relative" ref={profileMenuRef}>
+        <div className="flex items-center gap-3">
+          <span className="max-w-48 truncate text-sm font-medium">{profile.name ?? profile.email ?? "Mon compte"}</span>
+          <span className="hidden text-xs text-white/70 sm:inline">{profile.roleLabel}</span>
           <button
-            ref={profileButtonRef}
             type="button"
-            id="admin-profile-trigger"
-            aria-label="Ouvrir le menu du compte"
-            aria-controls="admin-profile-menu"
-            aria-expanded={isProfileMenuOpen}
-            onClick={() => setIsProfileMenuOpen((open) => !open)}
-            className={`flex size-10 items-center justify-center rounded-full bg-[color:var(--color-university-primary)] font-semibold text-white ${focusStyle}`}
+            onClick={() => { void signOut({ callbackUrl: "/" }); }}
+            className={"rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white " + headerFocusStyle}
           >
-            {profile.initial}
+            Déconnexion
           </button>
-          {isProfileMenuOpen && (
-            <div
-              id="admin-profile-menu"
-              role="group"
-              aria-label="Compte administrateur"
-              className="absolute right-0 top-full mt-2 w-72 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]"
-            >
-              <p className="break-words font-medium">{profile.email ?? "Adresse e-mail indisponible"}</p>
-              <p className="mt-1 text-sm text-slate-600">{profile.roleLabel}</p>
-              <button
-                type="button"
-                onClick={() => { void signOut({ callbackUrl: "/" }); }}
-                className={`mt-4 w-full rounded-[var(--radius-rounded)] px-3 py-2 text-left text-[color:var(--color-university-primary)] hover:bg-slate-50 ${focusStyle}`}
-              >
-                Se déconnecter
-              </button>
-            </div>
-          )}
         </div>
       </header>
 
