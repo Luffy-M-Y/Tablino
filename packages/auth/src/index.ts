@@ -389,7 +389,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
 
         if (storedUser.role === "super_admin") return storedUser.universityId === null;
         return storedUser.role === "university_admin"
-          && storedUser.universityId === await context.getCurrentUniversityId();
+          && storedUser.universityId !== null;
       },
 
       async session({ session, user }) {
