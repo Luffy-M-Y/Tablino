@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 
 export const roleEnum = pgEnum("role", ["super_admin", "university_admin", "student"]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
+export const universityStatusEnum = pgEnum("university_status", ["pending", "active"]);
 export const planEnum = pgEnum("plan", ["premium_pro", "premium_pro_max"]);
 export const resourceFormatEnum = pgEnum("resource_format", [
   "pdf", "video", "audio", "docx", "pptx", "link", "other",
@@ -19,6 +20,7 @@ export const universities = pgTable("universities", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
+  status: universityStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   revenueShareBps: integer("revenue_share_bps").default(3000).notNull(),
 }, (t) => [
