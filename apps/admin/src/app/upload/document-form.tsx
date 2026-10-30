@@ -38,6 +38,7 @@ type Props = {
   action?: StructureFormAction;
   buttonLabel?: string;
   onProgramChange?: () => void;
+  titleRequired?: boolean;
   children: ReactNode;
 };
 
@@ -50,6 +51,7 @@ export function DocumentForm({
   action = uploadFileAction,
   buttonLabel = "Envoyer le fichier",
   onProgramChange,
+  titleRequired = false,
   children,
 }: Props) {
   const [kind, setKind] = useState<"resource" | "assignment">("resource");
@@ -189,7 +191,7 @@ export function DocumentForm({
       </div>
       <div>
         <label htmlFor="upload-title" className="mb-2 block">
-          Titre (facultatif)
+          {titleRequired ? "Titre" : "Titre (facultatif)"}
         </label>
         <input
           id="upload-title"
@@ -197,8 +199,9 @@ export function DocumentForm({
           type="text"
           maxLength={255}
           className={fieldClassName}
+          required={titleRequired}
         />
-        <p className="text-sm">Sans titre, le nom du fichier est utilisé.</p>
+        {!titleRequired && <p className="text-sm">Sans titre, le nom du fichier est utilisé.</p>}
       </div>
       <div>
         <input
