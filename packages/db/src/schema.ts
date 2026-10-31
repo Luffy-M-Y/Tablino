@@ -8,7 +8,7 @@ import { sql } from "drizzle-orm";
 
 export const roleEnum = pgEnum("role", ["super_admin", "university_admin", "student"]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
-export const universityStatusEnum = pgEnum("university_status", ["pending", "active"]);
+export const universityStatusEnum = pgEnum("university_status", ["pending", "approved", "active"]);
 export const planEnum = pgEnum("plan", ["premium_pro", "premium_pro_max"]);
 export const resourceFormatEnum = pgEnum("resource_format", [
   "pdf", "video", "audio", "docx", "pptx", "link", "other",
@@ -20,11 +20,27 @@ export const universities = pgTable("universities", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
+  acronym: varchar("acronym", { length: 20 }),
+  phone: varchar("phone", { length: 32 }),
   status: universityStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   revenueShareBps: integer("revenue_share_bps").default(3000).notNull(),
 }, (t) => [
   check("universities_revenue_share_check", sql.raw("revenue_share_bps >= 0 AND revenue_share_bps <= 10000")),
+]).enableRLS();
+
+export const universityPayoutDetails = pgTable("university_payout_details", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  mobileMoneyOperator: text("mobile_money_operator").notNull(),
+  mobileMoneyHolderName: text("mobile_money_holder_name").notNull(),
+  mobileMoneyNumberEncrypted: text("mobile_money_number_encrypted").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  unique("university_payout_details_university_id_uq").on(t.universityId),
 ]).enableRLS();
 
 // ─── Programs (filières) ──────────────────────────────────────────────────────

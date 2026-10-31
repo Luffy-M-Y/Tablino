@@ -99,6 +99,24 @@ test("a pending university admin is denied by requireUniversityAccess", async ()
   );
 });
 
+test("an approved university admin is denied by requireRole", async () => {
+  const { guards } = harness({ ...universityAdmin, universityStatus: "approved" });
+
+  await assert.rejects(
+    guards.requireRole("admin", ["university_admin"]),
+    AuthorizationDeniedError,
+  );
+});
+
+test("an approved university admin is denied by requireUniversityAccess", async () => {
+  const { guards } = harness({ ...universityAdmin, universityStatus: "approved" });
+
+  await assert.rejects(
+    guards.requireUniversityAccess("admin", "university-a"),
+    AuthorizationDeniedError,
+  );
+});
+
 test("an active university admin is accepted by both guards", async () => {
   const { guards } = harness(universityAdmin);
 
