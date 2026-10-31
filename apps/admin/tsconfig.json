@@ -31,6 +31,9 @@
       ],
       "@tablino/auth": [
         "../../packages/auth/src/index.ts"
+      ],
+      "@tablino/email": [
+        "../../packages/email/src/index.ts"
       ]
     }
   },

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     authInterrupts: true,
     serverActions: { bodySizeLimit: "25mb" },
   },
-  transpilePackages: ["@tablino/db", "@tablino/auth"],
+  transpilePackages: ["@tablino/db", "@tablino/auth", "@tablino/email"],
   reactCompiler: true,
   turbopack: {
     rules: {

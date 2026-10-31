@@ -13,6 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1152.0",
     "@tablino/auth": "workspace:*",
     "@tablino/db": "workspace:*",
+    "@tablino/email": "workspace:*",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
