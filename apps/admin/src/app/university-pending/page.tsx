@@ -14,7 +14,7 @@ export default async function UniversityPendingPage() {
       </h1>
       <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)] sm:p-8">
         <p className="mb-6 text-sm text-slate-700">
-          Votre université est en attente de validation. Vous serez averti dès son activation.
+          Votre demande d'inscription a été prise en compte. Elle est en attente de validation. Vous serez averti dès l'activation de votre compte.
         </p>
         <Link
           href="/api/auth/signout"

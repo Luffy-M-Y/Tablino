@@ -1,12 +1,16 @@
 "use server";
 
-import { verifyUniversitySignupToken } from "@tablino/auth";
-import { registerUniversityAdminWithGoogle } from "@tablino/db";
+import { getSessionCookieConfig, verifyUniversitySignupToken } from "@tablino/auth";
+import { createStudentSession, registerUniversityAdminWithGoogle } from "@tablino/db";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
 
 export type UniversitySignupActionState = {
   message: string | null;
   universityName: string;
+  acronym: string;
+  phone: string;
   showForm: boolean;
   showLoginLink: boolean;
 };
@@ -22,13 +26,16 @@ export async function registerUniversityAction(
 ): Promise<UniversitySignupActionState> {
   const token = readStringField(formData, "token");
   const universityName = readStringField(formData, "universityName");
+  const acronym = readStringField(formData, "acronym");
+  const phone = readStringField(formData, "phone");
+  const state = { universityName, acronym, phone };
   let payload: ReturnType<typeof verifyUniversitySignupToken>;
   try {
     payload = token ? verifyUniversitySignupToken(token) : null;
   } catch {
     return {
       message: "La vérification du lien est indisponible. Recommencez depuis la connexion admin.",
-      universityName,
+      ...state,
       showForm: false,
       showLoginLink: true,
     };
@@ -37,9 +44,19 @@ export async function registerUniversityAction(
   if (payload === null) {
     return {
       message: "Ce lien d'inscription est absent, invalide ou expiré. Recommencez depuis la connexion admin.",
-      universityName,
+      ...state,
       showForm: false,
       showLoginLink: true,
+    };
+  }
+
+  const phoneValidation = parseAndValidateBurkinaPhone(phone);
+  if (!phoneValidation.ok) {
+    return {
+      message: phoneValidation.error,
+      ...state,
+      showForm: true,
+      showLoginLink: false,
     };
   }
 
@@ -49,14 +66,25 @@ export async function registerUniversityAction(
     name: payload.name,
     image: payload.image,
     providerAccountId: payload.providerAccountId,
+    acronym,
+    phone: phoneValidation.phone,
   });
 
-  if (result.ok) redirect("/api/auth/signin");
+  if (result.ok) {
+    const session = await createStudentSession(result.userId);
+    const sessionCookieConfig = getSessionCookieConfig("admin");
+    const cookieStore = await cookies();
+    cookieStore.set(sessionCookieConfig.name, session.sessionToken, {
+      ...sessionCookieConfig.options,
+      expires: session.expires,
+    });
+    redirect("/university-pending");
+  }
 
   if (result.reason === "email_taken" || result.reason === "account_taken") {
     return {
       message: "Cette adresse ou ce compte Google est déjà utilisé. Connectez-vous avec votre compte existant.",
-      universityName,
+      ...state,
       showForm: false,
       showLoginLink: true,
     };
@@ -64,8 +92,8 @@ export async function registerUniversityAction(
 
   if (result.reason === "invalid_input") {
     return {
-      message: "Le nom de l'université doit contenir entre 1 et 255 caractères.",
-      universityName,
+      message: "Vérifiez le nom de l'université, l'acronyme (20 caractères maximum) et le téléphone (32 caractères maximum).",
+      ...state,
       showForm: true,
       showLoginLink: false,
     };
@@ -73,7 +101,7 @@ export async function registerUniversityAction(
 
   return {
     message: "La création de l'université est temporairement indisponible. Réessayez.",
-    universityName,
+    ...state,
     showForm: true,
     showLoginLink: false,
   };
