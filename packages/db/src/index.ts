@@ -116,6 +116,8 @@ export {
   getStudentEmailById,
   SESSION_MAX_AGE_DAYS,
 } from "./login";
+export { authenticateUniversityAdmin } from "./university-admin-login";
+export type { AuthenticateUniversityAdminResult } from "./university-admin-login";
 export {
   RATE_LIMITS,
   hashAttemptKey,
