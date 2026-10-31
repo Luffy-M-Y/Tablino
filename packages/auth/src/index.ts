@@ -12,6 +12,7 @@ import { getServerSession } from "next-auth/next";
 import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@tablino/db";
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
+import { createUniversitySignupToken } from "./university-signup-token";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 
@@ -371,15 +372,19 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const storedUser = linkedUser ?? emailUser;
 
         if (!storedUser) {
-          if (context.surface !== "web") return false;
-          await context.getCurrentUniversityId();
-          googleEmailsByAccount.delete(account.providerAccountId);
-          return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken({
+          const payload = {
             email: email,
             name: user.name ?? null,
             image: user.image ?? null,
             providerAccountId: account.providerAccountId,
-          }));
+          };
+          if (context.surface === "web") {
+            await context.getCurrentUniversityId();
+            googleEmailsByAccount.delete(account.providerAccountId);
+            return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken(payload));
+          }
+          googleEmailsByAccount.delete(account.providerAccountId);
+          return "/university-signup?token=" + encodeURIComponent(createUniversitySignupToken(payload));
         }
 
         if (context.surface === "web") {
@@ -448,6 +453,12 @@ export {
   GOOGLE_SIGNUP_TOKEN_TTL_MS,
 } from "./google-signup-token";
 export type { GoogleSignupPayload } from "./google-signup-token";
+export {
+  createUniversitySignupToken,
+  verifyUniversitySignupToken,
+  UNIVERSITY_SIGNUP_TOKEN_TTL_MS,
+} from "./university-signup-token";
+export type { UniversitySignupPayload } from "./university-signup-token";
 export {
   createEmailVerificationToken,
   verifyEmailVerificationToken,
