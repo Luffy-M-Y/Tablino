@@ -11,6 +11,7 @@ const student = {
   id: "user-1",
   role: "student" as const,
   universityId: "university-a",
+  universityStatus: "active" as const,
   revokedAt: null,
   trialEndsAt: null,
   subscriptionExpiresAt: null,
@@ -20,6 +21,7 @@ const universityAdmin = {
   id: "user-2",
   role: "university_admin" as const,
   universityId: "university-a",
+  universityStatus: "active" as const,
   revokedAt: null,
   trialEndsAt: null,
   subscriptionExpiresAt: null,
@@ -29,6 +31,7 @@ const superAdmin = {
   id: "user-3",
   role: "super_admin" as const,
   universityId: null,
+  universityStatus: null,
   revokedAt: null,
   trialEndsAt: null,
   subscriptionExpiresAt: null,
@@ -78,8 +81,37 @@ test("a university admin is denied access to another university", async () => {
   );
 });
 
+test("a pending university admin is denied by requireRole", async () => {
+  const { guards } = harness({ ...universityAdmin, universityStatus: "pending" });
+
+  await assert.rejects(
+    guards.requireRole("admin", ["university_admin"]),
+    AuthorizationDeniedError,
+  );
+});
+
+test("a pending university admin is denied by requireUniversityAccess", async () => {
+  const { guards } = harness({ ...universityAdmin, universityStatus: "pending" });
+
+  await assert.rejects(
+    guards.requireUniversityAccess("admin", "university-a"),
+    AuthorizationDeniedError,
+  );
+});
+
+test("an active university admin is accepted by both guards", async () => {
+  const { guards } = harness(universityAdmin);
+
+  assert.equal((await guards.requireRole("admin", ["university_admin"])).id, universityAdmin.id);
+  assert.equal(
+    (await guards.requireUniversityAccess("admin", "university-a")).id,
+    universityAdmin.id,
+  );
+});
+
 test("a super admin is accepted for any university on both surfaces", async () => {
   const { guards } = harness(superAdmin);
+  assert.equal((await guards.requireRole("admin", ["super_admin"])).id, superAdmin.id);
   assert.equal((await guards.requireUniversityAccess("admin", "university-b")).id, superAdmin.id);
   assert.equal((await guards.requireUniversityAccess("web", "university-b")).id, superAdmin.id);
 });

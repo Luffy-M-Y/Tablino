@@ -423,11 +423,15 @@ const guards = createAuthGuards({
       id: schema.users.id,
       role: schema.users.role,
       universityId: schema.users.universityId,
+      universityStatus: schema.universities.status,
       revokedAt: schema.users.revokedAt,
       trialEndsAt: schema.users.trialEndsAt,
       subscriptionExpiresAt: schema.users.subscriptionExpiresAt,
       currentPlan: schema.users.currentPlan,
-    }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    }).from(schema.users)
+      .leftJoin(schema.universities, eq(schema.users.universityId, schema.universities.id))
+      .where(eq(schema.users.id, userId))
+      .limit(1);
     return user ?? null;
   },
 });
