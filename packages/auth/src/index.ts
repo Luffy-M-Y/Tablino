@@ -324,6 +324,7 @@ export function getSessionCookieConfig(surface: AuthSurface) {
 export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
   return {
     adapter: createDrizzleAdapter(context),
+    ...(context.surface === "admin" ? { pages: { signIn: "/login" } } : {}),
     providers: [GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
