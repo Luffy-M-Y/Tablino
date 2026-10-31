@@ -130,6 +130,8 @@ export { getPublishedSearchCatalog } from "./search-catalog-query";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
 export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";
+export { registerUniversityAdminWithGoogle } from "./university-signup";
+export type { RegisterUniversityAdminWithGoogleResult } from "./university-signup";
 export {
   EMAIL_CODE_TTL_MS,
   EMAIL_CODE_MAX_ATTEMPTS,
