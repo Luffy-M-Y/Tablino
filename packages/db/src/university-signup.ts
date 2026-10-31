@@ -31,6 +31,8 @@ export async function registerUniversityAdminWithGoogle(
     name: string | null;
     image: string | null;
     providerAccountId: string;
+    acronym?: string | null;
+    phone?: string | null;
   },
   database?: UniversitySignupDatabase,
   now = new Date(),
@@ -43,6 +45,8 @@ export async function registerUniversityAdminWithGoogle(
     || typeof input.providerAccountId !== "string"
     || (input.name !== null && typeof input.name !== "string")
     || (input.image !== null && typeof input.image !== "string")
+    || (input.acronym !== undefined && input.acronym !== null && typeof input.acronym !== "string")
+    || (input.phone !== undefined && input.phone !== null && typeof input.phone !== "string")
   ) {
     return { ok: false, reason: "invalid_input" };
   }
@@ -54,6 +58,8 @@ export async function registerUniversityAdminWithGoogle(
   const providerAccountId = input.providerAccountId.trim();
   const name = input.name?.trim() || null;
   const image = input.image?.trim() || null;
+  const acronym = input.acronym?.trim() || null;
+  const phone = input.phone?.trim() || null;
   if (
     universityName.length < 1
     || universityName.length > 255
@@ -67,6 +73,8 @@ export async function registerUniversityAdminWithGoogle(
     || providerAccountId.length > 255
     || (name !== null && name.length > 255)
     || (image !== null && image.length > 500)
+    || (acronym !== null && acronym.length > 20)
+    || (phone !== null && phone.length > 32)
   ) {
     return { ok: false, reason: "invalid_input" };
   }
@@ -97,6 +105,8 @@ export async function registerUniversityAdminWithGoogle(
           .values({
             name: universityName,
             slug: createUniversitySlug(baseSlug),
+            acronym,
+            phone,
             status: "pending",
             revenueShareBps: 0,
           })

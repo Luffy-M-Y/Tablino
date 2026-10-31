@@ -218,3 +218,55 @@ test("registerUniversityAdminWithGoogle maps unique constraint violations to ema
     { ok: false, reason: "email_taken" },
   );
 });
+
+test("registerUniversityAdminWithGoogle trims acronym and phone before inserting the university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[], []],
+    insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
+  });
+
+  assert.deepEqual(
+    await registerUniversityAdminWithGoogle({
+      ...validInput,
+      acronym: "  UEX  ",
+      phone: "  +225 0102030405  ",
+    }, fake.database),
+    { ok: true, universityId: "university-id", userId: "user-id" },
+  );
+  assert.equal(fake.inserts[0].values?.acronym, "UEX");
+  assert.equal(fake.inserts[0].values?.phone, "+225 0102030405");
+});
+
+test("registerUniversityAdminWithGoogle inserts null for absent or blank acronym and phone", async () => {
+  for (const fields of [
+    { acronym: undefined, phone: "   " },
+    { acronym: "   ", phone: undefined },
+  ]) {
+    const fake = createMemoryDatabase({
+      selectedRows: [[], []],
+      insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
+    });
+
+    assert.equal((await registerUniversityAdminWithGoogle({
+      ...validInput,
+      ...fields,
+    }, fake.database)).ok, true);
+    assert.equal(fake.inserts[0].values?.acronym, null);
+    assert.equal(fake.inserts[0].values?.phone, null);
+  }
+});
+
+test("registerUniversityAdminWithGoogle rejects oversized acronym or phone before opening a transaction", async () => {
+  for (const input of [
+    { ...validInput, acronym: "a".repeat(21) },
+    { ...validInput, phone: "1".repeat(33) },
+  ]) {
+    const fake = createMemoryDatabase();
+
+    assert.deepEqual(
+      await registerUniversityAdminWithGoogle(input, fake.database),
+      { ok: false, reason: "invalid_input" },
+    );
+    assert.equal(fake.transactionCount, 0);
+  }
+});
