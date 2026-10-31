@@ -132,6 +132,8 @@ export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";
 export { registerUniversityAdminWithGoogle } from "./university-signup";
 export type { RegisterUniversityAdminWithGoogleResult } from "./university-signup";
+export { registerUniversityAdminWithPassword } from "./university-password-signup";
+export type { RegisterUniversityAdminWithPasswordResult } from "./university-password-signup";
 export {
   EMAIL_CODE_TTL_MS,
   EMAIL_CODE_MAX_ATTEMPTS,
