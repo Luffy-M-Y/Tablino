@@ -10,6 +10,7 @@ import {
 } from "@tablino/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { startEmailVerification } from "@/lib/email-verification-flow";
 
 export type LoginActionState = {
   message: string | null;
@@ -29,15 +30,13 @@ export async function loginAction(
   const password = readStringField(formData, "password");
   const limit = await checkRateLimit("login", email);
   if (!limit.allowed) {
-    return { message: "Trop de tentatives. Reessaie plus tard.", email };
+    return { message: "Trop de tentatives. Réessaie plus tard.", email };
   }
 
   const result = await authenticateUniversityAdmin({ email, password });
   if (!result.ok && result.reason === "email_not_verified") {
-    return {
-      message: "Adresse e-mail non vérifiée. La vérification sera disponible prochainement.",
-      email,
-    };
+    await startEmailVerification(result.userId, email);
+    redirect("/verify");
   }
   if (!result.ok) {
     await recordFailure("login", email);

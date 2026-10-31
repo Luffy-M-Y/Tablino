@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { signIn } from "next-auth/react";
 import { loginAction, type LoginActionState } from "./actions";
@@ -68,6 +69,15 @@ export function LoginForm() {
       >
         Continuer avec Google
       </button>
+      <p className="mt-6 text-center text-sm text-slate-600">
+        Vous n'avez pas de compte ?{" "}
+        <Link
+          href="/signup"
+          className="font-semibold text-[color:var(--color-university-primary)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+        >
+          S'inscrire
+        </Link>
+      </p>
     </section>
   );
 }
