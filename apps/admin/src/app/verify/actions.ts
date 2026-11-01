@@ -17,6 +17,7 @@ import {
 import { sendVerificationEmail } from "@tablino/email";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
 
 export type VerificationActionState = { message: string | null };
 
@@ -62,6 +63,7 @@ export async function verifyCodeAction(
   }
 
   await resetAttempts("verify_code", userId);
+  await notifySuperAdminOfPendingUniversity(userId);
   const session = await createStudentSession(userId);
   const sessionCookieConfig = getSessionCookieConfig("admin");
   const verificationCookieConfig = getEmailVerificationCookieConfig();

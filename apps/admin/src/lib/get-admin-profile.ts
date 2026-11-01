@@ -8,6 +8,7 @@ export type AdminProfile = {
   name: string | null;
   roleLabel: string;
   initial: string;
+  role: string;
 };
 
 export async function getAdminProfile(): Promise<AdminProfile> {
@@ -24,5 +25,6 @@ export async function getAdminProfile(): Promise<AdminProfile> {
     name,
     roleLabel: getRoleLabel(authorizedUser.role),
     initial: getAvatarInitial(session?.user?.name, email),
+    role: authorizedUser.role,
   };
 }

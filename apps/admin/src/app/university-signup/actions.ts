@@ -5,6 +5,7 @@ import { createStudentSession, registerUniversityAdminWithGoogle } from "@tablin
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
+import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
 
 export type UniversitySignupActionState = {
   message: string | null;
@@ -78,6 +79,7 @@ export async function registerUniversityAction(
       ...sessionCookieConfig.options,
       expires: session.expires,
     });
+    await notifySuperAdminOfPendingUniversity(result.userId);
     redirect("/university-pending");
   }
 

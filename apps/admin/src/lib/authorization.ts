@@ -12,3 +12,14 @@ export async function requireAdminAccess() {
     throw error;
   }
 }
+
+export async function requireSuperAdminAccess() {
+  try {
+    return await requireRole("admin", ["super_admin"]);
+  } catch (error) {
+    if (error instanceof SessionRequiredError) redirect("/api/auth/signin");
+    if (error instanceof AuthorizationDeniedError) forbidden();
+    throw error;
+  }
+}
+
