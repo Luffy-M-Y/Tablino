@@ -1,5 +1,16 @@
 export { db } from "./client";
-export { getDashboardCounts } from "./dashboard";
+export { getDashboardCounts, getSuperAdminDashboardData } from "./dashboard";
+export type {
+  SuperAdminStatusTotals,
+  SuperAdminUniversityRow,
+  SuperAdminDashboardData,
+} from "./dashboard";
+export { getSuperAdminRevenue } from "./revenue";
+export type {
+  SuperAdminRevenueRow,
+  SuperAdminRevenueTotals,
+  SuperAdminRevenueData,
+} from "./revenue";
 export {
   createResource,
   createAssignment,
@@ -146,3 +157,12 @@ export {
   verifyEmailCode,
 } from "./email-verification";
 export type { IssueEmailVerificationResult, VerifyEmailCodeResult } from "./email-verification";
+export {
+  listPendingUniversitiesForApproval,
+  approveUniversity,
+} from "./university-approval";
+export type {
+  PendingUniversityApprovalRow,
+  ApproveUniversityInput,
+  ApproveUniversityResult,
+} from "./university-approval";
