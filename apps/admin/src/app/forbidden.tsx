@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { isCurrentUserApprovedUniversityAdmin } from "@/lib/approved-university-admin";
 import { isCurrentUserPendingUniversityAdmin } from "@/lib/pending-university-admin";
 
 export default async function ForbiddenPage() {
   if (await isCurrentUserPendingUniversityAdmin()) {
     redirect("/university-pending");
+  }
+
+  if (await isCurrentUserApprovedUniversityAdmin()) {
+    redirect("/partenariat");
   }
 
   return (
