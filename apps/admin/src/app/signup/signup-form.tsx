@@ -2,6 +2,12 @@
 
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from "@/lib/phone-countries";
 import { useActionState, useState } from "react";
+import {
+  errorClass,
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+} from "@/components/auth-ui";
 import { signupAction, type SignupActionState } from "./actions";
 
 const initialState: SignupActionState = {
@@ -33,8 +39,8 @@ export function SignupForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div>
-        <label htmlFor="universityName" className="mb-2 block font-medium">
-          Nom complet de l'université
+        <label htmlFor="universityName" className={labelClass}>
+          Nom complet de l'universit&eacute;
         </label>
         <input
           id="universityName"
@@ -46,11 +52,11 @@ export function SignupForm() {
           required
           value={universityName}
           onChange={(e) => setUniversityName(e.target.value)}
-          className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="acronym" className="mb-2 block font-medium">
+        <label htmlFor="acronym" className={labelClass}>
           Acronyme
         </label>
         <input
@@ -61,12 +67,12 @@ export function SignupForm() {
           required
           value={acronym}
           onChange={(e) => setAcronym(e.target.value)}
-          className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="phone" className="mb-2 block font-medium">
-          Téléphone
+        <label htmlFor="phone" className={labelClass}>
+          T&eacute;l&eacute;phone
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="sm:w-52">
@@ -78,7 +84,7 @@ export function SignupForm() {
               name="phoneCountry"
               disabled
               value={DEFAULT_PHONE_COUNTRY.code}
-              className="w-full rounded border border-[color:var(--color-border)] bg-slate-50 px-3 py-2 text-[color:var(--color-text)] cursor-not-allowed opacity-90"
+              className="h-11 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-page-background)] px-3 text-base text-[color:var(--color-text)] cursor-not-allowed opacity-90"
             >
               {PHONE_COUNTRIES.map((country) => (
                 <option key={country.code} value={country.code}>
@@ -98,13 +104,13 @@ export function SignupForm() {
               placeholder="Ex. 70 12 34 56"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+              className={inputClass}
             />
           </div>
         </div>
       </div>
       <div>
-        <label htmlFor="email" className="mb-2 block font-medium">
+        <label htmlFor="email" className={labelClass}>
           Adresse e-mail
         </label>
         <input
@@ -115,11 +121,11 @@ export function SignupForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-2 block font-medium">
+        <label htmlFor="password" className={labelClass}>
           Mot de passe
         </label>
         <input
@@ -132,11 +138,11 @@ export function SignupForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="passwordConfirmation" className="mb-2 block font-medium">
+        <label htmlFor="passwordConfirmation" className={labelClass}>
           Confirmation du mot de passe
         </label>
         <input
@@ -149,19 +155,21 @@ export function SignupForm() {
           required
           value={passwordConfirmation}
           onChange={(e) => setPasswordConfirmation(e.target.value)}
-          className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         />
       </div>
+      {state.message !== null && (
+        <p role="alert" className={errorClass}>
+          {state.message}
+        </p>
+      )}
       <button
         type="submit"
         disabled={isSubmitDisabled}
-        className="w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-3 font-semibold text-white disabled:opacity-60"
+        className={primaryButtonClass}
       >
-        {pending ? "Création en cours…" : "Créer le compte"}
+        {pending ? "Cr\u00e9ation en cours\u2026" : "Cr\u00e9er le compte"}
       </button>
-      {state.message !== null && (
-        <p role="alert" className="text-sm text-red-700">{state.message}</p>
-      )}
     </form>
   );
 }

@@ -4,6 +4,14 @@ import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from "@/lib/phone-countries";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
+  authCardClass,
+  errorClass,
+  inputClass,
+  labelClass,
+  linkClass,
+  primaryButtonClass,
+} from "@/components/auth-ui";
+import {
   registerUniversityAction,
   type UniversitySignupActionState,
 } from "./actions";
@@ -36,17 +44,21 @@ export function UniversitySignupForm({
     !phone.trim();
 
   return (
-    <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)] sm:p-8">
-      <p className="mb-6 text-sm text-slate-600">Compte Google : {email}</p>
-      {state.message && (
-        <p role="alert" className="mb-4 text-sm text-red-700">{state.message}</p>
+    <section className={authCardClass}>
+      <p className="mb-4 text-sm text-[color:var(--color-muted-foreground)]">
+        Compte Google : {email}
+      </p>
+      {!state.showForm && state.message !== null && (
+        <p role="alert" className={`mb-4 ${errorClass}`}>
+          {state.message}
+        </p>
       )}
       {state.showForm && (
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="token" value={token} />
           <div>
-            <label htmlFor="universityName" className="mb-2 block font-medium">
-              Nom de l'université
+            <label htmlFor="universityName" className={labelClass}>
+              Nom de l'universit&eacute;
             </label>
             <input
               id="universityName"
@@ -58,11 +70,11 @@ export function UniversitySignupForm({
               value={universityName}
               onChange={(e) => setUniversityName(e.target.value)}
               autoComplete="organization"
-              className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+              className={inputClass}
             />
           </div>
           <div>
-            <label htmlFor="acronym" className="mb-2 block font-medium">
+            <label htmlFor="acronym" className={labelClass}>
               Acronyme
             </label>
             <input
@@ -73,12 +85,12 @@ export function UniversitySignupForm({
               required
               value={acronym}
               onChange={(e) => setAcronym(e.target.value)}
-              className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+              className={inputClass}
             />
           </div>
           <div>
-            <label htmlFor="phone" className="mb-2 block font-medium">
-              Téléphone
+            <label htmlFor="phone" className={labelClass}>
+              T&eacute;l&eacute;phone
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <div className="sm:w-52">
@@ -90,7 +102,7 @@ export function UniversitySignupForm({
                   name="phoneCountry"
                   disabled
                   value={DEFAULT_PHONE_COUNTRY.code}
-                  className="w-full rounded border border-[color:var(--color-border)] bg-slate-50 px-3 py-2 text-[color:var(--color-text)] cursor-not-allowed opacity-90"
+                  className="h-11 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-page-background)] px-3 text-base text-[color:var(--color-text)] cursor-not-allowed opacity-90"
                 >
                   {PHONE_COUNTRIES.map((country) => (
                     <option key={country.code} value={country.code}>
@@ -110,27 +122,31 @@ export function UniversitySignupForm({
                   placeholder="Ex. 70 12 34 56"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+                  className={inputClass}
                 />
               </div>
             </div>
           </div>
+          {state.message !== null && (
+            <p role="alert" className={errorClass}>
+              {state.message}
+            </p>
+          )}
           <button
             type="submit"
             disabled={isSubmitDisabled}
-            className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 font-semibold text-white disabled:opacity-60"
+            className={primaryButtonClass}
           >
-            {pending ? "Envoi en cours…" : "Créer l'université"}
+            {pending ? "Envoi en cours\u2026" : "Cr\u00e9er l'universit\u00e9"}
           </button>
         </form>
       )}
       {state.showLoginLink && (
-        <Link
-          href="/api/auth/signin"
-          className="inline-block font-semibold text-[color:var(--color-university-primary)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
-        >
-          Aller à la connexion admin
-        </Link>
+        <div className="mt-4">
+          <Link href="/api/auth/signin" className={linkClass}>
+            Aller &agrave; la connexion admin
+          </Link>
+        </div>
       )}
     </section>
   );
