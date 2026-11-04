@@ -166,3 +166,12 @@ export type {
   ApproveUniversityInput,
   ApproveUniversityResult,
 } from "./university-approval";
+export {
+  getUniversityPartnershipInfo,
+  completeUniversityPartnership,
+} from "./university-partnership";
+export type {
+  UniversityPartnershipInfo,
+  CompleteUniversityPartnershipInput,
+  CompleteUniversityPartnershipResult,
+} from "./university-partnership";

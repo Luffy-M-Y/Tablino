@@ -37,6 +37,9 @@ export const universityPayoutDetails = pgTable("university_payout_details", {
   mobileMoneyOperator: text("mobile_money_operator").notNull(),
   mobileMoneyHolderName: text("mobile_money_holder_name").notNull(),
   mobileMoneyNumberEncrypted: text("mobile_money_number_encrypted").notNull(),
+  contractVersion: text("contract_version").notNull(),
+  contractAcceptedAt: timestamp("contract_accepted_at").notNull(),
+  acceptedShareBps: integer("accepted_share_bps").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
