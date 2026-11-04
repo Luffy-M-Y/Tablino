@@ -7,7 +7,7 @@ import { UserMenu } from "./UserMenu";
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-50 bg-uni-900 shadow-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[color:var(--color-band)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link
@@ -15,8 +15,8 @@ export function Navbar() {
             aria-label="Tablino — retour à l'accueil"
             className="flex items-center gap-2 shrink-0"
           >
-            <GraduationCap size={28} className="text-uni-100" aria-hidden="true" />
-            <span className="text-white font-bold text-lg leading-tight hidden sm:block">
+            <GraduationCap size={28} className="text-[color:var(--color-on-band)]" aria-hidden="true" />
+            <span className="text-[color:var(--color-on-band)] font-bold text-lg leading-tight hidden sm:block">
               Tablino
             </span>
           </Link>

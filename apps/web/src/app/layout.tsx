@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`h-full antialiased ${jakarta.variable}`}>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
+      <body className="min-h-full flex flex-col bg-[color:var(--color-page-background)] text-[color:var(--color-text)]">
         <Navbar />
         <main id="main-content" className="flex-1">
           {children}

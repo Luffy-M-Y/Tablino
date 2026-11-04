@@ -26,11 +26,11 @@ export function NavLinks() {
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                ${active
-                  ? "bg-uni-600 text-white"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
-                }`}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                active
+                  ? "bg-[color:var(--color-primary)] text-white"
+                  : "text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)]"
+              }`}
             >
               <Icon size={16} aria-hidden="true" />
               {label}
@@ -41,7 +41,7 @@ export function NavLinks() {
 
       {/* Mobile burger */}
       <button
-        className="md:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+        className="md:hidden p-2 rounded-lg text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)] transition-colors"
         aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
         aria-expanded={open}
         aria-controls="mobile-menu"
@@ -54,7 +54,7 @@ export function NavLinks() {
       {open && (
         <div
           id="mobile-menu"
-          className="absolute top-full left-0 right-0 bg-uni-900 border-t border-white/10 md:hidden z-50"
+          className="absolute top-full left-0 right-0 bg-[color:var(--color-band)] border-t border-white/10 md:hidden z-50"
         >
           <nav aria-label="Navigation mobile" className="flex flex-col p-3 gap-1">
             {links.map(({ href, label, icon: Icon }) => {
@@ -65,11 +65,11 @@ export function NavLinks() {
                   href={href}
                   aria-current={active ? "page" : undefined}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors
-                    ${active
-                      ? "bg-uni-600 text-white"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-[color:var(--color-primary)] text-white"
+                      : "text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)]"
+                  }`}
                 >
                   <Icon size={18} aria-hidden="true" />
                   {label}
