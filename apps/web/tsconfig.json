@@ -21,7 +21,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@tablino/db": ["../../packages/db/src/index.ts"],
-      "@tablino/auth": ["../../packages/auth/src/index.ts"]
+      "@tablino/auth": ["../../packages/auth/src/index.ts"],
+      "@tablino/email": ["../../packages/email/src/index.ts"]
     }
   },
   "include": [

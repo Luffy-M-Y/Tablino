@@ -8,14 +8,12 @@ import { isUuid } from "./structure-action-utils.mjs";
 export function selectUniversityId({
   role,
   sessionUniversityId,
-  configuredUniversityId,
+  configuredUniversityId: _configuredUniversityId,
   knownUniversityIds,
 }) {
   const candidate = role === "university_admin"
     ? sessionUniversityId
-    : role === "super_admin"
-      ? configuredUniversityId
-      : null;
+    : null;
 
   if (!isUuid(candidate) || !Array.isArray(knownUniversityIds)) return null;
   return knownUniversityIds.includes(candidate) ? candidate : null;

@@ -1,4 +1,8 @@
-import { getDashboardCounts } from "@tablino/db";
+import {
+  getDashboardCounts,
+  getSuperAdminDashboardData,
+  getSuperAdminRevenue as fetchSuperAdminRevenue,
+} from "@tablino/db";
 import {
   AuthorizationDeniedError,
   requireRole,
@@ -22,4 +26,24 @@ export async function getDashboardCountsForUniversity(universityId: string) {
   }
 
   return getDashboardCounts(universityId);
+}
+
+export async function getSuperAdminDashboard() {
+  try {
+    await requireRole("admin", ["super_admin"]);
+  } catch (error) {
+    return handleGuardError(error);
+  }
+
+  return getSuperAdminDashboardData();
+}
+
+export async function getSuperAdminRevenue() {
+  try {
+    await requireRole("admin", ["super_admin"]);
+  } catch (error) {
+    return handleGuardError(error);
+  }
+
+  return fetchSuperAdminRevenue();
 }

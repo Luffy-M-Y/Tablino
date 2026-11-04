@@ -14,13 +14,13 @@ test("selects the known session university for a university admin", () => {
   }), universityA);
 });
 
-test("selects the known configured university for a super admin", () => {
+test("returns null for super_admin even with configured university (UNIVERSITY_ID ignored)", () => {
   assert.equal(selectUniversityId({
     role: "super_admin",
     sessionUniversityId: universityA,
     configuredUniversityId: universityB,
     knownUniversityIds: [universityA, universityB],
-  }), universityB);
+  }), null);
 });
 
 test("rejects roles outside the admin roles", () => {
@@ -43,9 +43,9 @@ test("rejects invalid UUIDs", () => {
 
 test("rejects unknown universities", () => {
   assert.equal(selectUniversityId({
-    role: "super_admin",
-    sessionUniversityId: universityA,
-    configuredUniversityId: universityB,
+    role: "university_admin",
+    sessionUniversityId: universityB,
+    configuredUniversityId: universityA,
     knownUniversityIds: [universityA],
   }), null);
 });

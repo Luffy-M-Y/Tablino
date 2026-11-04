@@ -1,5 +1,16 @@
 export { db } from "./client";
-export { getDashboardCounts } from "./dashboard";
+export { getDashboardCounts, getSuperAdminDashboardData } from "./dashboard";
+export type {
+  SuperAdminStatusTotals,
+  SuperAdminUniversityRow,
+  SuperAdminDashboardData,
+} from "./dashboard";
+export { getSuperAdminRevenue } from "./revenue";
+export type {
+  SuperAdminRevenueRow,
+  SuperAdminRevenueTotals,
+  SuperAdminRevenueData,
+} from "./revenue";
 export {
   createResource,
   createAssignment,
@@ -116,6 +127,8 @@ export {
   getStudentEmailById,
   SESSION_MAX_AGE_DAYS,
 } from "./login";
+export { authenticateUniversityAdmin } from "./university-admin-login";
+export type { AuthenticateUniversityAdminResult } from "./university-admin-login";
 export {
   RATE_LIMITS,
   hashAttemptKey,
@@ -130,6 +143,10 @@ export { getPublishedSearchCatalog } from "./search-catalog-query";
 export { googleEmailMatchesUser, markGoogleEmailVerified } from "./google-link";
 export { registerGoogleStudentWithCode } from "./google-signup";
 export type { RegisterGoogleStudentResult } from "./google-signup";
+export { registerUniversityAdminWithGoogle } from "./university-signup";
+export type { RegisterUniversityAdminWithGoogleResult } from "./university-signup";
+export { registerUniversityAdminWithPassword } from "./university-password-signup";
+export type { RegisterUniversityAdminWithPasswordResult } from "./university-password-signup";
 export {
   EMAIL_CODE_TTL_MS,
   EMAIL_CODE_MAX_ATTEMPTS,
@@ -140,3 +157,21 @@ export {
   verifyEmailCode,
 } from "./email-verification";
 export type { IssueEmailVerificationResult, VerifyEmailCodeResult } from "./email-verification";
+export {
+  listPendingUniversitiesForApproval,
+  approveUniversity,
+} from "./university-approval";
+export type {
+  PendingUniversityApprovalRow,
+  ApproveUniversityInput,
+  ApproveUniversityResult,
+} from "./university-approval";
+export {
+  getUniversityPartnershipInfo,
+  completeUniversityPartnership,
+} from "./university-partnership";
+export type {
+  UniversityPartnershipInfo,
+  CompleteUniversityPartnershipInput,
+  CompleteUniversityPartnershipResult,
+} from "./university-partnership";

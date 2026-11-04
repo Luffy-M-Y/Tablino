@@ -20,15 +20,7 @@ export async function getCurrentUniversity(): Promise<CurrentUniversity | null> 
   }
 
   if (user.role === "super_admin") {
-    const universities = await getStructureUniversities();
-    const id = selectUniversityId({
-      role: user.role,
-      sessionUniversityId: user.universityId,
-      configuredUniversityId,
-      knownUniversityIds: universities.map((university) => university.id),
-    });
-    const university = universities.find((candidate) => candidate.id === id);
-    return university ? { id: university.id, name: university.name } : null;
+    return null;
   }
 
   if (user.role === "university_admin" && user.universityId) {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
-import { ADMIN_MENU_ITEMS } from "@/lib/admin-menu.mjs";
+import { getAdminMenuItems } from "@/lib/admin-menu.mjs";
 import AdminSearchBox from "@/components/admin-search-box";
 
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]";
@@ -15,6 +15,7 @@ type AdminProfile = {
   name: string | null;
   roleLabel: string;
   initial: string;
+  role?: string;
 };
 
 export function AdminShell({
@@ -26,6 +27,7 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const menuItems = getAdminMenuItems(profile.role);
 
   return (
     <div className="min-h-screen bg-[color:var(--color-page-background)] text-[color:var(--color-text)]">
@@ -69,7 +71,7 @@ export function AdminShell({
         >
           <nav aria-label="Navigation principale">
             <ul className="space-y-2">
-              {ADMIN_MENU_ITEMS.map((item) => {
+              {menuItems.map((item) => {
                 if (item.disabled) {
                   return (
                     <li key={item.id}>

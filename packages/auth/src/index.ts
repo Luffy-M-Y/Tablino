@@ -12,6 +12,7 @@ import { getServerSession } from "next-auth/next";
 import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@tablino/db";
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
+import { createUniversitySignupToken } from "./university-signup-token";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 
@@ -323,6 +324,7 @@ export function getSessionCookieConfig(surface: AuthSurface) {
 export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
   return {
     adapter: createDrizzleAdapter(context),
+    ...(context.surface === "admin" ? { pages: { signIn: "/login" } } : {}),
     providers: [GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -371,15 +373,19 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const storedUser = linkedUser ?? emailUser;
 
         if (!storedUser) {
-          if (context.surface !== "web") return false;
-          await context.getCurrentUniversityId();
-          googleEmailsByAccount.delete(account.providerAccountId);
-          return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken({
+          const payload = {
             email: email,
             name: user.name ?? null,
             image: user.image ?? null,
             providerAccountId: account.providerAccountId,
-          }));
+          };
+          if (context.surface === "web") {
+            await context.getCurrentUniversityId();
+            googleEmailsByAccount.delete(account.providerAccountId);
+            return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken(payload));
+          }
+          googleEmailsByAccount.delete(account.providerAccountId);
+          return "/university-signup?token=" + encodeURIComponent(createUniversitySignupToken(payload));
         }
 
         if (context.surface === "web") {
@@ -418,11 +424,15 @@ const guards = createAuthGuards({
       id: schema.users.id,
       role: schema.users.role,
       universityId: schema.users.universityId,
+      universityStatus: schema.universities.status,
       revokedAt: schema.users.revokedAt,
       trialEndsAt: schema.users.trialEndsAt,
       subscriptionExpiresAt: schema.users.subscriptionExpiresAt,
       currentPlan: schema.users.currentPlan,
-    }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    }).from(schema.users)
+      .leftJoin(schema.universities, eq(schema.users.universityId, schema.universities.id))
+      .where(eq(schema.users.id, userId))
+      .limit(1);
     return user ?? null;
   },
 });
@@ -448,6 +458,12 @@ export {
   GOOGLE_SIGNUP_TOKEN_TTL_MS,
 } from "./google-signup-token";
 export type { GoogleSignupPayload } from "./google-signup-token";
+export {
+  createUniversitySignupToken,
+  verifyUniversitySignupToken,
+  UNIVERSITY_SIGNUP_TOKEN_TTL_MS,
+} from "./university-signup-token";
+export type { UniversitySignupPayload } from "./university-signup-token";
 export {
   createEmailVerificationToken,
   verifyEmailVerificationToken,

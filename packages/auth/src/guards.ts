@@ -5,6 +5,7 @@ export type GuardUser = {
   id: string;
   role: GuardRole;
   universityId: string | null;
+  universityStatus: "pending" | "approved" | "active" | null;
   revokedAt: Date | null;
   trialEndsAt: Date | null;
   subscriptionExpiresAt: Date | null;
@@ -54,7 +55,14 @@ export function createAuthGuards(dependencies: GuardDependencies) {
     allowedRoles: readonly GuardRole[],
   ): Promise<GuardUser> {
     const user = await requireSession(surface);
-    if (!surfaceRoles[surface].includes(user.role) || !allowedRoles.includes(user.role)) {
+    if (
+      !surfaceRoles[surface].includes(user.role)
+      || !allowedRoles.includes(user.role)
+      || (
+        user.role === "university_admin"
+        && (user.universityStatus === "pending" || user.universityStatus === "approved")
+      )
+    ) {
       throw new AuthorizationDeniedError();
     }
     return user;
@@ -65,6 +73,12 @@ export function createAuthGuards(dependencies: GuardDependencies) {
     universityId: string,
   ): Promise<GuardUser> {
     const user = await requireSession(surface);
+    if (
+      user.role === "university_admin"
+      && (user.universityStatus === "pending" || user.universityStatus === "approved")
+    ) {
+      throw new AuthorizationDeniedError();
+    }
     if (user.role === "super_admin") return user;
 
     if (user.role === "university_admin" && user.universityId === universityId) return user;

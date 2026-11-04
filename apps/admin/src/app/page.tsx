@@ -1,7 +1,13 @@
 import AdminPage from "@/components/admin-page";
 import { ADMIN_HOME_CARDS } from "@/lib/admin-home-cards.mjs";
 import { getCurrentUniversity } from "@/lib/current-university";
-import { getDashboardCountsForUniversity } from "@/lib/dashboard-queries";
+import {
+  getDashboardCountsForUniversity,
+  getSuperAdminDashboard,
+  getSuperAdminRevenue,
+} from "@/lib/dashboard-queries";
+import { formatAmount } from "@/lib/format-amount.mjs";
+import { requireAdminAccess } from "@/lib/authorization";
 import Link from "next/link";
 
 const COUNT_LABELS = [
@@ -12,9 +18,139 @@ const COUNT_LABELS = [
   ["assignments", "Devoirs publiés"],
 ] as const;
 
-export default async function HomePage() {
-  const university = await getCurrentUniversity();
+const STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  approved: "Validée",
+  active: "Active",
+};
 
+export default async function HomePage() {
+  const user = await requireAdminAccess();
+
+  if (user.role === "super_admin") {
+    const [{ totalStudents, statusTotals, universities }, revenueData] = await Promise.all([
+      getSuperAdminDashboard(),
+      getSuperAdminRevenue(),
+    ]);
+
+    return (
+      <AdminPage title="Tableau de bord" breadcrumbs={[{ label: "Accueil" }]}>
+        <section aria-labelledby="status-totals-heading" className="mb-8">
+          <h2 id="status-totals-heading" className="mb-4 text-xl font-semibold">
+            Universités par statut
+          </h2>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]">
+              <dt className="text-sm text-slate-600">En attente</dt>
+              <dd className="mt-2 text-2xl font-semibold text-amber-600">
+                {statusTotals.pending}
+              </dd>
+            </div>
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]">
+              <dt className="text-sm text-slate-600">Validées</dt>
+              <dd className="mt-2 text-2xl font-semibold text-blue-600">
+                {statusTotals.approved}
+              </dd>
+            </div>
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]">
+              <dt className="text-sm text-slate-600">Actives</dt>
+              <dd className="mt-2 text-2xl font-semibold text-emerald-600">
+                {statusTotals.active}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="overview-totals-heading" className="mb-8">
+          <h2 id="overview-totals-heading" className="sr-only">
+            Totaux généraux
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]">
+              <span className="text-sm text-slate-600">Étudiants (toutes universités)</span>
+              <p className="mt-2 text-2xl font-semibold text-[color:var(--color-university-primary)]">
+                {totalStudents}
+              </p>
+            </div>
+            <Link
+              href="/revenus"
+              className="block rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)] transition hover:border-[color:var(--color-university-primary)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-university-primary)]"
+            >
+              <span className="text-sm text-slate-600">Revenu total</span>
+              <p className="mt-2 text-2xl font-semibold text-emerald-600">
+                {formatAmount(revenueData.totals.totalPaid)}
+              </p>
+            </Link>
+          </div>
+        </section>
+
+        <section aria-labelledby="universities-list-heading">
+          <h2 id="universities-list-heading" className="mb-4 text-xl font-semibold">
+            Universités
+          </h2>
+          {universities.length === 0 ? (
+            <p className="text-slate-600">Aucune université enregistrée.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white shadow-[var(--shadow-subtle)]">
+              <table className="min-w-full divide-y divide-[color:var(--color-border)] text-left text-sm">
+                <thead className="bg-slate-50 text-slate-600 font-medium">
+                  <tr>
+                    <th scope="col" className="px-4 py-3">Université</th>
+                    <th scope="col" className="px-4 py-3">Statut</th>
+                    <th scope="col" className="px-4 py-3 text-right">Étudiants</th>
+                    <th scope="col" className="px-4 py-3 text-right">Ressources publiées</th>
+                    <th scope="col" className="px-4 py-3 text-right">Devoirs publiés</th>
+                    <th scope="col" className="px-4 py-3 text-right">Sessions ouvertes (non expirées)</th>
+                    <th scope="col" className="px-4 py-3 text-right">Dernière activité</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[color:var(--color-border)]">
+                  {universities.map((univ) => {
+                    const displayName = univ.acronym ? `${univ.name} (${univ.acronym})` : univ.name;
+                    const statusLabel = STATUS_LABELS[univ.status] ?? univ.status;
+                    const activityFormatted = univ.lastActivityAt
+                      ? new Intl.DateTimeFormat("fr-FR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        }).format(univ.lastActivityAt)
+                      : "—";
+
+                    return (
+                      <tr key={univ.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 font-medium text-[color:var(--color-text)]">
+                          {displayName}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              univ.status === "active"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : univ.status === "approved"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">{univ.studentsCount}</td>
+                        <td className="px-4 py-3 text-right">{univ.publishedResourcesCount}</td>
+                        <td className="px-4 py-3 text-right">{univ.publishedAssignmentsCount}</td>
+                        <td className="px-4 py-3 text-right">{univ.openSessionsCount}</td>
+                        <td className="px-4 py-3 text-right text-slate-500">{activityFormatted}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </AdminPage>
+    );
+  }
+
+  const university = await getCurrentUniversity();
   const counts = university
     ? await getDashboardCountsForUniversity(university.id)
     : null;
