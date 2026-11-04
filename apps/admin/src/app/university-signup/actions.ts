@@ -51,10 +51,20 @@ export async function registerUniversityAction(
     };
   }
 
-  const phoneValidation = parseAndValidateBurkinaPhone(phone);
-  if (!phoneValidation.ok) {
+  const trimmedAcronym = acronym.trim();
+  if (!trimmedAcronym) {
     return {
-      message: phoneValidation.error,
+      message: "L'acronyme de l'université est obligatoire.",
+      ...state,
+      showForm: true,
+      showLoginLink: false,
+    };
+  }
+
+  const phoneValidation = parseAndValidateBurkinaPhone(phone);
+  if (!phoneValidation.ok || !phoneValidation.phone) {
+    return {
+      message: !phoneValidation.ok ? phoneValidation.error : "Le numéro de téléphone est obligatoire.",
       ...state,
       showForm: true,
       showLoginLink: false,
@@ -67,7 +77,7 @@ export async function registerUniversityAction(
     name: payload.name,
     image: payload.image,
     providerAccountId: payload.providerAccountId,
-    acronym,
+    acronym: trimmedAcronym,
     phone: phoneValidation.phone,
   });
 

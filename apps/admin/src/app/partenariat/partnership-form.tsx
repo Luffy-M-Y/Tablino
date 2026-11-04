@@ -15,7 +15,15 @@ const initialState: PartnershipActionState = {
 
 export function PartnershipForm() {
   const [state, formAction, pending] = useActionState(completePartnershipAction, initialState);
+  const [holderName, setHolderName] = useState("");
+  const [phone, setPhone] = useState("");
   const [accepted, setAccepted] = useState(false);
+
+  const isSubmitDisabled =
+    pending ||
+    holderName.trim().length < 2 ||
+    !phone.trim() ||
+    !accepted;
 
   return (
     <form action={formAction} className="space-y-5">
@@ -58,6 +66,8 @@ export function PartnershipForm() {
           required
           minLength={2}
           maxLength={100}
+          value={holderName}
+          onChange={(e) => setHolderName(e.target.value)}
           placeholder="Ex. Nom Prénom ou Trésorerie"
           className="w-full rounded border border-[color:var(--color-border)] bg-white px-3 py-2 text-sm text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
         />
@@ -97,6 +107,8 @@ export function PartnershipForm() {
               required
               placeholder="Ex. 70 00 00 00"
               autoComplete="tel-national"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full rounded border border-[color:var(--color-border)] bg-white px-3 py-2 text-sm text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
             />
           </div>
@@ -129,7 +141,7 @@ export function PartnershipForm() {
       <div className="pt-4">
         <button
           type="submit"
-          disabled={pending || !accepted}
+          disabled={isSubmitDisabled}
           className="w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-subtle)] hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:opacity-60"
         >
           {pending ? "Validation en cours…" : "Accepter le contrat et finaliser le partenariat"}
@@ -138,4 +150,3 @@ export function PartnershipForm() {
     </form>
   );
 }
-
