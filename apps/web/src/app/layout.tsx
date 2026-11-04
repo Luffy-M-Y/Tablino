@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+
+const jakarta = localFont({
+  src: "../fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+  weight: "200 800",
+  display: "swap",
+  variable: "--font-jakarta",
+});
 
 export const metadata: Metadata = {
   title: "Tablino — Archive universitaire",
@@ -10,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className="h-full antialiased">
+    <html lang="fr" className={`h-full antialiased ${jakarta.variable}`}>
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">
         <Navbar />
         <main id="main-content" className="flex-1">
