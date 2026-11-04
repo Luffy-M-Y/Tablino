@@ -13,15 +13,15 @@ const initialState: LoginActionState = {
 const focusRing =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]";
 const labelClass =
-  "mb-2 block text-sm font-semibold text-[color:var(--color-text)]";
+  "mb-1.5 block text-sm font-semibold text-[color:var(--color-text)]";
 const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 text-base text-[color:var(--color-text)] ${focusRing}`;
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
-    <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 sm:p-8">
-      <form action={formAction} className="space-y-5">
+    <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6">
+      <form action={formAction} className="space-y-4">
         <div>
           <label htmlFor="email" className={labelClass}>
             Adresse e-mail
@@ -53,7 +53,7 @@ export function LoginForm() {
         {state.message !== null && (
           <p
             role="alert"
-            className="rounded-[var(--radius-rounded)] border border-[color:var(--color-destructive)] bg-white px-3 py-2 text-sm font-medium text-[color:var(--color-destructive)]"
+            className="rounded-[var(--radius-rounded)] border border-[color:var(--color-destructive)] bg-[color:var(--color-surface)] px-3 py-2 text-sm font-medium text-[color:var(--color-destructive-text)]"
           >
             {state.message}
           </p>
@@ -67,7 +67,7 @@ export function LoginForm() {
         </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
+      <div className="my-4 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
         <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
         ou
         <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
@@ -86,11 +86,11 @@ export function LoginForm() {
         </svg>
         Continuer avec Google
       </button>
-      <p className="mt-6 text-center text-sm text-[color:var(--color-muted-foreground)]">
+      <p className="mt-3 text-center text-sm text-[color:var(--color-muted-foreground)]">
         Vous n'avez pas de compte ?{" "}
         <Link
           href="/signup"
-          className={`inline-block px-1 py-3 font-semibold text-[color:var(--color-primary)] underline underline-offset-2 ${focusRing}`}
+          className={`inline-block px-1 py-3 font-semibold text-[color:var(--color-primary-text)] underline underline-offset-2 ${focusRing}`}
         >
           S'inscrire
         </Link>
