@@ -3,12 +3,16 @@ import "server-only";
 import { db, eq, schema } from "@tablino/db";
 import { sendUniversityApprovalAlertEmail } from "@tablino/email";
 import { resolveApprovalsUrl } from "./approval-alert-url.mjs";
+import { sendWithRetry } from "./send-with-retry.mjs";
 
 export { resolveApprovalsUrl };
 
 export async function notifySuperAdminOfPendingUniversity(userId: string): Promise<void> {
   const alertEmail = process.env.SUPER_ADMIN_ALERT_EMAIL?.trim();
-  if (!alertEmail) return;
+  if (!alertEmail) {
+    console.warn("[alerte-universite] variable absente");
+    return;
+  }
 
   try {
     const [user] = await db
@@ -25,24 +29,36 @@ export async function notifySuperAdminOfPendingUniversity(userId: string): Promi
       .where(eq(schema.users.id, userId))
       .limit(1);
 
-    if (
-      user?.role === "university_admin"
-      && user.emailVerified !== null
-      && user.universityStatus === "pending"
-      && user.universityName
-    ) {
-      const approvalsUrl = resolveApprovalsUrl(process.env.NEXTAUTH_URL);
+    const hasRole = user?.role === "university_admin";
+    const hasEmailVerified = Boolean(user && user.emailVerified !== null);
+    const hasPendingStatus = user?.universityStatus === "pending";
+    const universityName = user?.universityName?.trim();
+    const hasUniversityName = Boolean(universityName);
 
-      await sendUniversityApprovalAlertEmail(
+    if (!hasRole || !hasEmailVerified || !hasPendingStatus || !universityName) {
+      console.warn(
+        `[alerte-universite] conditions non remplies (role: ${hasRole}, emailVerified: ${hasEmailVerified}, status: ${hasPendingStatus}, nom: ${hasUniversityName})`,
+      );
+      return;
+    }
+
+    const approvalsUrl = resolveApprovalsUrl(process.env.NEXTAUTH_URL);
+
+    await sendWithRetry(() =>
+      sendUniversityApprovalAlertEmail(
         alertEmail,
         {
-          name: user.universityName,
-          acronym: user.universityAcronym,
+          name: universityName,
+          acronym: user?.universityAcronym,
         },
         approvalsUrl,
-      );
-    }
-  } catch {
-    // try/catch complet, ne lève jamais, ne logue aucune valeur
+      ),
+    );
+
+    console.log("[alerte-universite] alerte envoyee");
+  } catch (error: any) {
+    const errorName = error?.name ?? "Error";
+    const detail = error?.status ?? error?.cause?.code ?? error?.cause?.name ?? "inconnu";
+    console.error(`[alerte-universite] echec apres essais (${errorName}, ${detail})`);
   }
 }
