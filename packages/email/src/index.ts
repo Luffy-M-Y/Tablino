@@ -41,7 +41,10 @@ async function sendBrevoEmail({
   });
 
   if (!response.ok) {
-    throw new Error("Échec de l'envoi de l'email.");
+    const error = Object.assign(new Error("Échec de l'envoi de l'email."), {
+      status: response.status,
+    });
+    throw error;
   }
 }
 
