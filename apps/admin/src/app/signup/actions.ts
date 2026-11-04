@@ -34,9 +34,17 @@ export async function signupAction(
     return { ...state, message: "Les mots de passe ne correspondent pas." };
   }
 
+  const trimmedAcronym = acronym.trim();
+  if (!trimmedAcronym) {
+    return { ...state, message: "L'acronyme de l'université est obligatoire." };
+  }
+
   const phoneValidation = parseAndValidateBurkinaPhone(phone);
-  if (!phoneValidation.ok) {
-    return { ...state, message: phoneValidation.error };
+  if (!phoneValidation.ok || !phoneValidation.phone) {
+    return {
+      ...state,
+      message: !phoneValidation.ok ? phoneValidation.error : "Le numéro de téléphone est obligatoire.",
+    };
   }
 
   const limit = await checkRateLimit("signup_code", email);
@@ -46,7 +54,7 @@ export async function signupAction(
 
   const result = await registerUniversityAdminWithPassword({
     universityName,
-    acronym: acronym || null,
+    acronym: trimmedAcronym,
     phone: phoneValidation.phone,
     email,
     name: universityName,

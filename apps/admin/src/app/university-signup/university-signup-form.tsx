@@ -2,7 +2,7 @@
 
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from "@/lib/phone-countries";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   registerUniversityAction,
   type UniversitySignupActionState,
@@ -25,6 +25,15 @@ export function UniversitySignupForm({
   email: string;
 }) {
   const [state, formAction, pending] = useActionState(registerUniversityAction, initialState);
+  const [universityName, setUniversityName] = useState(state.universityName);
+  const [acronym, setAcronym] = useState(state.acronym);
+  const [phone, setPhone] = useState(state.phone);
+
+  const isSubmitDisabled =
+    pending ||
+    !universityName.trim() ||
+    !acronym.trim() ||
+    !phone.trim();
 
   return (
     <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)] sm:p-8">
@@ -46,8 +55,8 @@ export function UniversitySignupForm({
               minLength={1}
               maxLength={255}
               required
-              defaultValue={state.universityName}
-              key={state.universityName}
+              value={universityName}
+              onChange={(e) => setUniversityName(e.target.value)}
               autoComplete="organization"
               className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
             />
@@ -61,8 +70,9 @@ export function UniversitySignupForm({
               name="acronym"
               type="text"
               maxLength={20}
-              defaultValue={state.acronym}
-              key={state.acronym}
+              required
+              value={acronym}
+              onChange={(e) => setAcronym(e.target.value)}
               className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
             />
           </div>
@@ -95,10 +105,11 @@ export function UniversitySignupForm({
                   name="phone"
                   type="tel"
                   maxLength={32}
-                  autoComplete="tel"
+                  autoComplete="tel-national"
+                  required
                   placeholder="Ex. 70 12 34 56"
-                  defaultValue={state.phone}
-                  key={state.phone}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
                 />
               </div>
@@ -106,7 +117,7 @@ export function UniversitySignupForm({
           </div>
           <button
             type="submit"
-            disabled={pending}
+            disabled={isSubmitDisabled}
             className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 font-semibold text-white disabled:opacity-60"
           >
             {pending ? "Envoi en cours…" : "Créer l'université"}
