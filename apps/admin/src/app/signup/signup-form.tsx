@@ -1,7 +1,7 @@
 "use client";
 
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from "@/lib/phone-countries";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { signupAction, type SignupActionState } from "./actions";
 
 const initialState: SignupActionState = {
@@ -14,6 +14,21 @@ const initialState: SignupActionState = {
 
 export function SignupForm() {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
+  const [universityName, setUniversityName] = useState(state.universityName);
+  const [acronym, setAcronym] = useState(state.acronym);
+  const [phone, setPhone] = useState(state.phone);
+  const [email, setEmail] = useState(state.email);
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+
+  const isSubmitDisabled =
+    pending ||
+    !universityName.trim() ||
+    !acronym.trim() ||
+    !phone.trim() ||
+    !email.trim() ||
+    !password ||
+    !passwordConfirmation;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -29,8 +44,8 @@ export function SignupForm() {
           maxLength={255}
           autoComplete="organization"
           required
-          defaultValue={state.universityName}
-          key={state.universityName}
+          value={universityName}
+          onChange={(e) => setUniversityName(e.target.value)}
           className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
         />
       </div>
@@ -43,8 +58,9 @@ export function SignupForm() {
           name="acronym"
           type="text"
           maxLength={20}
-          defaultValue={state.acronym}
-          key={state.acronym}
+          required
+          value={acronym}
+          onChange={(e) => setAcronym(e.target.value)}
           className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
         />
       </div>
@@ -77,10 +93,11 @@ export function SignupForm() {
               name="phone"
               type="tel"
               maxLength={32}
-              autoComplete="tel"
+              autoComplete="tel-national"
+              required
               placeholder="Ex. 70 12 34 56"
-              defaultValue={state.phone}
-              key={state.phone}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
             />
           </div>
@@ -96,8 +113,8 @@ export function SignupForm() {
           type="email"
           autoComplete="email"
           required
-          defaultValue={state.email}
-          key={state.email}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
         />
       </div>
@@ -113,6 +130,8 @@ export function SignupForm() {
           minLength={8}
           maxLength={128}
           required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
         />
       </div>
@@ -128,12 +147,14 @@ export function SignupForm() {
           minLength={8}
           maxLength={128}
           required
+          value={passwordConfirmation}
+          onChange={(e) => setPasswordConfirmation(e.target.value)}
           className="w-full rounded border border-[color:var(--color-border)] px-3 py-2 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
         />
       </div>
       <button
         type="submit"
-        disabled={pending}
+        disabled={isSubmitDisabled}
         className="w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-3 font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Création en cours…" : "Créer le compte"}
