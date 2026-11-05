@@ -12,12 +12,13 @@ import {
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { SubjectCard } from "@/components/cards/SubjectCard";
+import { PageHero, mutedClass } from "@/components/ui/kit";
 
 const STEPS = [
-  { label: "Filière" },
+  { label: "Fili\u00e8re" },
   { label: "Niveau" },
-  { label: "Année" },
-  { label: "Matière" },
+  { label: "Ann\u00e9e" },
+  { label: "Mati\u00e8re" },
   { label: "Ressources" },
 ];
 
@@ -44,15 +45,7 @@ export default async function CoursMatieresPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="rounded-2xl bg-gradient-to-br from-uni-800 to-uni-600 text-white p-6 mb-6 flex items-center gap-4">
-        <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-white/15 shrink-0">
-          <BookOpen size={28} aria-hidden="true" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{programLabel} — {level.name} — {year}</h1>
-          <p className="text-white/75 text-sm">Choisissez une matière</p>
-        </div>
-      </div>
+      <PageHero variant="cours" icon={BookOpen} title={<>{programLabel} &mdash; {level.name} &mdash; {year}</>} subtitle="Choisissez une mati&egrave;re" />
 
       <Breadcrumb
         items={[
@@ -64,24 +57,25 @@ export default async function CoursMatieresPage({
       />
       <StepIndicator steps={STEPS} currentStep={4} variant="cours" />
 
-      <h2 className="text-xl font-bold text-slate-800 mb-1">Choisissez une matière</h2>
-      <p className="text-slate-500 text-sm mb-6">
-        Sélectionnez une matière pour accéder aux ressources.
+      <h2 className="text-xl font-bold text-[color:var(--color-text)] mb-1">Choisissez une mati&egrave;re</h2>
+      <p className={`text-sm ${mutedClass} mb-6`}>
+        S&eacute;lectionnez une mati&egrave;re pour acc&eacute;der aux ressources.
       </p>
 
       {subjects.length === 0 ? (
-        <p className="text-slate-500 text-sm py-8 text-center">
-          Aucune matière disponible pour cette année.
+        <p className={`text-sm ${mutedClass} py-8 text-center`}>
+          Aucune mati&egrave;re disponible pour cette ann&eacute;e.
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.map((s) => (
+          {subjects.map((s, i) => (
             <SubjectCard
               key={s.id}
               name={s.name}
               slug={s.slug}
               basePath={`/cours/${programSlug}/${levelSlug}/${year}`}
               variant="cours"
+              index={i}
             />
           ))}
         </div>

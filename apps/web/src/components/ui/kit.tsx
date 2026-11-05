@@ -10,7 +10,7 @@ export const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border bo
 
 export const primaryButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-primary)] px-4 font-semibold text-white transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
 
-export const accentButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-4 font-semibold text-[color:var(--color-on-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-accent)_85%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
+export const accentButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-4 font-semibold text-[color:var(--color-on-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
 
 export const secondaryButtonClass = `inline-flex h-11 w-full items-center justify-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-4 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`;
 
@@ -22,7 +22,7 @@ export const linkClass = `inline-block px-1 py-3 font-semibold text-[color:var(-
 export const authCardClass =
   "rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6";
 
-export const cardClass = `rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 transition-colors duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none ${focusRing}`;
+export const cardClass = `rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 transition-all duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none ${focusRing}`;
 
 export const mutedClass = "text-[color:var(--color-muted-foreground)]";
 
@@ -126,4 +126,3 @@ export function PageHero({
     </section>
   );
 }
-

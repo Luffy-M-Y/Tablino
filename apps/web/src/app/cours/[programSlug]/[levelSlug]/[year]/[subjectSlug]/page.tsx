@@ -12,18 +12,19 @@ import {
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
+import { PageHero, mutedClass, primaryButtonClass, cardClass } from "@/components/ui/kit";
 
 const STEPS = [
-  { label: "Filière" },
+  { label: "Fili\u00e8re" },
   { label: "Niveau" },
-  { label: "Année" },
-  { label: "Matière" },
+  { label: "Ann\u00e9e" },
+  { label: "Mati\u00e8re" },
   { label: "Ressources" },
 ];
 
 const FORMAT_LABELS: Record<string, string> = {
   pdf: "PDF",
-  video: "Vidéo",
+  video: "Vid\u00e9o",
   audio: "Audio",
   docx: "Word",
   pptx: "PowerPoint",
@@ -58,15 +59,7 @@ export default async function CoursRessourcesPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="rounded-2xl bg-gradient-to-br from-uni-800 to-uni-600 text-white p-6 mb-6 flex items-center gap-4">
-        <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-white/15 shrink-0">
-          <BookOpen size={28} aria-hidden="true" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{subjectLabel}</h1>
-          <p className="text-white/75 text-sm">{programLabel} — {level.name} — {year}</p>
-        </div>
-      </div>
+      <PageHero variant="cours" icon={BookOpen} title={subjectLabel} subtitle={<>{programLabel} &mdash; {level.name} &mdash; {year}</>} />
 
       <Breadcrumb
         items={[
@@ -79,14 +72,14 @@ export default async function CoursRessourcesPage({
       />
       <StepIndicator steps={STEPS} currentStep={5} variant="cours" />
 
-      <h2 className="text-xl font-bold text-slate-800 mb-1">Ressources disponibles</h2>
-      <p className="text-slate-500 text-sm mb-6">
-        {resources.length} ressource{resources.length !== 1 ? "s" : ""} publiée{resources.length !== 1 ? "s" : ""}
+      <h2 className="text-xl font-bold text-[color:var(--color-text)] mb-1">Ressources disponibles</h2>
+      <p className={`text-sm ${mutedClass} mb-6`}>
+        {resources.length} ressource{resources.length !== 1 ? "s" : ""} publi&eacute;e{resources.length !== 1 ? "s" : ""}
       </p>
 
       {resources.length === 0 ? (
-        <p className="text-slate-500 text-sm py-8 text-center">
-          Aucune ressource disponible pour cette matière.
+        <p className={`text-sm ${mutedClass} py-8 text-center`}>
+          Aucune ressource disponible pour cette mati&egrave;re.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
@@ -97,13 +90,13 @@ export default async function CoursRessourcesPage({
             return (
               <div
                 key={r.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className={`flex items-center justify-between gap-4 ${cardClass}`}
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-slate-800 truncate">{title}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="font-medium text-[color:var(--color-text)] truncate">{title}</p>
+                  <p className={`text-xs ${mutedClass} mt-0.5`}>
                     {FORMAT_LABELS[r.format] ?? r.format}
-                    {r.fileSizeBytes ? ` · ${Math.round(r.fileSizeBytes / 1024)} Ko` : ""}
+                    {r.fileSizeBytes ? ` \u00b7 ${Math.round(r.fileSizeBytes / 1024)} Ko` : ""}
                   </p>
                 </div>
 
@@ -113,7 +106,7 @@ export default async function CoursRessourcesPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Ouvrir ${title}`}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-uni-600 text-white text-sm font-medium hover:bg-uni-700 transition-colors shrink-0"
+                    className={`${primaryButtonClass} w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
                   >
                     <ExternalLink size={15} aria-hidden="true" />
                     Ouvrir
@@ -121,12 +114,12 @@ export default async function CoursRessourcesPage({
                 ) : (
                   <div
                     aria-disabled="true"
-                    aria-label="Téléchargement bientôt disponible"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium cursor-not-allowed shrink-0"
-                    title="Le téléchargement sera disponible prochainement"
+                    aria-label="T\u00e9l\u00e9chargement bient\u00f4t disponible"
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-rounded)] bg-[color:var(--color-page-background)] border border-[color:var(--color-border)] ${mutedClass} text-sm font-medium cursor-not-allowed shrink-0`}
+                    title="Le t\u00e9l\u00e9chargement sera disponible prochainement"
                   >
                     <Clock size={15} aria-hidden="true" />
-                    Bientôt disponible
+                    Bient&ocirc;t disponible
                   </div>
                 )}
               </div>
