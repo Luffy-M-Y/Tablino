@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui/kit";
 import { resendCodeAction, verifyCodeAction } from "./actions";
 
 export function VerificationForms() {
@@ -14,7 +15,7 @@ export function VerificationForms() {
   );
   const [secondsLeft, setSecondsLeft] = useState(0);
   useEffect(function () {
-    if (resendState.message === "Un nouveau code a été envoyé.") setSecondsLeft(60);
+    if (resendState.message === "Un nouveau code a \u00e9t\u00e9 envoy\u00e9.") setSecondsLeft(60);
   }, [resendState]);
   useEffect(function () {
     if (secondsLeft <= 0) return;
@@ -30,8 +31,8 @@ export function VerificationForms() {
     <div className="space-y-6">
       <form action={verifyAction} className="space-y-5">
         <div>
-          <label htmlFor="code" className="mb-1 block text-sm font-medium text-slate-700">
-            Code de vérification
+          <label htmlFor="code" className={labelClass}>
+            Code de v&eacute;rification
           </label>
           <input
             id="code"
@@ -41,30 +42,30 @@ export function VerificationForms() {
             autoComplete="one-time-code"
             maxLength={6}
             required
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+            className={inputClass}
           />
         </div>
         <button
           type="submit"
           disabled={verifyPending}
-          className="w-full rounded-xl bg-uni-800 px-4 py-3 font-semibold text-white hover:bg-uni-700 disabled:cursor-wait disabled:opacity-70"
+          className={primaryButtonClass}
         >
-          Vérifier
+          V&eacute;rifier
         </button>
         {verifyState.message !== null ? (
-          <p className="text-sm text-red-700" role="alert">{verifyState.message}</p>
+          <p className={errorClass} role="alert">{verifyState.message}</p>
         ) : null}
       </form>
       <form action={resendAction} className="space-y-3">
         <button
           type="submit"
           disabled={resendPending || secondsLeft > 0}
-          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-800 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-70"
+          className={secondaryButtonClass}
         >
           {secondsLeft > 0 ? "Renvoyer le code (" + secondsLeft + " s)" : "Renvoyer le code"}
         </button>
         {resendState.message !== null ? (
-          <p className="text-sm text-slate-600" role="status">{resendState.message}</p>
+          <p className={`text-sm ${mutedClass}`} role="status">{resendState.message}</p>
         ) : null}
       </form>
     </div>

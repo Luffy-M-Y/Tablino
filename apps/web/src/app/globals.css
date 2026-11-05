@@ -1,18 +1,6 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-uni-900: #0f2a5e;
-  --color-uni-800: #1a3a7a;
-  --color-uni-700: #1e4494;
-  --color-uni-600: #2251b8;
-  --color-uni-500: #3b6fd4;
-  --color-uni-100: #dce8fb;
-  --color-uni-50:  #f0f5fd;
-
-  --color-teal-700: #0f766e;
-  --color-teal-600: #0d9488;
-  --color-teal-100: #ccfbf1;
-
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }

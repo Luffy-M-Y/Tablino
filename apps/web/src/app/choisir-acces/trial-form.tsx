@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { errorClass, primaryButtonClass } from "@/components/ui/kit";
 import { startTrialAction } from "./actions";
 
 export function TrialForm() {
@@ -11,12 +12,12 @@ export function TrialForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-white px-4 py-3 font-semibold text-uni-800 shadow hover:bg-slate-100 disabled:cursor-wait disabled:opacity-70"
+        className={primaryButtonClass}
       >
-        Commencer l’essai gratuit (1 mois)
+        Commencer l&rsquo;essai gratuit (1 mois)
       </button>
       {state.message !== null ? (
-        <p className="mt-3 text-sm text-white" role="alert">{state.message}</p>
+        <p className={`mt-3 ${errorClass}`} role="alert">{state.message}</p>
       ) : null}
     </form>
   );
