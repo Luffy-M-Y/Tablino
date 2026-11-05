@@ -7,7 +7,7 @@ import { useState } from "react";
 import { getAdminMenuItems } from "@/lib/admin-menu.mjs";
 import AdminSearchBox from "@/components/admin-search-box";
 
-const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]";
+const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring-on-band)]";
 const headerFocusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
 type AdminProfile = {
@@ -53,11 +53,11 @@ export function AdminShell({
         <AdminSearchBox />
         <div className="flex items-center gap-3">
           <span className="max-w-48 truncate text-sm font-medium">{profile.name ?? profile.email ?? "Mon compte"}</span>
-          <span className="hidden text-xs text-white/70 sm:inline">{profile.roleLabel}</span>
+          <span className="hidden text-xs text-[color:var(--color-on-band-muted)] sm:inline">{profile.roleLabel}</span>
           <button
             type="button"
             onClick={() => { void signOut({ callbackUrl: "/" }); }}
-            className={"rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white " + headerFocusStyle}
+            className={"rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-on-band)] hover:bg-white/10 " + headerFocusStyle}
           >
             Déconnexion
           </button>
@@ -67,7 +67,7 @@ export function AdminShell({
       <div className="flex min-h-[calc(100vh-4rem)]">
         <aside
           id="admin-sidebar"
-          className={`${isSidebarOpen ? "fixed" : "hidden"} inset-y-16 left-0 z-30 w-72 border-r border-[color:var(--color-border)] bg-white p-5 shadow-[var(--shadow-subtle)] md:sticky md:top-16 md:block md:h-[calc(100vh-4rem)] md:shrink-0`}
+          className={`${isSidebarOpen ? "fixed" : "hidden"} inset-y-16 left-0 z-30 w-72 border-r border-[color:var(--color-band)] bg-[color:var(--color-band)] p-5 shadow-[var(--shadow-subtle)] md:sticky md:top-16 md:block md:h-[calc(100vh-4rem)] md:shrink-0`}
         >
           <nav aria-label="Navigation principale">
             <ul className="space-y-2">
@@ -77,7 +77,7 @@ export function AdminShell({
                     <li key={item.id}>
                       <span
                         aria-disabled="true"
-                        className="flex cursor-not-allowed items-center justify-between gap-3 rounded-[var(--radius-rounded)] px-3 py-2 text-slate-500"
+                        className="flex cursor-not-allowed items-center justify-between gap-3 rounded-[var(--radius-rounded)] px-3 py-2 text-[color:var(--color-on-band-muted)]"
                       >
                         <span>{item.label}</span>
                         <span className="text-xs">{item.availabilityLabel}</span>
@@ -96,8 +96,8 @@ export function AdminShell({
                       aria-current={isActive ? "page" : undefined}
                       onClick={() => setIsSidebarOpen(false)}
                       className={`block rounded-[var(--radius-rounded)] px-3 py-2 ${focusStyle} ${isActive
-                        ? "bg-blue-50 font-semibold text-[color:var(--color-university-primary)]"
-                        : "text-[color:var(--color-text)] hover:bg-slate-50"}`}
+                        ? "bg-[color:var(--color-primary)] font-semibold text-white"
+                        : "text-[color:var(--color-on-band)] hover:bg-white/10"}`}
                     >
                       {item.label}
                     </Link>
