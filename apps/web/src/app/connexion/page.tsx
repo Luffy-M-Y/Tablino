@@ -11,16 +11,16 @@ export default async function ConnexionPage() {
   if (await hasStudentSession()) redirect("/");
 
   return (
-    <AuthShell title="Connexion" wide>
+    <AuthShell title="Connexion">
       <div className={authCardClass}>
         <LoginForm />
-        <div className="my-6 flex items-center gap-3">
+        <div className="my-4 flex items-center gap-3">
           <span className="h-px flex-1 bg-[color:var(--color-border)]" />
           <span className={`text-sm ${mutedClass}`}>ou</span>
           <span className="h-px flex-1 bg-[color:var(--color-border)]" />
         </div>
         <GoogleSignInButton />
-        <p className={`mt-6 text-center text-sm ${mutedClass}`}>
+        <p className={`mt-3 text-center text-sm ${mutedClass}`}>
           Pas encore de compte ?{" "}
           <Link href="/inscription" className={linkClass}>
             S&rsquo;inscrire

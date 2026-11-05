@@ -10,7 +10,7 @@ export default async function InscriptionPage() {
   if (await hasStudentSession()) redirect("/");
 
   return (
-    <AuthShell title={<>Inscription &eacute;tudiante</>} wide>
+    <AuthShell title={<>Inscription &eacute;tudiante</>}>
       <div className={authCardClass}>
         <RegisterForm />
         <p className={`mt-6 text-center text-sm ${mutedClass}`}>

@@ -8,7 +8,7 @@ export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { message: null });
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="space-y-4">
       <div>
         <label htmlFor="email" className={labelClass}>
           Adresse e-mail

@@ -26,7 +26,7 @@ export default async function GoogleInscriptionPage({
   }
 
   return (
-    <AuthShell title="Inscription avec Google" wide>
+    <AuthShell title="Inscription avec Google">
       <div className={authCardClass}>
         {payload === null ? (
           <>

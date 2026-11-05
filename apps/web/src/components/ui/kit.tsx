@@ -61,7 +61,7 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex items-center justify-center px-4 py-10 sm:py-16">
+    <div className="mx-auto flex items-center justify-center px-4 py-6">
       <div className={`w-full ${wide ? "max-w-md" : "max-w-sm"}`}>
         <p className="mb-3 text-center text-sm font-bold uppercase tracking-widest text-[color:var(--color-band)]">
           Tablino

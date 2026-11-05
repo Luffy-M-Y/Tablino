@@ -24,7 +24,7 @@ export default async function VerificationPage() {
   }
 
   return (
-    <AuthShell title="V&eacute;rification de l'email" wide>
+    <AuthShell title="V&eacute;rification de l'email">
       <div className={authCardClass}>
         {userId === null ? (
           <>
