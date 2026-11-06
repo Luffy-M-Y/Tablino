@@ -13,6 +13,7 @@
     "@tablino/auth": "workspace:*",
     "@tablino/db": "workspace:*",
     "@tablino/email": "workspace:*",
+    "lucide-react": "^1.59.0",
     "next": "16.4.2",
     "next-auth": "^4.24.15",
     "pdf-lib": "^1.17.1",
