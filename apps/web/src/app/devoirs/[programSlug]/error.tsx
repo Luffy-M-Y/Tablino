@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { errorClass, accentButtonClass } from "@/components/ui/kit";
 
 export default function Error({
   error,
@@ -15,14 +16,14 @@ export default function Error({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 text-center">
-      <p className="text-slate-700 font-medium mb-4">
+      <p role="alert" className={`mb-4 ${errorClass}`}>
         Une erreur est survenue lors du chargement des niveaux.
       </p>
       <button
         onClick={retry}
-        className="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 transition-colors"
+        className={`${accentButtonClass} w-auto inline-flex items-center justify-center`}
       >
-        Réessayer
+        R&eacute;essayer
       </button>
     </div>
   );

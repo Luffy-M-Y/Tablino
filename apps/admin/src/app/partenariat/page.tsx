@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireApprovedUniversityAdmin } from "@/lib/authorization";
 import { getContractClauses } from "@/lib/partnership-contract.mjs";
 import { getUniversityPartnershipInfo } from "@tablino/db";
+import { linkClass } from "@/components/auth-ui";
 import { PartnershipForm } from "./partnership-form";
 
 export default async function PartenariatPage() {
@@ -16,25 +17,25 @@ export default async function PartenariatPage() {
   const contract = getContractClauses(info.revenueShareBps);
 
   return (
-    <main className="mx-auto min-h-screen max-w-2xl px-4 py-10 sm:px-6 sm:py-16">
+    <main className="min-h-screen bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6 sm:py-10"><div className="mx-auto max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[color:var(--color-text)] sm:text-3xl">
           Contrat de partenariat
         </h1>
         <Link
           href="/api/auth/signout"
-          className="text-sm font-semibold text-[color:var(--color-university-primary)] underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={linkClass}
         >
           Se déconnecter
         </Link>
       </div>
 
-      <section className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)] sm:p-8">
+      <section className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-subtle)] sm:p-8">
         <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
           {info.name}
         </h2>
-        <div className="space-y-5 text-sm text-slate-700">
-          <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-slate-50 p-4">
+        <div className="space-y-5 text-sm text-[color:var(--color-foreground)]">
+          <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-background)] p-4">
             <h3 className="mb-2 font-semibold text-[color:var(--color-text)]">
               Répartition des revenus
             </h3>
@@ -65,12 +66,13 @@ export default async function PartenariatPage() {
         </div>
       </section>
 
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)] sm:p-8">
+      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-subtle)] sm:p-8">
         <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
           Coordonnées de versement Mobile Money
         </h2>
         <PartnershipForm />
       </section>
+      </div>
     </main>
   );
 }

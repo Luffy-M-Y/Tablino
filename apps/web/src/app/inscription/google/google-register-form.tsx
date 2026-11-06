@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { registerGoogleAction } from "./actions";
 
 export function GoogleRegisterForm({ token }: { token: string }) {
@@ -10,8 +11,8 @@ export function GoogleRegisterForm({ token }: { token: string }) {
     <form action={action} className="space-y-5">
       <input type="hidden" name="token" value={token} />
       <div>
-        <label htmlFor="accessCode" className="mb-1 block text-sm font-medium text-slate-700">
-          Code d'accès
+        <label htmlFor="accessCode" className={labelClass}>
+          Code d&rsquo;acc&egrave;s
         </label>
         <input
           id="accessCode"
@@ -19,18 +20,18 @@ export function GoogleRegisterForm({ token }: { token: string }) {
           type="text"
           autoComplete="off"
           required
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          className={inputClass}
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-uni-800 px-4 py-3 font-semibold text-white hover:bg-uni-700 disabled:cursor-wait disabled:opacity-70"
+        className={primaryButtonClass}
       >
-        Créer mon compte
+        Cr&eacute;er mon compte
       </button>
       {state.message !== null ? (
-        <p className="text-sm text-red-700" role="alert">{state.message}</p>
+        <p className={errorClass} role="alert">{state.message}</p>
       ) : null}
     </form>
   );

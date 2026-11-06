@@ -1,15 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
+import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { loginAction } from "./actions";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, { message: null });
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="space-y-4">
       <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="email" className={labelClass}>
           Adresse e-mail
         </label>
         <input
@@ -18,11 +19,11 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          className={inputClass}
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="password" className={labelClass}>
           Mot de passe
         </label>
         <input
@@ -31,18 +32,18 @@ export function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900"
+          className={inputClass}
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-uni-800 px-4 py-3 font-semibold text-white hover:bg-uni-700 disabled:cursor-wait disabled:opacity-70"
+        className={primaryButtonClass}
       >
         Se connecter
       </button>
       {state.message !== null ? (
-        <p className="text-sm text-red-700" role="alert">{state.message}</p>
+        <p className={errorClass} role="alert">{state.message}</p>
       ) : null}
     </form>
   );

@@ -12,23 +12,24 @@ import {
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
+import { PageHero, mutedClass, cardClass } from "@/components/ui/kit";
 
 const STEPS = [
-  { label: "Filière" },
+  { label: "Fili\u00e8re" },
   { label: "Niveau" },
-  { label: "Année" },
-  { label: "Matière" },
+  { label: "Ann\u00e9e" },
+  { label: "Mati\u00e8re" },
   { label: "Devoirs" },
 ];
 
 function getDueStatus(dueDate: Date | null): { label: string; color: string; Icon: typeof Clock } {
-  if (!dueDate) return { label: "Pas d'échéance", color: "text-slate-400", Icon: Clock };
+  if (!dueDate) return { label: "Pas d'\u00e9ch\u00e9ance", color: mutedClass, Icon: Clock };
   const now = new Date();
   const diff = dueDate.getTime() - now.getTime();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  if (diff < 0) return { label: "Expiré", color: "text-red-500", Icon: AlertCircle };
-  if (days <= 7) return { label: `À rendre dans ${days} jour${days > 1 ? "s" : ""}`, color: "text-amber-500", Icon: Clock };
-  return { label: `À rendre le ${dueDate.toLocaleDateString("fr-FR")}`, color: "text-teal-600", Icon: CheckCircle };
+  if (diff < 0) return { label: "Expir\u00e9", color: "text-[color:var(--color-destructive-text)] font-semibold", Icon: AlertCircle };
+  if (days <= 7) return { label: "\u00c0 rendre dans " + days + " jour" + (days > 1 ? "s" : ""), color: "text-[color:var(--color-text)] font-semibold", Icon: Clock };
+  return { label: "\u00c0 rendre le " + dueDate.toLocaleDateString("fr-FR"), color: "text-[color:var(--color-primary-text)]", Icon: CheckCircle };
 }
 
 export default async function DevoirsListePage({
@@ -58,15 +59,7 @@ export default async function DevoirsListePage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="rounded-2xl bg-gradient-to-br from-teal-700 to-teal-600 text-white p-6 mb-6 flex items-center gap-4">
-        <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-white/15 shrink-0">
-          <FileText size={28} aria-hidden="true" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{subjectLabel}</h1>
-          <p className="text-white/75 text-sm">{programLabel} — {level.name} — {year}</p>
-        </div>
-      </div>
+      <PageHero variant="devoirs" icon={FileText} title={subjectLabel} subtitle={<>{programLabel} &mdash; {level.name} &mdash; {year}</>} />
 
       <Breadcrumb
         items={[
@@ -79,14 +72,14 @@ export default async function DevoirsListePage({
       />
       <StepIndicator steps={STEPS} currentStep={5} variant="devoirs" />
 
-      <h2 className="text-xl font-bold text-slate-800 mb-1">Devoirs publiés</h2>
-      <p className="text-slate-500 text-sm mb-6">
-        {assignments.length} devoir{assignments.length !== 1 ? "s" : ""} publié{assignments.length !== 1 ? "s" : ""}
+      <h2 className="text-xl font-bold text-[color:var(--color-text)] mb-1">Devoirs publi&eacute;s</h2>
+      <p className={`text-sm ${mutedClass} mb-6`}>
+        {assignments.length} devoir{assignments.length !== 1 ? "s" : ""} publi&eacute;{assignments.length !== 1 ? "s" : ""}
       </p>
 
       {assignments.length === 0 ? (
-        <p className="text-slate-500 text-sm py-8 text-center">
-          Aucun devoir disponible pour cette matière.
+        <p className={`text-sm ${mutedClass} py-8 text-center`}>
+          Aucun devoir disponible pour cette mati&egrave;re.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
@@ -97,13 +90,13 @@ export default async function DevoirsListePage({
             return (
               <div
                 key={a.id}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                className={cardClass}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-800">{title}</p>
+                    <p className="font-medium text-[color:var(--color-text)]">{title}</p>
                     {a.instructions && (
-                      <p className="text-sm text-slate-500 mt-1 line-clamp-2">{a.instructions}</p>
+                      <p className={`text-sm ${mutedClass} mt-1 line-clamp-2`}>{a.instructions}</p>
                     )}
                     <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${color}`}>
                       <StatusIcon size={13} aria-hidden="true" />
@@ -114,17 +107,17 @@ export default async function DevoirsListePage({
                   {a.fileKey ? (
                     <div
                       aria-disabled="true"
-                      aria-label="Téléchargement bientôt disponible"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium cursor-not-allowed shrink-0"
-                      title="Le téléchargement sera disponible prochainement"
+                      aria-label="T\u00e9l\u00e9chargement bient\u00f4t disponible"
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-rounded)] bg-[color:var(--color-page-background)] border border-[color:var(--color-border)] ${mutedClass} text-sm font-medium cursor-not-allowed shrink-0`}
+                      title="Le t\u00e9l\u00e9chargement sera disponible prochainement"
                     >
                       <Clock size={15} aria-hidden="true" />
-                      Bientôt disponible
+                      Bient&ocirc;t disponible
                     </div>
                   ) : (
                     <div
                       aria-label="Fichier non disponible"
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium cursor-not-allowed shrink-0"
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-rounded)] bg-[color:var(--color-page-background)] border border-[color:var(--color-border)] ${mutedClass} text-sm font-medium cursor-not-allowed shrink-0`}
                       title="Ce fichier n'est pas encore disponible"
                     >
                       <FileX size={15} aria-hidden="true" />

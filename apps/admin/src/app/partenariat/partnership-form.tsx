@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { inputClass, labelClass, errorClass, primaryButtonClass } from "@/components/auth-ui";
 import { ALLOWED_OPERATORS } from "@/lib/partnership-validation.mjs";
 import { DEFAULT_PHONE_COUNTRY, PHONE_COUNTRIES } from "@/lib/phone-countries";
 import {
@@ -28,13 +29,13 @@ export function PartnershipForm() {
   return (
     <form action={formAction} className="space-y-5">
       {state.message && (
-        <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className={errorClass}>
           {state.message}
         </div>
       )}
 
       <div>
-        <label htmlFor="operator" className="mb-2 block text-sm font-medium text-[color:var(--color-text)]">
+        <label htmlFor="operator" className={labelClass}>
           Opérateur Mobile Money
         </label>
         <select
@@ -42,7 +43,7 @@ export function PartnershipForm() {
           name="operator"
           required
           defaultValue={ALLOWED_OPERATORS[0]}
-          className="w-full rounded border border-[color:var(--color-border)] bg-white px-3 py-2 text-sm text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         >
           {ALLOWED_OPERATORS.map((op) => (
             <option key={op} value={op}>
@@ -51,12 +52,12 @@ export function PartnershipForm() {
           ))}
         </select>
         {state.errors?.operator && (
-          <p className="mt-1 text-xs text-red-600">{state.errors.operator}</p>
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-destructive-text)]">{state.errors.operator}</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="holderName" className="mb-2 block text-sm font-medium text-[color:var(--color-text)]">
+        <label htmlFor="holderName" className={labelClass}>
           Nom et prénom(s) du titulaire du compte
         </label>
         <input
@@ -69,15 +70,15 @@ export function PartnershipForm() {
           value={holderName}
           onChange={(e) => setHolderName(e.target.value)}
           placeholder="Ex. Nom Prénom ou Trésorerie"
-          className="w-full rounded border border-[color:var(--color-border)] bg-white px-3 py-2 text-sm text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={inputClass}
         />
         {state.errors?.holderName && (
-          <p className="mt-1 text-xs text-red-600">{state.errors.holderName}</p>
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-destructive-text)]">{state.errors.holderName}</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="phone" className="mb-2 block text-sm font-medium text-[color:var(--color-text)]">
+        <label htmlFor="phone" className={labelClass}>
           Numéro de téléphone Mobile Money
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -90,7 +91,7 @@ export function PartnershipForm() {
               name="phoneCountry"
               disabled
               value={DEFAULT_PHONE_COUNTRY.code}
-              className="w-full rounded border border-[color:var(--color-border)] bg-slate-50 px-3 py-2 text-sm text-[color:var(--color-text)] cursor-not-allowed opacity-90"
+              className={`${inputClass} cursor-not-allowed`}
             >
               {PHONE_COUNTRIES.map((country) => (
                 <option key={country.code} value={country.code}>
@@ -109,12 +110,12 @@ export function PartnershipForm() {
               autoComplete="tel-national"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded border border-[color:var(--color-border)] bg-white px-3 py-2 text-sm text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+              className={inputClass}
             />
           </div>
         </div>
         {state.errors?.phone && (
-          <p className="mt-1 text-xs text-red-600">{state.errors.phone}</p>
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-destructive-text)]">{state.errors.phone}</p>
         )}
       </div>
 
@@ -127,14 +128,14 @@ export function PartnershipForm() {
             required
             checked={accepted}
             onChange={(e) => setAccepted(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-[color:var(--color-border)] text-[color:var(--color-university-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+            className="mt-1 h-4 w-4 rounded border-[color:var(--color-input-border)] text-[color:var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
           />
-          <span className="text-sm text-slate-700">
+          <span className="text-sm text-[color:var(--color-foreground)]">
             J’accepte les clauses du contrat de partenariat et la part qui revient à l’université.
           </span>
         </label>
         {state.errors?.acceptContract && (
-          <p className="mt-1 text-xs text-red-600">{state.errors.acceptContract}</p>
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-destructive-text)]">{state.errors.acceptContract}</p>
         )}
       </div>
 
@@ -142,7 +143,7 @@ export function PartnershipForm() {
         <button
           type="submit"
           disabled={isSubmitDisabled}
-          className="w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-subtle)] hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:opacity-60"
+          className={primaryButtonClass}
         >
           {pending ? "Validation en cours…" : "Accepter le contrat et finaliser le partenariat"}
         </button>
