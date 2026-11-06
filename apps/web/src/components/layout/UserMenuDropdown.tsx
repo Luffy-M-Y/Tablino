@@ -67,9 +67,9 @@ export function UserMenuDropdown({
         onClick={function () {
           setOpen((currentlyOpen) => !currentlyOpen);
         }}
-        className="flex max-w-48 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-on-band)] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+        className="flex max-w-48 items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-[color:var(--color-on-band)] hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
       >
-        <User size={16} aria-hidden="true" />
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white/10"><User size={16} aria-hidden="true" /></span>
         <span className="hidden truncate sm:inline">{label}</span>
       </button>
 
