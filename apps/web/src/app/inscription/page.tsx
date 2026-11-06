@@ -11,6 +11,9 @@ export default async function InscriptionPage() {
 
   return (
     <AuthShell title={<>Inscription &eacute;tudiante</>}>
+      <Link href="/" className={`mb-2 min-h-11 ${linkClass}`}>
+        Retour à l&rsquo;accueil
+      </Link>
       <div className={authCardClass}>
         <RegisterForm />
         <p className={`mt-6 text-center text-sm ${mutedClass}`}>

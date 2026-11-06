@@ -12,6 +12,9 @@ export default async function ConnexionPage() {
 
   return (
     <AuthShell title="Connexion">
+      <Link href="/" className={`mb-2 min-h-11 ${linkClass}`}>
+        Retour à l&rsquo;accueil
+      </Link>
       <div className={authCardClass}>
         <LoginForm />
         <div className="my-4 flex items-center gap-3">
