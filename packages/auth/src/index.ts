@@ -480,3 +480,12 @@ export {
   getPasswordResetConfirmedCookieConfig,
   PASSWORD_RESET_CONFIRMED_TOKEN_TTL_MS,
 } from "./password-reset-token";
+export {
+  TURNSTILE_ACTIONS,
+  verifyTurnstileToken,
+} from "./turnstile";
+export type {
+  TurnstileAction,
+  TurnstileFailureReason,
+  TurnstileResult,
+} from "./turnstile";

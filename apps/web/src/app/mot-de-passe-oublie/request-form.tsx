@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { requestResetAction } from "./actions";
 
 export function RequestResetForm() {
   const [state, action, pending] = useActionState(requestResetAction, { message: null });
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   return (
     <form action={action} className="space-y-4">
@@ -22,7 +24,16 @@ export function RequestResetForm() {
           className={inputClass}
         />
       </div>
-      <button type="submit" disabled={pending} className={primaryButtonClass}>
+      <TurnstileField
+        action="password_reset_request"
+        onTokenChange={setTurnstileToken}
+        resetKey={state}
+      />
+      <button
+        type="submit"
+        disabled={pending || !turnstileToken}
+        className={primaryButtonClass}
+      >
         Envoyer le code
       </button>
       {state.message !== null ? (

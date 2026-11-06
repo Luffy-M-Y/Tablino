@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { registerAction } from "./actions";
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState(registerAction, { message: null });
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   return (
     <form action={action} className="space-y-5">
@@ -94,9 +96,14 @@ export function RegisterForm() {
           className={inputClass}
         />
       </div>
+      <TurnstileField
+        action="signup"
+        onTokenChange={setTurnstileToken}
+        resetKey={state}
+      />
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
         Cr&eacute;er mon compte

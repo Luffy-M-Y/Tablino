@@ -8,6 +8,7 @@ import {
 import { setStudentPassword } from "@tablino/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type NewPasswordActionState = { message: string | null };
@@ -32,6 +33,10 @@ export async function setNewPasswordAction(
   _previousState: NewPasswordActionState,
   formData: FormData,
 ): Promise<NewPasswordActionState> {
+  if (!(await verifyTurnstileForm(formData, "password_reset_set"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   await getCurrentUniversityId();
   const userId = await readConfirmedUserId();
   if (userId === null) {

@@ -8,6 +8,7 @@ import {
 } from "@tablino/db";
 import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type RegisterActionState = { message: string | null };
@@ -21,6 +22,10 @@ export async function registerAction(
   _previousState: RegisterActionState,
   formData: FormData,
 ): Promise<RegisterActionState> {
+  if (!(await verifyTurnstileForm(formData, "signup"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   const universityId = await getCurrentUniversityId();
   const firstName = readStringField(formData, "firstName");
   const lastName = readStringField(formData, "lastName");
