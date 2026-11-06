@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:root {
+/* TABLINO-TOKENS:START */
+  --color-brand: #0f2a5e;
+  --color-primary: #2563eb;
+  --color-primary-text: #1d4ed8;
+  --color-accent: #ea580c;
+  --color-on-accent: #000000;
+  --color-background: #e2e8f0;
+  --color-surface: #f1f5f9;
+  --color-foreground: #0f172a;
+  --color-muted-foreground: #475569;
+  --color-border: #cbd5e1;
+  --color-input-border: #64748b;
+  --color-destructive: #dc2626;
+  --color-destructive-text: #b91c1c;
+  --color-ring: #2563eb;
+  --color-ring-on-band: #60a5fa;
+  --color-band: #1e293b;
+  --color-on-band: #f8fafc;
+  --color-on-band-muted: #cbd5e1;
+  --radius-base: 0.75rem;
+  --shadow-subtle: 0 2px 8px rgb(15 23 42 / 8%);
+/* TABLINO-TOKENS:END */
+
+  --color-admin-header: var(--color-band);
+  --color-university-primary: var(--color-primary);
+  --color-page-background: var(--color-background);
+  --color-text: var(--color-foreground);
+  --radius-rounded: var(--radius-base);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="submit"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}

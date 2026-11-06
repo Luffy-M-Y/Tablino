@@ -1,0 +1,34 @@
+{
+  "name": "@tablino/admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "eslint",
+    "test": "node --test tests/structure-view.test.mjs tests/structure-actions.test.mjs tests/admin-menu.test.mjs tests/admin-profile.test.mjs tests/admin-home-cards.test.mjs tests/current-university.test.mjs tests/scan-pages.test.mjs tests/files-filter.test.mjs tests/admin-search.test.mjs tests/approval-alert-url.test.mjs tests/format-amount.test.mjs tests/approval-messages.test.mjs tests/partnership-contract.test.mjs tests/partnership-routing.test.mjs tests/partnership-validation.test.mjs tests/payout-encryption.test.mjs tests/phone-validation.test.mjs tests/send-with-retry.test.mjs tests/ui-tokens.test.mjs"
+  },
+  "dependencies": {
+    "@tablino/auth": "workspace:*",
+    "@tablino/db": "workspace:*",
+    "@tablino/email": "workspace:*",
+    "lucide-react": "^1.59.0",
+    "next": "16.4.2",
+    "next-auth": "^4.24.15",
+    "pdf-lib": "^1.17.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

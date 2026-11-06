@@ -1,0 +1,23 @@
+{
+  "name": "@tablino/auth",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tablino/db": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.4",
+    "next-auth": "^4.24.15"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "test": "tsx --test tests/guards.test.ts tests/google-signup-token.test.ts tests/email-verification-token.test.ts tests/auth-options.test.ts"
+  }
+}
