@@ -9,7 +9,13 @@ async function resolveDatabase(database?: AuthAttemptsDatabase): Promise<AuthAtt
   return database ?? (await import("./client")).db;
 }
 
-export type AuthAttemptAction = "login" | "signup_code" | "email_send" | "verify_code";
+export type AuthAttemptAction =
+  | "login"
+  | "signup_code"
+  | "email_send"
+  | "verify_code"
+  | "password_reset"
+  | "password_reset_verify";
 
 export type RateLimit = {
   maxAttempts: number;
@@ -22,6 +28,8 @@ export const RATE_LIMITS: Record<AuthAttemptAction, RateLimit> = {
   signup_code: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
   email_send: { maxAttempts: 5, windowMs: 3600000, blockMs: 3600000 },
   verify_code: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
+  password_reset: { maxAttempts: 5, windowMs: 3600000, blockMs: 3600000 },
+  password_reset_verify: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
 };
 
 export function hashAttemptKey(action: AuthAttemptAction, identifier: string): string {

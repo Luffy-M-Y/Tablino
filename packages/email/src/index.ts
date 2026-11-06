@@ -59,6 +59,17 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
   });
 }
 
+export async function sendPasswordResetEmail(to: string, code: string): Promise<void> {
+  return sendBrevoEmail({
+    to,
+    subject: "Réinitialisation de votre mot de passe Tablino",
+    htmlContent: "<p>Votre code de réinitialisation de mot de passe Tablino est : <strong>" + code
+      + "</strong>.</p><p>Ce code est valable 10 minutes. Si vous n&rsquo;êtes pas à l&rsquo;origine de cette demande, ignorez cet e-mail.</p>",
+    textContent: "Votre code de réinitialisation de mot de passe Tablino est : " + code
+      + ". Ce code est valable 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
+  });
+}
+
 export async function sendUniversityApprovalAlertEmail(
   to: string,
   university: { name: string; acronym?: string | null },

@@ -327,6 +327,22 @@ export const emailVerificationCodes = pgTable("email_verification_codes", {
   check("email_verification_codes_attempts_check", sql.raw("attempts >= 0")),
 ]).enableRLS();
 
+export const passwordResetCodes = pgTable("password_reset_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("password_reset_codes_user_id_uq").on(t.userId),
+  check("password_reset_codes_attempts_check", sql.raw("attempts >= 0")),
+]).enableRLS();
+
 export const authAttempts = pgTable("auth_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
   keyHash: varchar("key_hash", { length: 64 }).notNull(),

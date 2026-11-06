@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deleteStudentSession, getStudentNameById } from "../src/session-logout";
+import * as schema from "../src/schema";
+import { deleteAllStudentSessionsByUser, deleteStudentSession, getStudentNameById } from "../src/session-logout";
 
 type SelectQuery = {
   from: (table: unknown) => SelectQuery;
@@ -116,4 +117,19 @@ test("getStudentNameById returns null when no user exists", async () => {
   const fake = createMemoryDatabase({ selectedRows: [[]] });
   const result = await getStudentNameById("user-4", fake.database);
   assert.equal(result, null);
+});
+
+test("deleteAllStudentSessionsByUser deletes every session for the user", async () => {
+  const fake = createMemoryDatabase({ deletedRows: [[{ id: "a" }, { id: "b" }, { id: "c" }]] });
+  const result = await deleteAllStudentSessionsByUser("user-1", fake.database);
+  assert.deepEqual(result, { deleted: 3 });
+  assert.equal(fake.deletes.length, 1);
+  assert.equal(fake.deletes[0].table, schema.sessions);
+});
+
+test("deleteAllStudentSessionsByUser returns zero when no sessions match", async () => {
+  const fake = createMemoryDatabase({ deletedRows: [[]] });
+  const result = await deleteAllStudentSessionsByUser("user-2", fake.database);
+  assert.deepEqual(result, { deleted: 0 });
+  assert.equal(fake.deletes.length, 1);
 });

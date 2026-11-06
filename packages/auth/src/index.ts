@@ -470,3 +470,13 @@ export {
   getEmailVerificationCookieConfig,
   EMAIL_VERIFICATION_TOKEN_TTL_MS,
 } from "./email-verification-token";
+export {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  getPasswordResetCookieConfig,
+  PASSWORD_RESET_TOKEN_TTL_MS,
+  createPasswordResetConfirmedToken,
+  verifyPasswordResetConfirmedToken,
+  getPasswordResetConfirmedCookieConfig,
+  PASSWORD_RESET_CONFIRMED_TOKEN_TTL_MS,
+} from "./password-reset-token";
