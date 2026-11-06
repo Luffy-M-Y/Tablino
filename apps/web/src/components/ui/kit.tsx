@@ -108,7 +108,7 @@ export function PageHero({
     <section
       className={`rounded-[var(--radius-rounded)] p-6 mb-6 flex items-center gap-4 ${
         isDevoirs
-          ? "bg-[color:var(--color-accent)] text-[color:var(--color-on-accent)]"
+          ? "bg-[#9a3412] text-white"
           : "bg-[color:var(--color-primary)] text-white"
       }`}
     >
