@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAdminMenuItems } from "@/lib/admin-menu.mjs";
 import AdminSearchBox from "@/components/admin-search-box";
+import { LogOut } from "lucide-react";
 
 const focusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring-on-band)]";
 const headerFocusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
@@ -27,7 +28,43 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountButtonRef = useRef<HTMLButtonElement | null>(null);
+  const accountPanelRef = useRef<HTMLDivElement | null>(null);
   const menuItems = getAdminMenuItems(profile.role);
+  const name = profile.name?.trim() || null;
+  const email = profile.email?.trim() || null;
+  const accountLabel = name ?? email;
+
+  useEffect(function () {
+    if (!isAccountMenuOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (target === null) return;
+      if (
+        accountPanelRef.current?.contains(target)
+        || accountButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setIsAccountMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsAccountMenuOpen(false);
+        accountButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return function () {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAccountMenuOpen]);
 
   return (
     <div className="min-h-screen bg-[color:var(--color-page-background)] text-[color:var(--color-text)]">
@@ -51,9 +88,7 @@ export function AdminShell({
         </div>
 
         <AdminSearchBox />
-        <div className="flex items-center gap-3">
-          <span className="max-w-48 truncate text-sm font-medium">{profile.name ?? profile.email ?? "Mon compte"}</span>
-          <span className="hidden text-xs text-[color:var(--color-on-band-muted)] sm:inline">{profile.roleLabel}</span>
+        {accountLabel === null ? (
           <button
             type="button"
             onClick={() => { void signOut({ callbackUrl: "/" }); }}
@@ -61,7 +96,51 @@ export function AdminShell({
           >
             Déconnexion
           </button>
-        </div>
+        ) : (
+          <div className="relative">
+            <button
+              ref={accountButtonRef}
+              type="button"
+              aria-label={`Compte de ${accountLabel}`}
+              aria-expanded={isAccountMenuOpen}
+              aria-controls="admin-account-panel"
+              onClick={() => setIsAccountMenuOpen((open) => !open)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--color-primary)] text-sm font-semibold text-[color:var(--color-on-band)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+            >
+              {profile.initial}
+            </button>
+            {isAccountMenuOpen ? (
+              <div
+                id="admin-account-panel"
+                ref={accountPanelRef}
+                className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 text-[color:var(--color-text)] shadow-[var(--shadow-subtle)]"
+              >
+                <div className="space-y-1">
+                  {name !== null ? (
+                    <p className="truncate text-sm font-semibold">{name}</p>
+                  ) : null}
+                  {email !== null ? (
+                    <p className="truncate text-sm text-[color:var(--color-muted-foreground)]">{email}</p>
+                  ) : null}
+                  <p className="truncate text-sm text-[color:var(--color-muted-foreground)]">{profile.roleLabel}</p>
+                </div>
+                <div className="mt-4 border-t border-[color:var(--color-border)] pt-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAccountMenuOpen(false);
+                      void signOut({ callbackUrl: "/" });
+                    }}
+                    className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+                  >
+                    <LogOut size={16} aria-hidden="true" />
+                    <span>Déconnexion</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </header>
 
       <div className="flex min-h-[calc(100vh-4rem)]">
