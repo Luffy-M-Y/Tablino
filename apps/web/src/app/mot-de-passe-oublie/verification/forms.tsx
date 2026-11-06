@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui/kit";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { resendResetCodeAction, verifyResetCodeAction } from "./actions";
 
 export function ResetVerificationForms() {
@@ -14,6 +15,8 @@ export function ResetVerificationForms() {
     { message: null },
   );
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [verifyTurnstileToken, setVerifyTurnstileToken] = useState("");
+  const [resendTurnstileToken, setResendTurnstileToken] = useState("");
   useEffect(function () {
     if (resendState.message === "Un nouveau code a \u00e9t\u00e9 envoy\u00e9.") setSecondsLeft(60);
   }, [resendState]);
@@ -45,9 +48,14 @@ export function ResetVerificationForms() {
             className={inputClass}
           />
         </div>
+        <TurnstileField
+          action="password_reset_verify"
+          onTokenChange={setVerifyTurnstileToken}
+          resetKey={verifyState}
+        />
         <button
           type="submit"
-          disabled={verifyPending}
+          disabled={verifyPending || !verifyTurnstileToken}
           className={primaryButtonClass}
         >
           V&eacute;rifier
@@ -57,9 +65,14 @@ export function ResetVerificationForms() {
         ) : null}
       </form>
       <form action={resendAction} className="space-y-3">
+        <TurnstileField
+          action="password_reset_resend"
+          onTokenChange={setResendTurnstileToken}
+          resetKey={resendState}
+        />
         <button
           type="submit"
-          disabled={resendPending || secondsLeft > 0}
+          disabled={resendPending || secondsLeft > 0 || !resendTurnstileToken}
           className={secondaryButtonClass}
         >
           {secondsLeft > 0 ? "Renvoyer le code (" + secondsLeft + " s)" : "Renvoyer le code"}

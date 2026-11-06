@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { setNewPasswordAction } from "./actions";
 
 export function NewPasswordForm() {
   const [state, action, pending] = useActionState(setNewPasswordAction, { message: null });
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   return (
     <form action={action} className="space-y-5">
@@ -39,7 +41,16 @@ export function NewPasswordForm() {
           className={inputClass}
         />
       </div>
-      <button type="submit" disabled={pending} className={primaryButtonClass}>
+      <TurnstileField
+        action="password_reset_set"
+        onTokenChange={setTurnstileToken}
+        resetKey={state}
+      />
+      <button
+        type="submit"
+        disabled={pending || !turnstileToken}
+        className={primaryButtonClass}
+      >
         R&eacute;initialiser le mot de passe
       </button>
       {state.message !== null ? (

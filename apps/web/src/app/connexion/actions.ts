@@ -12,6 +12,7 @@ import { getSessionCookieConfig } from "@tablino/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type LoginActionState = { message: string | null };
@@ -25,6 +26,10 @@ export async function loginAction(
   _previousState: LoginActionState,
   formData: FormData,
 ): Promise<LoginActionState> {
+  if (!(await verifyTurnstileForm(formData, "login"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   const universityId = await getCurrentUniversityId();
   const email = readStringField(formData, "email");
   const password = readStringField(formData, "password");

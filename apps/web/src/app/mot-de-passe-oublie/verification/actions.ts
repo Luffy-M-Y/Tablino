@@ -16,6 +16,7 @@ import {
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type ResetVerificationActionState = { message: string | null };
@@ -40,6 +41,10 @@ export async function verifyResetCodeAction(
   _previousState: ResetVerificationActionState,
   formData: FormData,
 ): Promise<ResetVerificationActionState> {
+  if (!(await verifyTurnstileForm(formData, "password_reset_verify"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   await getCurrentUniversityId();
   const userId = await readUserId();
   if (userId === null) {
@@ -79,6 +84,10 @@ export async function resendResetCodeAction(
   _previousState: ResetVerificationActionState,
   _formData: FormData,
 ): Promise<ResetVerificationActionState> {
+  if (!(await verifyTurnstileForm(_formData, "password_reset_resend"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   await getCurrentUniversityId();
   const userId = await readUserId();
   if (userId === null) {
