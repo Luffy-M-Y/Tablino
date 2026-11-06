@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Home, ChevronRight, ArrowLeft } from "lucide-react";
-import { mutedClass } from "@/components/ui/kit";
+import { focusRing, mutedClass } from "@/components/ui/kit";
 
 export interface BreadcrumbItem {
   label: string;
@@ -16,20 +16,21 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const showBack = pathname !== "/";
+  const backHref = [...items].reverse().find((item) => item.href)?.href ?? "/";
 
   return (
     <div className="flex items-center gap-3 mb-4">
-      {/* Bouton Retour — mobile uniquement */}
+      {/* Bouton Retour */}
       {showBack && (
-        <button
-          onClick={() => router.back()}
-          aria-label="Retour \u00e0 la page pr\u00e9c\u00e9dente"
-          className="md:hidden flex items-center justify-center w-8 h-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] transition-colors shrink-0"
+        <Link
+          href={backHref}
+          aria-label="Retour à la page précédente"
+          className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-surface)] px-3 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`}
         >
           <ArrowLeft size={16} aria-hidden="true" />
-        </button>
+          <span>Retour</span>
+        </Link>
       )}
 
       {/* Fil d'Ariane */}
