@@ -24,6 +24,18 @@ export async function deleteStudentSession(
   return { deleted: deleted.length > 0 };
 }
 
+export async function deleteAllStudentSessionsByUser(
+  userId: string,
+  database?: SessionLogoutDatabase,
+): Promise<{ deleted: number }> {
+  const deleted = await (await resolveDatabase(database))
+    .delete(schema.sessions)
+    .where(eq(schema.sessions.userId, userId))
+    .returning({ id: schema.sessions.id });
+
+  return { deleted: deleted.length };
+}
+
 export async function getStudentNameById(
   userId: string,
   database?: SessionLogoutDatabase,
