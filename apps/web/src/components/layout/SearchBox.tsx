@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { searchAction } from "@/app/recherche/actions";
@@ -20,6 +20,27 @@ export function SearchBox() {
   const counter = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(function () {
+    if (!open) {
+      return;
+    }
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (target === null) {
+        return;
+      }
+      if (panelRef.current?.contains(target) || buttonRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return function () {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [open]);
 
   function run(nextQuery: string, nextScope: Scope) {
     if (timer.current !== null) {
@@ -71,6 +92,7 @@ export function SearchBox() {
       {open ? (
         <div
           id="search-panel"
+          ref={panelRef}
           role="search"
           className="absolute top-full left-0 right-0 z-50 border-t border-white/10 bg-[color:var(--color-band)] p-3 shadow-md"
           onKeyDown={function (event) {
