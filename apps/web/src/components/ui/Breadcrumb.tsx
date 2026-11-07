@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, ChevronRight, ArrowLeft } from "lucide-react";
-import { focusRing, mutedClass } from "@/components/ui/kit";
+import { Home, ChevronRight } from "lucide-react";
+import { mutedClass } from "@/components/ui/kit";
 
 export interface BreadcrumbItem {
   label: string;
@@ -15,24 +14,8 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
-  const pathname = usePathname();
-  const showBack = pathname !== "/";
-  const backHref = [...items].reverse().find((item) => item.href)?.href ?? "/";
-
   return (
     <div className="flex items-center gap-3 mb-4">
-      {/* Bouton Retour */}
-      {showBack && (
-        <Link
-          href={backHref}
-          aria-label="Retour à la page précédente"
-          className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-surface)] px-3 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`}
-        >
-          <ArrowLeft size={16} aria-hidden="true" />
-          <span>Retour</span>
-        </Link>
-      )}
-
       {/* Fil d'Ariane */}
       <nav aria-label="Fil d'Ariane" className={`flex items-center gap-1 text-sm ${mutedClass} flex-wrap`}>
         <Link
