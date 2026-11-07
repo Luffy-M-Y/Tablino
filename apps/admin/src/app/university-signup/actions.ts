@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
 import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type UniversitySignupActionState = {
   message: string | null;
@@ -30,6 +31,15 @@ export async function registerUniversityAction(
   const acronym = readStringField(formData, "acronym");
   const phone = readStringField(formData, "phone");
   const state = { universityName, acronym, phone };
+  if (!(await verifyTurnstileForm(formData, "signup_google"))) {
+    return {
+      message: TURNSTILE_ERROR_MESSAGE,
+      ...state,
+      showForm: true,
+      showLoginLink: false,
+    };
+  }
+
   let payload: ReturnType<typeof verifyUniversitySignupToken>;
   try {
     payload = token ? verifyUniversitySignupToken(token) : null;

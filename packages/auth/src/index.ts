@@ -475,10 +475,14 @@ export {
   verifyPasswordResetToken,
   getPasswordResetCookieConfig,
   PASSWORD_RESET_TOKEN_TTL_MS,
+  createAdminPasswordResetToken,
+  verifyAdminPasswordResetToken,
   createPasswordResetConfirmedToken,
   verifyPasswordResetConfirmedToken,
   getPasswordResetConfirmedCookieConfig,
   PASSWORD_RESET_CONFIRMED_TOKEN_TTL_MS,
+  createAdminPasswordResetConfirmedToken,
+  verifyAdminPasswordResetConfirmedToken,
 } from "./password-reset-token";
 export {
   TURNSTILE_ACTIONS,

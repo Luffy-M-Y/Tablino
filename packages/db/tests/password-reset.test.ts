@@ -5,9 +5,13 @@ import {
   PASSWORD_RESET_UNKNOWN_USER_ID,
   generatePasswordResetCode,
   hashPasswordResetCode,
+  issueAdminPasswordResetCode,
   issuePasswordResetCode,
+  requestAdminPasswordReset,
   requestPasswordReset,
+  resendAdminPasswordResetCode,
   resendPasswordResetCode,
+  setAdminPassword,
   setStudentPassword,
   verifyPasswordResetCode,
 } from "../src/password-reset";
@@ -318,6 +322,32 @@ test("issuePasswordResetCode replaces an existing code", async () => {
   assert.deepEqual(fake.inserts, []);
 });
 
+test("issueAdminPasswordResetCode accepts university and super admins", async () => {
+  for (const role of ["university_admin", "super_admin"]) {
+    const fake = createMemoryDatabase({
+      selectedRows: [[{ emailVerified: now, passwordHash: "stored-hash", role }], []],
+    });
+
+    const result = await issueAdminPasswordResetCode(userId, now, fake.database);
+
+    assert.equal(result.ok, true, role);
+    assert.equal(fake.transactionCount, 1, role);
+  }
+});
+
+test("issueAdminPasswordResetCode rejects students", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ emailVerified: now, passwordHash: "stored-hash", role: "student" }]],
+  });
+
+  assert.deepEqual(await issueAdminPasswordResetCode(userId, now, fake.database), {
+    ok: false,
+    reason: "not_admin",
+  });
+  assert.deepEqual(fake.updates, []);
+  assert.deepEqual(fake.inserts, []);
+});
+
 test("verifyPasswordResetCode rejects malformed input before opening a transaction", async () => {
   for (const code of ["", "12345", "1234567", "12a456"]) {
     const fake = createMemoryDatabase();
@@ -405,6 +435,19 @@ test("setStudentPassword updates the hash and deletes every session for the user
   assert.equal(fake.deletes[0].table, schema.sessions);
 });
 
+test("setAdminPassword updates an admin password and deletes every session", async () => {
+  const fake = createMemoryDatabase({ updateResults: [[{ id: userId }]] });
+
+  const result = await setAdminPassword(userId, "secure password", fake.database);
+
+  assert.deepEqual(result, { ok: true });
+  assert.equal(fake.updates.length, 1);
+  assert.equal(fake.updates[0].table, schema.users);
+  assert.notEqual(fake.updates[0].condition, undefined);
+  assert.equal(fake.deletes.length, 1);
+  assert.equal(fake.deletes[0].table, schema.sessions);
+});
+
 test("requestPasswordReset returns the sentinel for a missing account", async () => {
   const fake = createMemoryDatabase({ selectedRows: [[]] });
 
@@ -484,6 +527,48 @@ test("requestPasswordReset returns existing while the resend delay is active", a
   assert.equal(fake.executeCalls, 0);
 });
 
+test("requestAdminPasswordReset returns the sentinel for a missing account", async () => {
+  const fake = createMemoryDatabase({ selectedRows: [[]] });
+
+  const result = await requestAdminPasswordReset("admin@example.com", fake.database, now);
+
+  assert.deepEqual(result, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.equal(fake.transactionCount, 0);
+  assert.equal(fake.executeCalls, 0);
+});
+
+test("requestAdminPasswordReset treats non-admin accounts as unknown", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ id: userId, role: "student" }]],
+  });
+
+  const result = await requestAdminPasswordReset("admin@example.com", fake.database, now);
+
+  assert.deepEqual(result, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.equal(fake.transactionCount, 0);
+});
+
+test("requestAdminPasswordReset issues a code for a verified admin", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: userId, role: "university_admin" }],
+      [],
+      [{ emailVerified: now, passwordHash: "stored-hash", role: "university_admin" }],
+      [],
+    ],
+    executeRows: [[{ attempts: "1", blocked_until: null }]],
+  });
+
+  const result = await requestAdminPasswordReset(" ADMIN@example.com ", fake.database, now);
+
+  assert.equal(result.kind, "issued");
+  if (result.kind !== "issued") return;
+  assert.equal(result.userId, userId);
+  assert.equal(result.code.length, 6);
+  assert.equal(fake.transactionCount, 1);
+  assert.equal(fake.executeCalls, 1);
+});
+
 test("resendPasswordResetCode is rate-limited after too many sends", async () => {
   const blockedUntil = new Date(now.getTime() + 60000);
   const fake = createMemoryDatabase({ selectedRows: [[{ blockedUntil }]] });
@@ -549,6 +634,26 @@ test("resendPasswordResetCode issues a code and returns the email", async () => 
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.email, "student@example.com");
+  assert.equal(result.code.length, 6);
+  assert.equal(fake.executeCalls, 1);
+});
+
+test("resendAdminPasswordResetCode issues a code only for an admin", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [],
+      [{ emailVerified: now, passwordHash: "stored-hash", role: "super_admin" }],
+      [],
+      [{ email: "admin@example.com" }],
+    ],
+    executeRows: [[{ attempts: "1", blocked_until: null }]],
+  });
+
+  const result = await resendAdminPasswordResetCode(userId, fake.database, now);
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.email, "admin@example.com");
   assert.equal(result.code.length, 6);
   assert.equal(fake.executeCalls, 1);
 });

@@ -18,6 +18,7 @@ import { sendVerificationEmail } from "@tablino/email";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type VerificationActionState = { message: string | null };
 
@@ -41,6 +42,10 @@ export async function verifyCodeAction(
   _previousState: VerificationActionState,
   formData: FormData,
 ): Promise<VerificationActionState> {
+  if (!(await verifyTurnstileForm(formData, "email_verify"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   const userId = await readUserId();
   if (userId === null) {
     return { message: "Lien expiré. Recommencez votre inscription ou connectez-vous." };
@@ -83,6 +88,10 @@ export async function resendCodeAction(
   _previousState: VerificationActionState,
   _formData: FormData,
 ): Promise<VerificationActionState> {
+  if (!(await verifyTurnstileForm(_formData, "email_resend"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   const userId = await readUserId();
   if (userId === null) {
     return { message: "Lien expiré. Recommencez votre inscription ou connectez-vous." };
