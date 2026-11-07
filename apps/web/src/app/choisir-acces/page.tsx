@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { decideStudentAccess } from "@tablino/db";
 import { forbidden, redirect } from "next/navigation";
 import { requireStudentSession } from "@/lib/authorization";
-import { BackLink, PageContainer, cardClass, mutedClass, secondaryButtonClass } from "@/components/ui/kit";
+import { PageContainer, cardClass, mutedClass, secondaryButtonClass } from "@/components/ui/kit";
 import { TrialForm } from "./trial-form";
 
 export default async function ChoisirAccesPage() {
@@ -17,7 +17,6 @@ export default async function ChoisirAccesPage() {
 
   return (
     <PageContainer>
-      <BackLink href="/">Retour &agrave; l&rsquo;accueil</BackLink>
       <h1 className="mb-8 text-2xl font-bold text-[color:var(--color-text)] sm:text-3xl">Choisir mon acc&egrave;s</h1>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

@@ -3,7 +3,7 @@ export const instant = false;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasStudentSession } from "@/lib/authorization";
-import { AuthShell, BackLink, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
+import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
 import { GoogleSignInButton } from "./google-sign-in-button";
 import { LoginForm } from "./login-form";
 
@@ -12,7 +12,6 @@ export default async function ConnexionPage() {
 
   return (
     <AuthShell title="Connexion">
-      <BackLink href="/" compact>Retour &agrave; l&rsquo;accueil</BackLink>
       <div className={authCardClass}>
         <LoginForm />
         <div className="my-4 flex items-center gap-3">
