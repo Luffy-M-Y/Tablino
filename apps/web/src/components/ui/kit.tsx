@@ -129,11 +129,11 @@ export function PageHero({
   );
 }
 
-export function BackLink({ href, children = "Retour" }: { href: string; children?: ReactNode }) {
+export function BackLink({ href, children = "Retour", compact = false }: { href: string; children?: ReactNode; compact?: boolean }) {
   return (
     <Link
       href={href}
-      className={`mb-4 inline-flex h-10 items-center gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-surface)] px-4 text-sm font-semibold text-[color:var(--color-primary-text)] transition-colors hover:border-[color:var(--color-primary)] motion-reduce:transition-none ${focusRing}`}
+      className={`${compact ? "mb-2" : "mb-4"} inline-flex h-10 items-center gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-surface)] px-4 text-sm font-semibold text-[color:var(--color-primary-text)] transition-colors hover:border-[color:var(--color-primary)] motion-reduce:transition-none ${focusRing}`}
     >
       <ArrowLeft size={16} aria-hidden="true" />
       {children}
