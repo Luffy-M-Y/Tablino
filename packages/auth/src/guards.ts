@@ -47,6 +47,7 @@ export function createAuthGuards(dependencies: GuardDependencies) {
     // Role and university scope always come from the current database row.
     const user = await dependencies.readUser(userId);
     if (!user) throw new SessionRequiredError();
+    if (user.revokedAt !== null) throw new AuthorizationDeniedError();
     return user;
   }
 
