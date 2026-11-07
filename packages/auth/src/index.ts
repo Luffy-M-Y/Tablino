@@ -470,3 +470,27 @@ export {
   getEmailVerificationCookieConfig,
   EMAIL_VERIFICATION_TOKEN_TTL_MS,
 } from "./email-verification-token";
+export {
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+  getPasswordResetCookieConfig,
+  PASSWORD_RESET_TOKEN_TTL_MS,
+  createAdminPasswordResetToken,
+  verifyAdminPasswordResetToken,
+  createPasswordResetConfirmedToken,
+  verifyPasswordResetConfirmedToken,
+  getPasswordResetConfirmedCookieConfig,
+  PASSWORD_RESET_CONFIRMED_TOKEN_TTL_MS,
+  createAdminPasswordResetConfirmedToken,
+  verifyAdminPasswordResetConfirmedToken,
+} from "./password-reset-token";
+export {
+  TURNSTILE_ACTIONS,
+  verifyTurnstileToken,
+} from "./turnstile";
+export type {
+  TurnstileAction,
+  TurnstileFailureReason,
+  TurnstileResult,
+} from "./turnstile";
+export { getCloudflareClientIp } from "./client-ip";

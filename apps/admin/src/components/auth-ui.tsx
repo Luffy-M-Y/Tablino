@@ -15,6 +15,8 @@ export const secondaryButtonClass = `inline-flex h-11 w-full items-center justif
 export const errorClass =
   "rounded-[var(--radius-rounded)] border border-[color:var(--color-destructive)] bg-[color:var(--color-surface)] px-3 py-2 text-sm font-medium text-[color:var(--color-destructive-text)]";
 
+export const mutedClass = "text-[color:var(--color-muted-foreground)]";
+
 export const linkClass = `inline-block px-1 py-3 font-semibold text-[color:var(--color-primary-text)] underline underline-offset-2 ${focusRing}`;
 
 export const authCardClass =
@@ -54,4 +56,3 @@ export function AuthShell({
     </main>
   );
 }
-

@@ -1,6 +1,6 @@
 "use server";
 
-import { getSessionCookieConfig } from "@tablino/auth";
+import { getCloudflareClientIp, getSessionCookieConfig } from "@tablino/auth";
 import {
   authenticateUniversityAdmin,
   checkRateLimit,
@@ -8,9 +8,10 @@ import {
   recordFailure,
   resetAttempts,
 } from "@tablino/db";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type LoginActionState = {
   message: string | null;
@@ -27,6 +28,21 @@ export async function loginAction(
   formData: FormData,
 ): Promise<LoginActionState> {
   const email = readStringField(formData, "email").trim().toLowerCase();
+  const clientIp = getCloudflareClientIp(await headers());
+  if (clientIp === null && process.env.NODE_ENV === "production") {
+    return { message: "Connexion temporairement indisponible.", email };
+  }
+  if (clientIp !== null) {
+    const ipLimit = await checkRateLimit("login_ip", clientIp);
+    if (!ipLimit.allowed) {
+      return { message: "Trop de tentatives. Réessaie plus tard.", email };
+    }
+  }
+
+  if (!(await verifyTurnstileForm(formData, "login"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE, email };
+  }
+
   const password = readStringField(formData, "password");
   const limit = await checkRateLimit("login", email);
   if (!limit.allowed) {
@@ -40,6 +56,7 @@ export async function loginAction(
   }
   if (!result.ok) {
     await recordFailure("login", email);
+    if (clientIp !== null) await recordFailure("login_ip", clientIp);
     return { message: "Email ou mot de passe incorrect.", email };
   }
 

@@ -4,6 +4,7 @@ import { registerUniversityAdminWithPassword, checkRateLimit, resetAttempts } fr
 import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type SignupActionState = {
   message: string | null;
@@ -30,6 +31,10 @@ export async function signupAction(
   const passwordConfirmation = readStringField(formData, "passwordConfirmation");
 
   const state = { universityName, acronym, phone, email };
+  if (!(await verifyTurnstileForm(formData, "signup"))) {
+    return { ...state, message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   if (password !== passwordConfirmation) {
     return { ...state, message: "Les mots de passe ne correspondent pas." };
   }

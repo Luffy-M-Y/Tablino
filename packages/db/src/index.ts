@@ -136,7 +136,7 @@ export {
   recordFailure,
   resetAttempts,
 } from "./auth-attempts";
-export { deleteStudentSession, getStudentNameById } from "./session-logout";
+export { deleteStudentSession, deleteAllStudentSessionsByUser, getStudentNameById } from "./session-logout";
 export { searchCatalog, SEARCH_RESULT_LIMIT } from "./search-catalog";
 export type { SearchCatalog, SearchResult, SearchResultKind, SearchScope, SearchSubjectRow } from "./search-catalog";
 export { getPublishedSearchCatalog } from "./search-catalog-query";
@@ -157,6 +157,32 @@ export {
   verifyEmailCode,
 } from "./email-verification";
 export type { IssueEmailVerificationResult, VerifyEmailCodeResult } from "./email-verification";
+export {
+  PASSWORD_RESET_CODE_TTL_MS,
+  PASSWORD_RESET_CODE_MAX_ATTEMPTS,
+  PASSWORD_RESET_CODE_RESEND_DELAY_MS,
+  PASSWORD_RESET_UNKNOWN_USER_ID,
+  generatePasswordResetCode,
+  hashPasswordResetCode,
+  issuePasswordResetCode,
+  issueAdminPasswordResetCode,
+  verifyPasswordResetCode,
+  setStudentPassword,
+  setAdminPassword,
+  requestPasswordReset,
+  requestAdminPasswordReset,
+  resendPasswordResetCode,
+  resendAdminPasswordResetCode,
+} from "./password-reset";
+export type {
+  IssuePasswordResetResult,
+  VerifyPasswordResetCodeResult,
+  SetPasswordResult,
+  AdminPasswordResetRequestResult,
+  AdminPasswordResetResendResult,
+  PasswordResetRequestResult,
+  ResendPasswordResetResult,
+} from "./password-reset";
 export {
   listPendingUniversitiesForApproval,
   approveUniversity,

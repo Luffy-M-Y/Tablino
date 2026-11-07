@@ -11,6 +11,7 @@ import {
   linkClass,
   primaryButtonClass,
 } from "@/components/auth-ui";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import {
   registerUniversityAction,
   type UniversitySignupActionState,
@@ -36,12 +37,14 @@ export function UniversitySignupForm({
   const [universityName, setUniversityName] = useState(state.universityName);
   const [acronym, setAcronym] = useState(state.acronym);
   const [phone, setPhone] = useState(state.phone);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const isSubmitDisabled =
     pending ||
     !universityName.trim() ||
     !acronym.trim() ||
-    !phone.trim();
+    !phone.trim() ||
+    !turnstileToken;
 
   return (
     <section className={authCardClass}>
@@ -127,6 +130,11 @@ export function UniversitySignupForm({
               </div>
             </div>
           </div>
+          <TurnstileField
+            action="signup_google"
+            onTokenChange={setTurnstileToken}
+            resetKey={state}
+          />
           {state.message !== null && (
             <p role="alert" className={errorClass}>
               {state.message}

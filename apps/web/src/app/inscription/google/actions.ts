@@ -10,6 +10,7 @@ import {
 } from "@tablino/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
 export type GoogleRegisterActionState = { message: string | null };
@@ -23,6 +24,10 @@ export async function registerGoogleAction(
   _previousState: GoogleRegisterActionState,
   formData: FormData,
 ): Promise<GoogleRegisterActionState> {
+  if (!(await verifyTurnstileForm(formData, "signup_google"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE };
+  }
+
   const universityId = await getCurrentUniversityId();
   const token = readStringField(formData, "token");
   const accessCode = readStringField(formData, "accessCode");

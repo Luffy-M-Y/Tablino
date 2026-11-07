@@ -1,1 +1,1 @@
-export { sendVerificationEmail } from "@tablino/email";
+export { sendVerificationEmail, sendPasswordResetEmail } from "@tablino/email";
