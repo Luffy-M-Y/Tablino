@@ -7,7 +7,7 @@ import { getProgramBySlug, getLevelsByProgram } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { LevelCard } from "@/components/cards/LevelCard";
-import { PageHero, mutedClass } from "@/components/ui/kit";
+import { BackLink, PageHero, mutedClass } from "@/components/ui/kit";
 
 const STEPS = [
   { label: "Fili\u00e8re" },
@@ -34,6 +34,7 @@ export default async function CoursNiveauxPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <BackLink href="/cours" />
       <PageHero variant="cours" icon={BookOpen} title={programLabel} subtitle="Choisissez votre niveau" />
 
       <Breadcrumb

@@ -4,7 +4,7 @@ import { getPrograms } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { ProgramCard } from "@/components/cards/ProgramCard";
-import { PageHero, mutedClass } from "@/components/ui/kit";
+import { BackLink, PageHero, mutedClass } from "@/components/ui/kit";
 
 const STEPS = [
   { label: "Fili\u00e8re" },
@@ -20,6 +20,7 @@ export default async function DevoirsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <BackLink href="/" />
       <PageHero variant="devoirs" icon={FileText} title="Devoirs" subtitle="Consultez et t&eacute;l&eacute;chargez vos sujets" />
 
       <Breadcrumb items={[{ label: "Devoirs" }]} />

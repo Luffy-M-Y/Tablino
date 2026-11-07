@@ -1,4 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export const focusRing =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]";
@@ -124,5 +126,17 @@ export function PageHero({
         {subtitle ? <p className="text-sm">{subtitle}</p> : null}
       </div>
     </section>
+  );
+}
+
+export function BackLink({ href, children = "Retour" }: { href: string; children?: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`mb-4 inline-flex h-10 items-center gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-surface)] px-4 text-sm font-semibold text-[color:var(--color-primary-text)] transition-colors hover:border-[color:var(--color-primary)] motion-reduce:transition-none ${focusRing}`}
+    >
+      <ArrowLeft size={16} aria-hidden="true" />
+      {children}
+    </Link>
   );
 }

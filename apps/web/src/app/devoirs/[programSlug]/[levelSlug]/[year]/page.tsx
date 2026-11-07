@@ -12,7 +12,7 @@ import {
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { SubjectCard } from "@/components/cards/SubjectCard";
-import { PageHero, mutedClass } from "@/components/ui/kit";
+import { BackLink, PageHero, mutedClass } from "@/components/ui/kit";
 
 const STEPS = [
   { label: "Fili\u00e8re" },
@@ -45,6 +45,7 @@ export default async function DevoirsMatieresPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <BackLink href={`/devoirs/${programSlug}/${levelSlug}`} />
       <PageHero variant="devoirs" icon={FileText} title={<>{programLabel} &mdash; {level.name} &mdash; {year}</>} subtitle="Choisissez une mati&egrave;re" />
 
       <Breadcrumb

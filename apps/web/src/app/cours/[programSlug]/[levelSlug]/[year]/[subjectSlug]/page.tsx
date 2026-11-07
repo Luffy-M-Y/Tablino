@@ -12,7 +12,7 @@ import {
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
-import { PageHero, mutedClass, primaryButtonClass, cardClass } from "@/components/ui/kit";
+import { BackLink, PageHero, mutedClass, primaryButtonClass, cardClass } from "@/components/ui/kit";
 
 const STEPS = [
   { label: "Fili\u00e8re" },
@@ -59,6 +59,7 @@ export default async function CoursRessourcesPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <BackLink href={`/cours/${programSlug}/${levelSlug}/${year}`} />
       <PageHero variant="cours" icon={BookOpen} title={subjectLabel} subtitle={<>{programLabel} &mdash; {level.name} &mdash; {year}</>} />
 
       <Breadcrumb
