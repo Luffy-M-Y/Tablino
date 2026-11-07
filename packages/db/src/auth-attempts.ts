@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
@@ -11,6 +11,7 @@ async function resolveDatabase(database?: AuthAttemptsDatabase): Promise<AuthAtt
 
 export type AuthAttemptAction =
   | "login"
+  | "login_ip"
   | "signup_code"
   | "email_send"
   | "verify_code"
@@ -25,6 +26,7 @@ export type RateLimit = {
 
 export const RATE_LIMITS: Record<AuthAttemptAction, RateLimit> = {
   login: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
+  login_ip: { maxAttempts: 20, windowMs: 900000, blockMs: 900000 },
   signup_code: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
   email_send: { maxAttempts: 5, windowMs: 3600000, blockMs: 3600000 },
   verify_code: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
@@ -34,7 +36,15 @@ export const RATE_LIMITS: Record<AuthAttemptAction, RateLimit> = {
 
 export function hashAttemptKey(action: AuthAttemptAction, identifier: string): string {
   const normalizedIdentifier = typeof identifier === "string" ? identifier.trim().toLowerCase() : "";
-  return createHash("sha256").update(action + ":" + normalizedIdentifier).digest("hex");
+  const value = action + ":" + normalizedIdentifier;
+  if (action === "login_ip") {
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (typeof secret !== "string" || secret.length < 16) {
+      throw new Error("Secret d'authentification absent pour le hachage de l'adresse IP.");
+    }
+    return createHmac("sha256", secret).update(value).digest("hex");
+  }
+  return createHash("sha256").update(value).digest("hex");
 }
 
 export async function checkRateLimit(

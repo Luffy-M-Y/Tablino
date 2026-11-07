@@ -127,6 +127,20 @@ test("an active university admin is accepted by both guards", async () => {
   );
 });
 
+test("a revoked admin is denied by both admin guards", async () => {
+  const revokedAdmin = { ...universityAdmin, revokedAt: new Date() };
+  const { guards } = harness(revokedAdmin);
+
+  await assert.rejects(
+    guards.requireRole("admin", ["university_admin"]),
+    AuthorizationDeniedError,
+  );
+  await assert.rejects(
+    guards.requireUniversityAccess("admin", "university-a"),
+    AuthorizationDeniedError,
+  );
+});
+
 test("a super admin is accepted for any university on both surfaces", async () => {
   const { guards } = harness(superAdmin);
   assert.equal((await guards.requireRole("admin", ["super_admin"])).id, superAdmin.id);

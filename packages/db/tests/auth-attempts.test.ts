@@ -188,6 +188,40 @@ test("RATE_LIMITS for verify_code allows 5 failures with a 15-minute window and 
   assert.equal(RATE_LIMITS.verify_code.blockMs, 900000);
 });
 
+test("RATE_LIMITS for login_ip allows 20 failures per 15 minutes then blocks for 15 minutes", () => {
+  assert.equal(RATE_LIMITS.login_ip.maxAttempts, 20);
+  assert.equal(RATE_LIMITS.login_ip.windowMs, 900000);
+  assert.equal(RATE_LIMITS.login_ip.blockMs, 900000);
+});
+
+test("hashAttemptKey HMACs login IP identifiers and requires the auth secret", () => {
+  const originalSecret = process.env.NEXTAUTH_SECRET;
+  process.env.NEXTAUTH_SECRET = "test-nextauth-secret-at-least-16";
+  try {
+    const hash = hashAttemptKey("login_ip", "203.0.113.10");
+    assert.equal(hash.length, 64);
+    assert.notEqual(hash, "203.0.113.10");
+    assert.equal(hash, hashAttemptKey("login_ip", "203.0.113.10"));
+    assert.notEqual(hash, hashAttemptKey("login_ip", "203.0.113.11"));
+  } finally {
+    if (originalSecret === undefined) {
+      delete process.env.NEXTAUTH_SECRET;
+    } else {
+      process.env.NEXTAUTH_SECRET = originalSecret;
+    }
+  }
+});
+
+test("hashAttemptKey rejects login IP hashing when the auth secret is missing", () => {
+  const originalSecret = process.env.NEXTAUTH_SECRET;
+  delete process.env.NEXTAUTH_SECRET;
+  try {
+    assert.throws(() => hashAttemptKey("login_ip", "203.0.113.10"));
+  } finally {
+    if (originalSecret !== undefined) process.env.NEXTAUTH_SECRET = originalSecret;
+  }
+});
+
 test("hashAttemptKey separates verify_code from login", () => {
   assert.notEqual(hashAttemptKey("verify_code", identifier), hashAttemptKey(action, identifier));
 });

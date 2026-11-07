@@ -493,3 +493,4 @@ export type {
   TurnstileFailureReason,
   TurnstileResult,
 } from "./turnstile";
+export { getCloudflareClientIp } from "./client-ip";
