@@ -8,6 +8,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "@/components/auth-ui";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { resendCodeAction, verifyCodeAction } from "./actions";
 
 export function VerificationForm() {
@@ -20,6 +21,8 @@ export function VerificationForm() {
     { message: null },
   );
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [verifyTurnstileToken, setVerifyTurnstileToken] = useState("");
+  const [resendTurnstileToken, setResendTurnstileToken] = useState("");
 
   useEffect(function () {
     if (resendState.message === "Un nouveau code a \u00e9t\u00e9 envoy\u00e9.") setSecondsLeft(60);
@@ -52,6 +55,11 @@ export function VerificationForm() {
             className={`${inputClass} text-center text-xl tracking-widest`}
           />
         </div>
+        <TurnstileField
+          action="email_verify"
+          onTokenChange={setVerifyTurnstileToken}
+          resetKey={verifyState}
+        />
         {verifyState.message !== null && (
           <p role="alert" className={errorClass}>
             {verifyState.message}
@@ -59,7 +67,7 @@ export function VerificationForm() {
         )}
         <button
           type="submit"
-          disabled={verifyPending}
+          disabled={verifyPending || !verifyTurnstileToken}
           className={primaryButtonClass}
         >
           V&eacute;rifier
@@ -67,9 +75,14 @@ export function VerificationForm() {
       </form>
 
       <form action={resendAction} className="space-y-3">
+        <TurnstileField
+          action="email_resend"
+          onTokenChange={setResendTurnstileToken}
+          resetKey={resendState}
+        />
         <button
           type="submit"
-          disabled={resendPending || secondsLeft > 0}
+          disabled={resendPending || secondsLeft > 0 || !resendTurnstileToken}
           className={`${secondaryButtonClass} disabled:opacity-60`}
         >
           {secondsLeft > 0 ? `Renvoyer le code (${secondsLeft} s)` : "Renvoyer le code"}

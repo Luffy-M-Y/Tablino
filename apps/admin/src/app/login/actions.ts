@@ -11,6 +11,7 @@ import {
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
+import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type LoginActionState = {
   message: string | null;
@@ -27,6 +28,10 @@ export async function loginAction(
   formData: FormData,
 ): Promise<LoginActionState> {
   const email = readStringField(formData, "email").trim().toLowerCase();
+  if (!(await verifyTurnstileForm(formData, "login"))) {
+    return { message: TURNSTILE_ERROR_MESSAGE, email };
+  }
+
   const password = readStringField(formData, "password");
   const limit = await checkRateLimit("login", email);
   if (!limit.allowed) {

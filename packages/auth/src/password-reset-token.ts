@@ -15,15 +15,19 @@ const RESET_TAG_LENGTH = 16;
 
 type ResetTokenPayload = {
   p: "password-reset";
+  s: PasswordResetSurface;
   u: string;
   x: number;
 };
 
 type ConfirmedTokenPayload = {
   p: "password-reset-confirmed";
+  s: PasswordResetSurface;
   u: string;
   x: number;
 };
+
+type PasswordResetSurface = "web" | "admin";
 
 function getSigningSecret(secret?: string): string {
   const signingSecret = secret ?? process.env.NEXTAUTH_SECRET;
@@ -84,6 +88,7 @@ function decryptResetToken(token: string, secret?: string): ResetTokenPayload | 
   const payload = data as Partial<ResetTokenPayload>;
   if (
     payload.p !== "password-reset"
+    || (payload.s !== "web" && payload.s !== "admin")
     || typeof payload.u !== "string"
     || payload.u.length === 0
     || typeof payload.x !== "number"
@@ -93,15 +98,45 @@ function decryptResetToken(token: string, secret?: string): ResetTokenPayload | 
   return payload as ResetTokenPayload;
 }
 
+function createPasswordResetTokenForSurface(
+  userId: string,
+  surface: PasswordResetSurface,
+  now: number,
+  secret?: string,
+): string {
+  return encryptResetToken(
+    { p: "password-reset", s: surface, u: userId, x: now + PASSWORD_RESET_TOKEN_TTL_MS },
+    secret,
+  );
+}
+
+function verifyPasswordResetTokenForSurface(
+  token: string,
+  surface: PasswordResetSurface,
+  now: number,
+  secret?: string,
+): string | null {
+  const payload = decryptResetToken(token, secret);
+  if (payload === null) return null;
+  if (payload.s !== surface) return null;
+  if (payload.x < now) return null;
+  return payload.u;
+}
+
 export function createPasswordResetToken(
   userId: string,
   now: number = Date.now(),
   secret?: string,
 ): string {
-  return encryptResetToken(
-    { p: "password-reset", u: userId, x: now + PASSWORD_RESET_TOKEN_TTL_MS },
-    secret,
-  );
+  return createPasswordResetTokenForSurface(userId, "web", now, secret);
+}
+
+export function createAdminPasswordResetToken(
+  userId: string,
+  now: number = Date.now(),
+  secret?: string,
+): string {
+  return createPasswordResetTokenForSurface(userId, "admin", now, secret);
 }
 
 export function verifyPasswordResetToken(
@@ -109,22 +144,29 @@ export function verifyPasswordResetToken(
   now: number = Date.now(),
   secret?: string,
 ): string | null {
-  const payload = decryptResetToken(token, secret);
-  if (payload === null) return null;
-  if (payload.x < now) return null;
-  return payload.u;
+  return verifyPasswordResetTokenForSurface(token, "web", now, secret);
+}
+
+export function verifyAdminPasswordResetToken(
+  token: string,
+  now: number = Date.now(),
+  secret?: string,
+): string | null {
+  return verifyPasswordResetTokenForSurface(token, "admin", now, secret);
 }
 
 // The confirmed token is issued only after the user has proven email ownership
 // (verified the reset code), so it is not an enumeration surface. It stays
 // signed (HMAC) like the other tokens in this package.
-export function createPasswordResetConfirmedToken(
+function createPasswordResetConfirmedTokenForSurface(
   userId: string,
-  now: number = Date.now(),
+  surface: PasswordResetSurface,
+  now: number,
   secret?: string,
 ): string {
   const data: ConfirmedTokenPayload = {
     p: "password-reset-confirmed",
+    s: surface,
     u: userId,
     x: now + PASSWORD_RESET_CONFIRMED_TOKEN_TTL_MS,
   };
@@ -135,8 +177,9 @@ export function createPasswordResetConfirmedToken(
   return encoded + "." + signature;
 }
 
-export function verifyPasswordResetConfirmedToken(
+function verifyPasswordResetConfirmedTokenForSurface(
   token: string,
+  surface: PasswordResetSurface,
   now: number = Date.now(),
   secret?: string,
 ): string | null {
@@ -163,6 +206,7 @@ export function verifyPasswordResetConfirmedToken(
   const payload = data as Partial<ConfirmedTokenPayload>;
   if (
     payload.p !== "password-reset-confirmed"
+    || payload.s !== surface
     || typeof payload.u !== "string"
     || payload.u.length === 0
     || typeof payload.x !== "number"
@@ -174,10 +218,42 @@ export function verifyPasswordResetConfirmedToken(
   return payload.u;
 }
 
-export function getPasswordResetCookieConfig() {
+export function createPasswordResetConfirmedToken(
+  userId: string,
+  now: number = Date.now(),
+  secret?: string,
+): string {
+  return createPasswordResetConfirmedTokenForSurface(userId, "web", now, secret);
+}
+
+export function createAdminPasswordResetConfirmedToken(
+  userId: string,
+  now: number = Date.now(),
+  secret?: string,
+): string {
+  return createPasswordResetConfirmedTokenForSurface(userId, "admin", now, secret);
+}
+
+export function verifyPasswordResetConfirmedToken(
+  token: string,
+  now: number = Date.now(),
+  secret?: string,
+): string | null {
+  return verifyPasswordResetConfirmedTokenForSurface(token, "web", now, secret);
+}
+
+export function verifyAdminPasswordResetConfirmedToken(
+  token: string,
+  now: number = Date.now(),
+  secret?: string,
+): string | null {
+  return verifyPasswordResetConfirmedTokenForSurface(token, "admin", now, secret);
+}
+
+export function getPasswordResetCookieConfig(surface: PasswordResetSurface = "web") {
   const secure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
   return {
-    name: (secure ? "__Secure-" : "") + "tablino-web.password-reset",
+    name: (secure ? "__Secure-" : "") + `tablino-${surface}.password-reset`,
     options: {
       httpOnly: true,
       sameSite: "lax" as const,
@@ -188,10 +264,12 @@ export function getPasswordResetCookieConfig() {
   };
 }
 
-export function getPasswordResetConfirmedCookieConfig() {
+export function getPasswordResetConfirmedCookieConfig(
+  surface: PasswordResetSurface = "web",
+) {
   const secure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
   return {
-    name: (secure ? "__Secure-" : "") + "tablino-web.password-reset-confirmed",
+    name: (secure ? "__Secure-" : "") + `tablino-${surface}.password-reset-confirmed`,
     options: {
       httpOnly: true,
       sameSite: "lax" as const,

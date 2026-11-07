@@ -8,6 +8,7 @@ import {
   labelClass,
   primaryButtonClass,
 } from "@/components/auth-ui";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { signupAction, type SignupActionState } from "./actions";
 
 const initialState: SignupActionState = {
@@ -26,6 +27,7 @@ export function SignupForm() {
   const [email, setEmail] = useState(state.email);
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const isSubmitDisabled =
     pending ||
@@ -34,7 +36,8 @@ export function SignupForm() {
     !phone.trim() ||
     !email.trim() ||
     !password ||
-    !passwordConfirmation;
+    !passwordConfirmation ||
+    !turnstileToken;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -158,6 +161,11 @@ export function SignupForm() {
           className={inputClass}
         />
       </div>
+      <TurnstileField
+        action="signup"
+        onTokenChange={setTurnstileToken}
+        resetKey={state}
+      />
       {state.message !== null && (
         <p role="alert" className={errorClass}>
           {state.message}

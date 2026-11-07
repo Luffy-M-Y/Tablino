@@ -3,12 +3,16 @@ import test from "node:test";
 import { createGoogleSignupToken } from "../src/google-signup-token";
 import { createEmailVerificationToken } from "../src/email-verification-token";
 import {
+  createAdminPasswordResetConfirmedToken,
+  createAdminPasswordResetToken,
   createPasswordResetConfirmedToken,
   createPasswordResetToken,
   getPasswordResetConfirmedCookieConfig,
   getPasswordResetCookieConfig,
   PASSWORD_RESET_CONFIRMED_TOKEN_TTL_MS,
   PASSWORD_RESET_TOKEN_TTL_MS,
+  verifyAdminPasswordResetConfirmedToken,
+  verifyAdminPasswordResetToken,
   verifyPasswordResetConfirmedToken,
   verifyPasswordResetToken,
 } from "../src/password-reset-token";
@@ -21,6 +25,16 @@ test("password reset token round trips its user ID", () => {
   const token = createPasswordResetToken(userId, now, secret);
 
   assert.equal(verifyPasswordResetToken(token, now, secret), userId);
+});
+
+test("admin password reset tokens round trip and cannot cross surfaces", () => {
+  const adminToken = createAdminPasswordResetToken(userId, now, secret);
+  const webToken = createPasswordResetToken(userId, now, secret);
+
+  assert.equal(verifyAdminPasswordResetToken(adminToken, now, secret), userId);
+  assert.equal(verifyPasswordResetToken(adminToken, now, secret), null);
+  assert.equal(verifyPasswordResetToken(webToken, now, secret), userId);
+  assert.equal(verifyAdminPasswordResetToken(webToken, now, secret), null);
 });
 
 test("password reset token does not expose its identifier in plaintext", () => {
@@ -60,6 +74,16 @@ test("password reset confirmed token round trips its user ID", () => {
   const token = createPasswordResetConfirmedToken(userId, now, secret);
 
   assert.equal(verifyPasswordResetConfirmedToken(token, now, secret), userId);
+});
+
+test("admin confirmed password reset tokens cannot cross surfaces", () => {
+  const adminToken = createAdminPasswordResetConfirmedToken(userId, now, secret);
+  const webToken = createPasswordResetConfirmedToken(userId, now, secret);
+
+  assert.equal(verifyAdminPasswordResetConfirmedToken(adminToken, now, secret), userId);
+  assert.equal(verifyPasswordResetConfirmedToken(adminToken, now, secret), null);
+  assert.equal(verifyPasswordResetConfirmedToken(webToken, now, secret), userId);
+  assert.equal(verifyAdminPasswordResetConfirmedToken(webToken, now, secret), null);
 });
 
 test("password reset confirmed token rejects an expired payload", () => {
@@ -160,6 +184,24 @@ test("password reset confirmed cookie config omits the secure prefix over HTTP",
 
     assert.equal(config.name, "tablino-web.password-reset-confirmed");
     assert.equal(config.options.secure, false);
+  } finally {
+    if (originalUrl === undefined) {
+      delete process.env.NEXTAUTH_URL;
+    } else {
+      process.env.NEXTAUTH_URL = originalUrl;
+    }
+  }
+});
+
+test("admin password reset cookies use an isolated namespace", () => {
+  const originalUrl = process.env.NEXTAUTH_URL;
+  process.env.NEXTAUTH_URL = "http://localhost:3001";
+  try {
+    assert.equal(getPasswordResetCookieConfig("admin").name, "tablino-admin.password-reset");
+    assert.equal(
+      getPasswordResetConfirmedCookieConfig("admin").name,
+      "tablino-admin.password-reset-confirmed",
+    );
   } finally {
     if (originalUrl === undefined) {
       delete process.env.NEXTAUTH_URL;

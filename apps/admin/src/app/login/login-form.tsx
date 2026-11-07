@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { signIn } from "next-auth/react";
+import { TurnstileField } from "@/components/auth/TurnstileField";
 import { loginAction, type LoginActionState } from "./actions";
 
 const initialState: LoginActionState = {
@@ -16,11 +17,20 @@ const labelClass =
   "mb-1.5 block text-sm font-semibold text-[color:var(--color-text)]";
 const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 text-base text-[color:var(--color-text)] ${focusRing}`;
 
-export function LoginForm() {
+export function LoginForm({ passwordResetComplete = false }: { passwordResetComplete?: boolean }) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   return (
     <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6">
+      {passwordResetComplete ? (
+        <p
+          role="status"
+          className="mb-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm text-[color:var(--color-text)]"
+        >
+          Mot de passe r&eacute;initialis&eacute;. Connectez-vous avec votre nouveau mot de passe.
+        </p>
+      ) : null}
       <form action={formAction} className="space-y-4">
         <div>
           <label htmlFor="email" className={labelClass}>
@@ -50,6 +60,11 @@ export function LoginForm() {
             className={inputClass}
           />
         </div>
+        <TurnstileField
+          action="login"
+          onTokenChange={setTurnstileToken}
+          resetKey={state}
+        />
         {state.message !== null && (
           <p
             role="alert"
@@ -60,13 +75,21 @@ export function LoginForm() {
         )}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || !turnstileToken}
           className={`h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-primary)] px-4 font-semibold text-white transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`}
         >
           {pending ? "Connexion en cours\u2026" : "Se connecter"}
         </button>
       </form>
 
+      <p className="mt-3 text-center text-sm text-[color:var(--color-muted-foreground)]">
+        <Link
+          href="/mot-de-passe-oublie"
+          className={`inline-block px-1 py-3 font-semibold text-[color:var(--color-primary-text)] underline underline-offset-2 ${focusRing}`}
+        >
+          Mot de passe oubli&eacute; ?
+        </Link>
+      </p>
       <div className="my-4 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
         <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
         ou

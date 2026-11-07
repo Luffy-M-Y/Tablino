@@ -165,15 +165,21 @@ export {
   generatePasswordResetCode,
   hashPasswordResetCode,
   issuePasswordResetCode,
+  issueAdminPasswordResetCode,
   verifyPasswordResetCode,
   setStudentPassword,
+  setAdminPassword,
   requestPasswordReset,
+  requestAdminPasswordReset,
   resendPasswordResetCode,
+  resendAdminPasswordResetCode,
 } from "./password-reset";
 export type {
   IssuePasswordResetResult,
   VerifyPasswordResetCodeResult,
   SetPasswordResult,
+  AdminPasswordResetRequestResult,
+  AdminPasswordResetResendResult,
   PasswordResetRequestResult,
   ResendPasswordResetResult,
 } from "./password-reset";
