@@ -5,6 +5,8 @@ export type GuardUser = {
   id: string;
   role: GuardRole;
   universityId: string | null;
+  universityName?: string | null;
+  universityAcronym?: string | null;
   universityStatus: "pending" | "approved" | "active" | null;
   revokedAt: Date | null;
   trialEndsAt: Date | null;

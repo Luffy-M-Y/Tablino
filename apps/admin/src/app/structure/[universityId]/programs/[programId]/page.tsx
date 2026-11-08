@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
+import { AdminCard, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
@@ -55,7 +56,7 @@ export default async function ProgramDetailPage({
         { label: program.name },
       ]}
     >
-      <section className="flex flex-col items-start gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard className="flex flex-col items-start gap-3">
         <h2 className="text-xl font-semibold">{program.name}</h2>
         <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
         <p>{countLabel(program.cyclesCount, "cycle", "cycles")}</p>
@@ -64,7 +65,7 @@ export default async function ProgramDetailPage({
           <Link
             href={`/structure/${universityId}/programs/${program.id}/edit`}
             aria-label="Modifier la filière"
-            className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-2 text-[color:var(--color-university-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+            className={adminSecondaryButtonClass}
           >
             <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
               <path d="m16 5 3 3M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
@@ -78,45 +79,47 @@ export default async function ProgramDetailPage({
             label="Supprimer la filière"
           />
         </div>
-      </section>
+      </AdminCard>
 
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard>
         <h2 className="mb-4 text-xl font-semibold">Cycles de la filière</h2>
         {program.cycles.length === 0 ? (
           <p>Aucun cycle dans cette filière.</p>
         ) : (
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {program.cycles.map((cycle) => (
-              <li key={cycle.cycleId} className="space-y-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-                <h3 className="text-xl font-semibold">{cycle.name}</h3>
-                <p>{cycle.shortCode}</p>
-                <p>Années : {cycle.yearsCount}</p>
-                <div className="flex items-start gap-2">
-                  <RenameControl
-                    action={renameCycleAction}
-                    universityId={universityId}
-                    idField="cycleId"
-                    idValue={cycle.cycleId}
-                    currentName={cycle.name}
-                    maxLength={100}
-                    label="Modifier le nom du cycle"
-                    helpText="Ce nom est partagé par toutes les filières."
-                  />
-                  <DeleteControl
-                    action={deleteProgramCycleAction}
-                    universityId={universityId}
-                    fields={{ programId: program.id, cycleId: cycle.cycleId }}
-                    itemName={cycle.name}
-                    label="Retirer le cycle de la filière"
-                  />
-                </div>
+              <li key={cycle.cycleId}>
+                <AdminCard className="space-y-2">
+                  <h3 className="text-xl font-semibold">{cycle.name}</h3>
+                  <p>{cycle.shortCode}</p>
+                  <p>Années : {cycle.yearsCount}</p>
+                  <div className="flex items-start gap-2">
+                    <RenameControl
+                      action={renameCycleAction}
+                      universityId={universityId}
+                      idField="cycleId"
+                      idValue={cycle.cycleId}
+                      currentName={cycle.name}
+                      maxLength={100}
+                      label="Modifier le nom du cycle"
+                      helpText="Ce nom est partagé par toutes les filières."
+                    />
+                    <DeleteControl
+                      action={deleteProgramCycleAction}
+                      universityId={universityId}
+                      fields={{ programId: program.id, cycleId: cycle.cycleId }}
+                      itemName={cycle.name}
+                      label="Retirer le cycle de la filière"
+                    />
+                  </div>
+                </AdminCard>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </AdminCard>
 
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard>
         <h2 className="mb-4 text-xl font-semibold">Matières</h2>
         <SubjectsSearch
           universityId={universityId}
@@ -128,20 +131,20 @@ export default async function ProgramDetailPage({
           levels={programLevels}
           academicYears={overview.academicYears}
         />
-      </section>
+      </AdminCard>
 
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard>
         <h2 className="text-xl font-semibold">Statut</h2>
         <StructureActionForm action={updateProgramStatusAction} buttonLabel="Enregistrer le statut">
           <input type="hidden" name="universityId" value={universityId} />
           <input type="hidden" name="programId" value={program.id} />
           <label htmlFor={`program-status-${program.id}`}>Statut de la filière</label>
-          <select id={`program-status-${program.id}`} name="status" defaultValue={program.status} required>
+          <select id={`program-status-${program.id}`} name="status" defaultValue={program.status} required className={adminFieldClass}>
             <option value="draft">Brouillon</option>
             <option value="published">Publiée</option>
           </select>
         </StructureActionForm>
-      </section>
+      </AdminCard>
     </AdminPage>
   );
 }

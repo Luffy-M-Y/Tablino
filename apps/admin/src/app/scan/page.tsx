@@ -1,5 +1,6 @@
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
+import { AdminCard } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getStructureOverview } from "@/lib/structure-queries";
 import { ScanUploadForm } from "../upload/scan-upload-form";
@@ -17,13 +18,13 @@ export default async function ScanPage() {
         { label: "Scanner un document" },
       ]}
     >
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard>
         <ScanUploadForm
           universityId={university.id}
           programs={overview.programs}
           cycles={overview.cycles}
         />
-      </section>
+      </AdminCard>
     </AdminPage>
   );
 }

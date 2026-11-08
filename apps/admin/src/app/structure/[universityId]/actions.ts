@@ -118,6 +118,9 @@ async function runMutation(
 
     console.info("structure_mutation", createStructureMutationLog(action, "success", "none"));
     revalidatePath(`/structure/${universityId}`, "layout");
+    revalidatePath("/drafts");
+    revalidatePath("/drafts/programs");
+    revalidatePath("/drafts/files");
     return { ok: true, message: "Modification enregistrée." };
   } catch {
     console.info("structure_mutation", createStructureMutationLog(action, "error", "unexpected_error"));
@@ -463,6 +466,10 @@ export async function publishDraftAction(
     ? await runMutation("publish_resource", universityId, () => publishResource(universityId, id))
     : await runMutation("publish_assignment", universityId, () => publishAssignment(universityId, id));
 
-  if (result.ok) revalidatePath("/drafts");
+  if (result.ok) {
+    revalidatePath("/drafts");
+    revalidatePath("/drafts/programs");
+    revalidatePath("/drafts/files");
+  }
   return result;
 }

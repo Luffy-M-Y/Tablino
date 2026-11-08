@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import {
+  AdminCard,
+  adminFieldClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
+} from "@/components/admin-ui";
 import { createCodeAction, type CreateCodeState } from "./actions";
 
 export function CreateCodeForm() {
@@ -40,7 +46,7 @@ export function CreateCodeForm() {
   }
 
   return (
-    <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+    <AdminCard className="!p-4">
       <form
         action={(formData) => {
           startTransition(async () => {
@@ -51,26 +57,32 @@ export function CreateCodeForm() {
             setResult(next);
           });
         }}
-        className="space-y-4"
+        className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4"
       >
-        <div>
-          <label htmlFor="maxUses" className="mb-2 block">
+        <div className="min-w-0">
+          <label htmlFor="maxUses" className="mb-1.5 block whitespace-nowrap text-sm font-medium text-[color:var(--color-text)]">
             Nombre d'utilisations maximum
           </label>
-          <input
-            id="maxUses"
-            name="maxUses"
-            type="number"
-            min={1}
-            max={5000}
-            required
-            className="rounded border border-[color:var(--color-border)] px-3 py-2"
-          />
+          <div className="w-28 shrink-0">
+            <input
+              id="maxUses"
+              name="maxUses"
+              type="number"
+              defaultValue={1}
+              min={1}
+              max={5000}
+              required
+              className={`${adminFieldClass} h-10 w-full py-0 pr-2`}
+            />
+          </div>
+          <p className="mt-1.5 max-w-xs text-xs text-[color:var(--color-muted-foreground)]">
+            Combien d'étudiants peuvent utiliser ce code
+          </p>
         </div>
         <button
           type="submit"
           disabled={pending}
-          className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 font-semibold text-white disabled:opacity-60"
+          className={`${adminPrimaryButtonClass} w-full sm:w-auto`}
         >
           Générer un code
         </button>
@@ -81,11 +93,11 @@ export function CreateCodeForm() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={closeModal}
         >
-          <div
+          <AdminCard
             role="dialog"
             aria-modal="true"
             aria-labelledby="generated-code-title"
-            className="w-full max-w-lg rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]"
+            className="w-full max-w-lg"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="generated-code-title" className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
@@ -101,21 +113,21 @@ export function CreateCodeForm() {
               <button
                 type="button"
                 onClick={copyCode}
-                className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 font-semibold text-[color:var(--color-text)]"
+                className={adminSecondaryButtonClass}
               >
                 Copier
               </button>
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 font-semibold text-white"
+                className={adminPrimaryButtonClass}
               >
                 Fermer
               </button>
             </div>
-          </div>
+          </AdminCard>
         </div>
       )}
-    </section>
+    </AdminCard>
   );
 }

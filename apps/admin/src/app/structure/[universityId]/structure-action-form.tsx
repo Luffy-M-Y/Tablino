@@ -2,6 +2,7 @@
 
 import { useActionState, type ReactNode } from "react";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
+import { adminPrimaryButtonClass } from "@/components/admin-ui";
 
 type Props = {
   action: StructureFormAction;
@@ -18,7 +19,7 @@ export function StructureActionForm({ action, buttonLabel, children }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+        className={adminPrimaryButtonClass}
       >
         {pending ? "Enregistrement…" : buttonLabel}
       </button>

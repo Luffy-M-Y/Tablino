@@ -110,12 +110,20 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Accessibilité : focus visible, navigation clavier, contrastes, libellés explicites. Responsive mobile-first.
 - Identité visuelle : bleu universitaire, fond clair, cartes à coins arrondis, ombres discrètes, animations légères.
 - Navigation par routes : `/cours/[programSlug]/[levelSlug]/[year]/[subjectSlug]`, idem `/devoirs/...`. Année dans l'URL = libellé (ex. 2026-2027).
-- Pas de barre de recherche, d'avatar ni de promesses non vérifiées (« données sécurisées ») tant que non réalisés.
+- Barre de recherche et menu du compte (avatar) réalisés dans l'interface admin. Ne pas les annoncer dans une autre interface avant vérification ; aucune promesse non vérifiée (« données sécurisées »).
 - Slugs créés par le dashboard : via une vraie fonction de slug (accents, doublons).
 - Vocabulaire produit : niveau = année. L1 = Licence année 1. Le nombre d'années d'un cycle dans une filière définit ses niveaux : N années = L1 à LN. Interface : « Années : N ». Ne pas utiliser « niveaux » et « années » comme deux notions.
 - Vocabulaire dashboard : ressource = cours (table resources) ; devoir = table assignments. Upload = envoi d'un fichier ; Scan = page séparée (caméra et images) ; les deux passent par DocumentForm.
 - Brouillon a deux sens : (1) un fichier (cours ou devoir) avec status draft, listé sur /drafts, publié par le bouton Publier ou directement à l'envoi par la case Publier directement ; (2) une filière avec programs.status draft, statut changé sur la page de détail de la filière.
 - Un fichier publié dans une filière en brouillon reste invisible sur le site public : les deux statuts sont filtrés.
+
+### Admin : conventions d'interface
+- Kit d'interface : `apps/admin/src/components/admin-ui.tsx` (`AdminCard`, `AdminLinkCard`, styles de boutons et de champs) ; utiliser `AdminPage` pour l'en-tête. Les nouveaux jetons admin portent le préfixe `admin-` dans `apps/admin/src/app/globals.css` ; ne pas modifier les jetons partagés avec `apps/web` (un test vérifie qu'ils sont identiques).
+- Animation de survol uniquement sur les éléments cliquables (cartes-liens, lignes de liste, boutons) ; conteneurs de formulaire et de tableau statiques. Toujours respecter `motion-reduce` et rendre le focus visible.
+- Menu latéral : replié par défaut à partir de `md`, déplié au survol ou au focus clavier avec décalage de la page ; bouton d'épinglage mémorisé dans `localStorage` ; tiroir sous `md`. Les entrées sont filtrées par rôle dans `apps/admin/src/lib/admin-menu.mjs`.
+- En-tête : afficher le nom et l'acronyme de l'université pour `university_admin`, transmis via `GuardUser` (`universityName`, `universityAcronym`).
+- Brouillons : `/drafts` (deux cartes), `/drafts/programs`, `/drafts/files`. Les actions qui modifient des brouillons invalident ces trois routes.
+- Codes d'accès : aucune suppression de codes (un code utilisé est référencé par `users.access_code_id`). Les codes inactifs (expirés, épuisés, révoqués) sont masqués par défaut ; les afficher avec `?inactifs=1`.
 
 ## Fonctionnalités prévues (ne pas implémenter sans demande)
 - Authentification restante : email/mot de passe, interface de creation d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisee.

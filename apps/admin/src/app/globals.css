@@ -33,6 +33,17 @@
   --color-page-background: var(--color-background);
   --color-text: var(--color-foreground);
   --radius-rounded: var(--radius-base);
+  --admin-page-background: #f8fafc;
+  --admin-card-background: #ffffff;
+  --admin-card-border: #e2e8f0;
+  --admin-card-shadow: 0 1px 3px rgb(15 23 42 / 7%), 0 1px 2px rgb(15 23 42 / 4%);
+  --admin-card-shadow-hover: 0 12px 28px rgb(15 23 42 / 12%);
+  --admin-icon-background: #eff6ff;
+  --admin-icon-color: #1d4ed8;
+  --admin-menu-active-background: rgb(255 255 255 / 10%);
+  --admin-menu-indicator: #93c5fd;
+  --admin-action: #ea580c;
+  --admin-action-soft: #fff7ed;
 }
 
 @layer base {
@@ -46,5 +57,40 @@
 
   button:disabled {
     cursor: not-allowed;
+  }
+}
+
+form:has(#upload-file) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 0;
+}
+
+form:has(#upload-file)::before {
+  order: 1;
+  flex: 0 0 auto;
+  height: 1px;
+  margin: 0 1rem;
+  background: var(--admin-card-border);
+  content: "";
+}
+
+form:has(#upload-file) > p[role="status"],
+form:has(#upload-file) > p[role="alert"] {
+  order: 2;
+  margin: 0.75rem 1rem 0;
+}
+
+form:has(#upload-file) > button[type="submit"] {
+  order: 3;
+  align-self: stretch;
+  margin: 1rem 1rem;
+}
+
+@media (min-width: 640px) {
+  form:has(#upload-file) > button[type="submit"] {
+    align-self: flex-end;
   }
 }

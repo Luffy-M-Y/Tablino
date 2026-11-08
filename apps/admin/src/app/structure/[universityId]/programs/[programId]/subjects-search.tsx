@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AdminCard, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
 import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
 import { deleteSubjectAction, renameSubjectAction } from "../../actions";
 import { DeleteControl, RenameControl } from "../../structure-edit-controls";
@@ -39,12 +40,12 @@ export function SubjectsSearch({ universityId, subjects }: Props) {
           onKeyDown={(event) => {
             if (event.key === "Escape") setQuery("");
           }}
-          className="w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2"
+          className={adminFieldClass}
         />
         <button
           type="button"
           onClick={() => setQuery("")}
-          className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={adminSecondaryButtonClass}
         >
           Effacer
         </button>
@@ -57,26 +58,28 @@ export function SubjectsSearch({ universityId, subjects }: Props) {
       ) : (
         <ul className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           {matchingSubjects.map((subject) => (
-            <li key={subject.id} className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-4 shadow-[var(--shadow-subtle)]">
-              {subject.name}
-              <div className="mt-3 flex items-center gap-2">
-                <RenameControl
-                  action={renameSubjectAction}
-                  universityId={universityId}
-                  idField="subjectId"
-                  idValue={subject.id}
-                  currentName={subject.name}
-                  maxLength={255}
-                  label="Modifier le nom de la matière"
-                />
-                <DeleteControl
-                  action={deleteSubjectAction}
-                  universityId={universityId}
-                  fields={{ subjectId: subject.id }}
-                  itemName={subject.name}
-                  label="Supprimer la matière"
-                />
-              </div>
+            <li key={subject.id}>
+              <AdminCard className="p-4">
+                {subject.name}
+                <div className="mt-3 flex items-center gap-2">
+                  <RenameControl
+                    action={renameSubjectAction}
+                    universityId={universityId}
+                    idField="subjectId"
+                    idValue={subject.id}
+                    currentName={subject.name}
+                    maxLength={255}
+                    label="Modifier le nom de la matière"
+                  />
+                  <DeleteControl
+                    action={deleteSubjectAction}
+                    universityId={universityId}
+                    fields={{ subjectId: subject.id }}
+                    itemName={subject.name}
+                    label="Supprimer la matière"
+                  />
+                </div>
+              </AdminCard>
             </li>
           ))}
         </ul>

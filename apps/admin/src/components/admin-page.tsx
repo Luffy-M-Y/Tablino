@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
-import { getAdminProfile } from "@/lib/get-admin-profile";
+import { getAdminProfile, type AdminProfile } from "@/lib/get-admin-profile";
 
 type Breadcrumb = {
   label: string;
@@ -11,18 +12,26 @@ type Breadcrumb = {
 export default async function AdminPage({
   title,
   breadcrumbs,
+  description,
+  icon: Icon,
+  actions,
+  profile: suppliedProfile,
   children,
 }: {
   title: string;
   breadcrumbs: Breadcrumb[];
+  description?: string;
+  icon?: LucideIcon;
+  actions?: ReactNode;
+  profile?: AdminProfile;
   children: ReactNode;
 }) {
-  const profile = await getAdminProfile();
+  const profile = suppliedProfile ?? await getAdminProfile();
 
   return (
     <AdminShell profile={profile}>
       <main>
-        <nav aria-label="Fil d’Ariane" className="mb-6 text-sm text-[color:var(--color-text)]">
+        <nav aria-label="Fil d’Ariane" className="mb-3 text-sm text-[color:var(--color-muted-foreground)]">
           <ol className="flex flex-wrap items-center gap-2">
             {breadcrumbs.map((breadcrumb, index) => {
               const isCurrent = index === breadcrumbs.length - 1;
@@ -35,7 +44,7 @@ export default async function AdminPage({
                   ) : breadcrumb.href ? (
                     <Link
                       href={breadcrumb.href}
-                      className="text-[color:var(--color-university-primary)] underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+                      className="rounded-sm text-[color:var(--color-university-primary)] underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
                     >
                       {breadcrumb.label}
                     </Link>
@@ -47,7 +56,22 @@ export default async function AdminPage({
             })}
           </ol>
         </nav>
-        <h1 className="mb-6 text-3xl font-bold text-[color:var(--color-text)]">{title}</h1>
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            {Icon ? (
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]">
+                <Icon size={24} aria-hidden="true" />
+              </span>
+            ) : null}
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold text-[color:var(--color-text)]">{title}</h1>
+              {description ? (
+                <p className="mt-1 text-[color:var(--color-muted-foreground)]">{description}</p>
+              ) : null}
+            </div>
+          </div>
+          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        </header>
         {children}
       </main>
     </AdminShell>

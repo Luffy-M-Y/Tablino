@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createSubjectAction } from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
+import { adminFieldClass } from "@/components/admin-ui";
 
 type ProgramLevel = {
   id: string;
@@ -21,8 +22,6 @@ type Props = {
   levels: ProgramLevel[];
   academicYears: AcademicYear[];
 };
-
-const fieldClassName = "border border-[color:var(--color-border)] rounded px-3 py-2";
 
 export function SubjectCreateForm({
   universityId,
@@ -75,7 +74,7 @@ export function SubjectCreateForm({
           <select
             id={`subject-level-${programId}`}
             name="levelId"
-            className={fieldClassName}
+            className={adminFieldClass}
             required
           >
             {levels.map((level) => (
@@ -92,7 +91,7 @@ export function SubjectCreateForm({
           <div className="flex gap-2">
             <select
               aria-label="Choisir une année académique existante"
-              className={fieldClassName}
+              className={adminFieldClass}
               value={selectedAcademicYearLabel}
               disabled={Boolean(academicYearLabel && !selectedAcademicYearLabel)}
               onChange={(event) => {
@@ -117,7 +116,7 @@ export function SubjectCreateForm({
               pattern="\d{4}-\d{4}"
               inputMode="numeric"
               placeholder="2025-2026"
-              className={fieldClassName}
+              className={adminFieldClass}
               aria-describedby={`subject-academic-year-help-${programId}`}
               value={academicYearLabel}
               readOnly={Boolean(selectedAcademicYearLabel)}
@@ -142,7 +141,7 @@ export function SubjectCreateForm({
             name="name"
             type="text"
             maxLength={255}
-            className={fieldClassName}
+            className={adminFieldClass}
             required
           />
         </div>

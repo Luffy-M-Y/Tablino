@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import {
+  AdminCard,
+  adminFieldClass,
+  adminSecondaryButtonClass,
+} from "@/components/admin-ui";
 import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
 import { deleteProgramAction } from "../actions";
 import { DeleteControl } from "../structure-edit-controls";
@@ -57,12 +62,12 @@ export function ProgramsSearch({ universityId, programs }: Props) {
           onKeyDown={(event) => {
             if (event.key === "Escape") setQuery("");
           }}
-          className="w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2"
+          className={adminFieldClass}
         />
         <button
           type="button"
           onClick={() => setQuery("")}
-          className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+          className={adminSecondaryButtonClass}
         >
           Effacer
         </button>
@@ -75,13 +80,13 @@ export function ProgramsSearch({ universityId, programs }: Props) {
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {matchingPrograms.map((program) => (
-            <div
+            <AdminCard
               key={program.id}
-              className="relative flex flex-col gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]"
+              className="group relative flex flex-col gap-2 motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[var(--admin-card-shadow-hover)] motion-safe:focus-within:-translate-y-1 motion-safe:focus-within:shadow-[var(--admin-card-shadow-hover)] motion-reduce:transition-colors hover:border-[color:var(--color-primary)] focus-within:border-[color:var(--color-primary)]"
             >
               <Link
                 href={`/structure/${universityId}/programs/${program.id}`}
-                className="flex flex-col gap-2"
+                className="flex flex-col gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
               >
                 <h2 className="text-xl font-semibold">{program.name}</h2>
                 <span className={statusClassName(program.status)}>{statusLabel(program.status)}</span>
@@ -93,7 +98,7 @@ export function ProgramsSearch({ universityId, programs }: Props) {
                 <Link
                   href={`/structure/${universityId}/programs/${program.id}/edit`}
                   aria-label="Modifier la filière"
-                  className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-2 text-[color:var(--color-university-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+                  className={`${adminSecondaryButtonClass} size-10 p-2`}
                 >
                   <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
                     <path d="m16 5 3 3M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
@@ -107,7 +112,7 @@ export function ProgramsSearch({ universityId, programs }: Props) {
                   label="Supprimer la filière"
                 />
               </div>
-            </div>
+            </AdminCard>
           ))}
         </div>
       )}

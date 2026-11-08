@@ -9,6 +9,16 @@ import {
 import { formatAmount } from "@/lib/format-amount.mjs";
 import { requireAdminAccess } from "@/lib/authorization";
 import Link from "next/link";
+import {
+  BookOpen,
+  ClipboardList,
+  FilePen,
+  Layers,
+  ScanLine,
+  Upload,
+} from "lucide-react";
+import { getAdminProfile } from "@/lib/get-admin-profile";
+import { AdminLinkCard } from "@/components/admin-ui";
 
 const COUNT_LABELS = [
   ["programs", "Filières"],
@@ -23,6 +33,15 @@ const STATUS_LABELS: Record<string, string> = {
   approved: "Validée",
   active: "Active",
 };
+
+const HOME_CARD_ICONS = {
+  structure: Layers,
+  upload: Upload,
+  scanner: ScanLine,
+  drafts: FilePen,
+  resources: BookOpen,
+  assignments: ClipboardList,
+} satisfies Record<(typeof ADMIN_HOME_CARDS)[number]["id"], typeof Layers>;
 
 export default async function HomePage() {
   const user = await requireAdminAccess();
@@ -155,68 +174,56 @@ export default async function HomePage() {
     ? await getDashboardCountsForUniversity(university.id)
     : null;
 
+  const profile = await getAdminProfile();
+  const activeHomeCards = ADMIN_HOME_CARDS.filter((card) => card.active);
+
   return (
-    <AdminPage title="Accueil" breadcrumbs={[{ label: "Accueil" }]}>
-      <section aria-label="Fonctionnalités d’administration">
-        <ul className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {ADMIN_HOME_CARDS.map((card) => (
+    <AdminPage
+      title="Accueil"
+      breadcrumbs={[{ label: "Accueil" }]}
+      description={`Bienvenue dans votre espace d’administration${university ? ` — ${university.name}` : ""}.`}
+      profile={profile}
+    >
+        <section aria-label="Fonctionnalités d’administration">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {activeHomeCards.map((card) => (
             <li key={card.id}>
-              {card.active ? (
-                <Link
-                  href={card.href}
-                  className="flex min-h-52 flex-col justify-between rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 text-[color:var(--color-text)] shadow-[var(--shadow-subtle)] outline-none transition motion-reduce:transition-none hover:shadow-md motion-safe:hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
-                >
-                  <div>
-                    <h2 className="text-xl font-semibold text-[color:var(--color-primary-text)]">{card.title}</h2>
-                    <p className="mt-3">{card.description}</p>
-                  </div>
-                  <span className="mt-6 text-sm font-medium text-[color:var(--color-primary-text)]">
-                    Ouvrir
-                  </span>
-                </Link>
-              ) : (
-                <article
-                  aria-disabled="true"
-                  className="flex min-h-52 flex-col justify-between rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 text-[color:var(--color-muted-foreground)] shadow-[var(--shadow-subtle)]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-xl font-semibold">{card.title}</h2>
-                    <span className="rounded-full bg-[color:var(--color-page-background)] px-3 py-1 text-xs font-medium text-[color:var(--color-text)]">
-                      {card.availabilityLabel}
-                    </span>
-                  </div>
-                  <span aria-hidden="true" className="self-end text-3xl text-[color:var(--color-primary-text)]">
-                    +
-                  </span>
-                </article>
-              )}
+              <AdminLinkCard
+                href={card.href}
+                icon={HOME_CARD_ICONS[card.id]}
+                title={card.title}
+                description={card.description}
+                accent={card.id === "scanner"}
+              />
             </li>
           ))}
-        </ul>
-      </section>
+          </ul>
+        </section>
 
-      <section aria-labelledby="dashboard-counts-heading" className="mt-8">
-        <h2 id="dashboard-counts-heading" className="mb-4 text-xl font-semibold">
-          {university ? `Compteurs — ${university.name}` : "Compteurs"}
-        </h2>
         {counts ? (
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+          <section aria-labelledby="dashboard-counts-heading" className="mt-8">
+            <h2 id="dashboard-counts-heading" className="mb-4 text-xl font-semibold">
+              Indicateurs clés
+            </h2>
+            <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
             {COUNT_LABELS.map(([key, label]) => (
               <div
                 key={key}
-                className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]"
+                className="rounded-[var(--radius-rounded)] border border-[color:var(--admin-card-border)] bg-[color:var(--admin-card-background)] p-4 shadow-[var(--admin-card-shadow)]"
               >
                 <dt className="text-sm text-[color:var(--color-muted-foreground)]">{label}</dt>
-                <dd className="mt-2 text-2xl font-semibold text-[color:var(--color-primary-text)]">
+                <dd className="mt-2 text-2xl font-semibold text-[color:var(--color-text)]">
                   {counts[key]}
                 </dd>
               </div>
             ))}
-          </dl>
+            </dl>
+          </section>
         ) : (
-          <p>Université non configurée.</p>
+          <p className="mt-8 text-sm text-[color:var(--color-muted-foreground)]">
+            Les indicateurs ne sont pas disponibles.
+          </p>
         )}
-      </section>
     </AdminPage>
   );
 }

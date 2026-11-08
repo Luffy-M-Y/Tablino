@@ -2,6 +2,12 @@
 
 import { useActionState, useEffect, useId, useState } from "react";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
+import {
+  adminDangerButtonClass,
+  adminFieldClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
+} from "@/components/admin-ui";
 
 type RenameControlProps = {
   action: StructureFormAction;
@@ -39,7 +45,7 @@ export function RenameControl({
         aria-label={label}
         aria-expanded={isEditing}
         onClick={() => setIsEditing(true)}
-        className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-2 text-[color:var(--color-university-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+        className={`${adminSecondaryButtonClass} size-10 p-2`}
       >
         <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
           <path d="m16 5 3 3M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
@@ -64,14 +70,14 @@ export function RenameControl({
               defaultValue={currentName}
               maxLength={maxLength}
               required
-              className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2"
+              className={adminFieldClass}
             />
             {helpText && <p className="text-sm">{helpText}</p>}
           </div>
           <button
             type="submit"
             disabled={pending}
-            className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className={adminPrimaryButtonClass}
           >
             {pending ? "Enregistrement…" : "Enregistrer"}
           </button>
@@ -79,7 +85,7 @@ export function RenameControl({
             type="button"
             disabled={pending}
             onClick={() => setIsEditing(false)}
-            className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className={adminSecondaryButtonClass}
           >
             Annuler
           </button>
@@ -126,7 +132,7 @@ export function DeleteControl({
         type="button"
         aria-label={label}
         onClick={() => setIsConfirming(true)}
-        className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-2 text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+        className={`${adminSecondaryButtonClass} size-10 p-2 text-red-700`}
       >
         <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
           <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
@@ -143,7 +149,7 @@ export function DeleteControl({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-[var(--radius-rounded)] bg-red-700 px-4 py-2 font-medium text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className={adminDangerButtonClass}
           >
             {pending ? "Suppression…" : "Confirmer"}
           </button>
@@ -151,7 +157,7 @@ export function DeleteControl({
             type="button"
             disabled={pending}
             onClick={() => setIsConfirming(false)}
-            className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className={adminSecondaryButtonClass}
           >
             Annuler
           </button>
