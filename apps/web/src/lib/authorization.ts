@@ -10,13 +10,19 @@ import {
 import { decideStudentAccess } from "@tablino/db";
 import { forbidden, redirect } from "next/navigation";
 import { getCurrentUniversityId } from "@/lib/university";
+import { isUniversityAccessAllowed } from "@/lib/university-host.mjs";
 
 export async function requireStudentUniversityAccess(universityId: string) {
   let user: GuardUser;
   try {
-    if (universityId !== await getCurrentUniversityId()) throw new AuthorizationDeniedError();
+    const hostUniversityId = await getCurrentUniversityId();
+    if (!isUniversityAccessAllowed(universityId, universityId, hostUniversityId)) {
+      throw new AuthorizationDeniedError();
+    }
     const sessionUser = await requireRole("web", ["student"]);
-    if (sessionUser.universityId !== universityId) throw new AuthorizationDeniedError();
+    if (!isUniversityAccessAllowed(sessionUser.universityId, universityId, hostUniversityId)) {
+      throw new AuthorizationDeniedError();
+    }
     user = await requireUniversityAccess("web", universityId);
   } catch (error) {
     if (error instanceof SessionRequiredError) redirect("/connexion");
@@ -35,7 +41,9 @@ export async function requireStudentSession(): Promise<GuardUser> {
   try {
     const universityId = await getCurrentUniversityId();
     const sessionUser = await requireRole("web", ["student"]);
-    if (sessionUser.universityId !== universityId) throw new AuthorizationDeniedError();
+    if (!isUniversityAccessAllowed(sessionUser.universityId, universityId, universityId)) {
+      throw new AuthorizationDeniedError();
+    }
     user = await requireUniversityAccess("web", universityId);
   } catch (error) {
     if (error instanceof SessionRequiredError) redirect("/connexion");
@@ -49,7 +57,7 @@ export async function hasStudentSession(): Promise<boolean> {
   try {
     const universityId = await getCurrentUniversityId();
     const sessionUser = await requireRole("web", ["student"]);
-    return sessionUser.universityId === universityId;
+    return isUniversityAccessAllowed(sessionUser.universityId, universityId, universityId);
   } catch (error) {
     if (error instanceof SessionRequiredError || error instanceof AuthorizationDeniedError) return false;
     throw error;
@@ -60,7 +68,7 @@ export async function hasStudentAccess(): Promise<boolean> {
   try {
     const universityId = await getCurrentUniversityId();
     const sessionUser = await requireRole("web", ["student"]);
-    if (sessionUser.universityId !== universityId) return false;
+    if (!isUniversityAccessAllowed(sessionUser.universityId, universityId, universityId)) return false;
     return decideStudentAccess(sessionUser, new Date()) === "allowed";
   } catch (error) {
     if (error instanceof SessionRequiredError || error instanceof AuthorizationDeniedError) return false;
