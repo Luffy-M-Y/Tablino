@@ -424,6 +424,8 @@ const guards = createAuthGuards({
       id: schema.users.id,
       role: schema.users.role,
       universityId: schema.users.universityId,
+      universityName: schema.universities.name,
+      universityAcronym: schema.universities.acronym,
       universityStatus: schema.universities.status,
       revokedAt: schema.users.revokedAt,
       trialEndsAt: schema.users.trialEndsAt,
