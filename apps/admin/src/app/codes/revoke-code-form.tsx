@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { adminSecondaryButtonClass } from "@/components/admin-ui";
 import { revokeCodeAction } from "./actions";
 
 export function RevokeCodeForm({ codeId }: { codeId: string }) {
@@ -12,7 +13,7 @@ export function RevokeCodeForm({ codeId }: { codeId: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm font-semibold text-[color:var(--color-text)] disabled:opacity-60"
+        className={`${adminSecondaryButtonClass} border-red-200 bg-red-50 text-red-800 hover:bg-red-100 focus-visible:outline-red-700`}
       >
         Révoquer
       </button>

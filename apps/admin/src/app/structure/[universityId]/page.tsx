@@ -1,7 +1,8 @@
-import Link from "next/link";
 import AdminPage from "@/components/admin-page";
+import { AdminLinkCard } from "@/components/admin-ui";
 import { assertCurrentUniversity } from "@/lib/current-university";
 import { getStructureOverview } from "@/lib/structure-queries";
+import { BookOpen, Layers } from "lucide-react";
 
 export default async function UniversityStructurePage({
   params,
@@ -22,30 +23,24 @@ export default async function UniversityStructurePage({
       <section aria-label="Sections de structure">
         <ul className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <li>
-            <Link
+            <AdminLinkCard
               href={`/structure/${universityId}/cycles`}
-              className="flex min-h-52 flex-col justify-between rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 text-[color:var(--color-text)] shadow-[var(--shadow-subtle)] outline-none transition-shadow hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+              icon={Layers}
+              title="Cycles"
+              description="Licence, Master, Doctorat…"
             >
-              <div>
-                <h2 className="text-xl font-semibold text-[color:var(--color-university-primary)]">Cycles</h2>
-                <p className="mt-3">Licence, Master, Doctorat…</p>
-                <p className="mt-3 text-sm">{overview.cycles.length} cycles</p>
-              </div>
-              <span className="mt-6 text-sm font-medium text-[color:var(--color-university-primary)]">Ouvrir</span>
-            </Link>
+              <span className="mt-2 block text-sm">{overview.cycles.length} cycles</span>
+            </AdminLinkCard>
           </li>
           <li>
-            <Link
+            <AdminLinkCard
               href={`/structure/${universityId}/programs`}
-              className="flex min-h-52 flex-col justify-between rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 text-[color:var(--color-text)] shadow-[var(--shadow-subtle)] outline-none transition-shadow hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-university-primary)]"
+              icon={BookOpen}
+              title="Filières"
+              description="Toutes les filières de l'université"
             >
-              <div>
-                <h2 className="text-xl font-semibold text-[color:var(--color-university-primary)]">Filières</h2>
-                <p className="mt-3">Toutes les filières de l'université</p>
-                <p className="mt-3 text-sm">{overview.programs.length} filières</p>
-              </div>
-              <span className="mt-6 text-sm font-medium text-[color:var(--color-university-primary)]">Ouvrir</span>
-            </Link>
+              <span className="mt-2 block text-sm">{overview.programs.length} filières</span>
+            </AdminLinkCard>
           </li>
         </ul>
       </section>

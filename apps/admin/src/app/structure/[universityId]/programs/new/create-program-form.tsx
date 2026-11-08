@@ -2,6 +2,7 @@
 
 import { createProgramAction } from "../../actions";
 import { StructureActionForm } from "../../structure-action-form";
+import { adminFieldClass } from "@/components/admin-ui";
 
 export function CreateProgramForm({ universityId }: { universityId: string }) {
   return (
@@ -17,7 +18,7 @@ export function CreateProgramForm({ universityId }: { universityId: string }) {
           type="text"
           maxLength={255}
           required
-          className="border border-[color:var(--color-border)] rounded px-3 py-2"
+          className={adminFieldClass}
         />
       </div>
     </StructureActionForm>

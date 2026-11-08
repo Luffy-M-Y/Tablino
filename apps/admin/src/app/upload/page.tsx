@@ -18,13 +18,11 @@ export default async function UploadPage() {
         { label: "Envoyer un fichier" },
       ]}
     >
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-        <UploadForm
-          universityId={university.id}
-          programs={overview.programs}
-          cycles={overview.cycles}
-        />
-      </section>
+      <UploadForm
+        universityId={university.id}
+        programs={overview.programs}
+        cycles={overview.cycles}
+      />
     </AdminPage>
   );
 }

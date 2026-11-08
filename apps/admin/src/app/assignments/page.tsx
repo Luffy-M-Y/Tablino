@@ -1,4 +1,5 @@
 import { forbidden } from "next/navigation";
+import { ClipboardList } from "lucide-react";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getManagedAssignments } from "@/lib/files-queries";
@@ -15,19 +16,32 @@ export default async function AssignmentsPage() {
   return (
     <AdminPage
       title="Devoirs"
+      icon={ClipboardList}
       breadcrumbs={[
         { label: "Accueil", href: "/" },
         { label: "Devoirs" },
       ]}
+      description="Retrouve et gère les devoirs de ton université."
     >
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
-        <p>{assignments.length + (assignments.length === 1 ? " devoir (" : " devoirs (") + publishedCount + (publishedCount === 1 ? " publié" : " publiés") + " et " + draftCount + (draftCount === 1 ? " brouillon" : " brouillons") + ")"}</p>
-        <ManagedFilesList
-          universityId={university.id}
-          kind="assignment"
-          files={assignments.map((assignment) => ({ ...assignment, createdAt: assignment.createdAt.toISOString() }))}
-        />
-      </section>
+      <ul className="mb-4 flex flex-wrap gap-2" aria-label="Résumé des devoirs">
+        <li className="inline-flex items-center gap-2 rounded-full border border-[color:var(--admin-card-border)] bg-white px-3 py-1.5 text-sm">
+          <span className="text-[color:var(--color-muted-foreground)]">Total</span>
+          <strong className="text-[color:var(--color-text)]">{assignments.length}</strong>
+        </li>
+        <li className="inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1.5 text-sm">
+          <span className="text-green-800">Publiés</span>
+          <strong className="text-green-900">{publishedCount}</strong>
+        </li>
+        <li className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm">
+          <span className="text-orange-900">Brouillons</span>
+          <strong className="text-orange-950">{draftCount}</strong>
+        </li>
+      </ul>
+      <ManagedFilesList
+        universityId={university.id}
+        kind="assignment"
+        files={assignments.map((assignment) => ({ ...assignment, createdAt: assignment.createdAt.toISOString() }))}
+      />
     </AdminPage>
   );
 }

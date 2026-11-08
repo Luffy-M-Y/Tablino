@@ -1,5 +1,6 @@
 import { forbidden, notFound } from "next/navigation";
 import AdminPage from "@/components/admin-page";
+import { AdminCard, adminFieldClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
@@ -42,7 +43,7 @@ export default async function EditProgramPage({
         { label: "Modifier" },
       ]}
     >
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard>
         <h2 className="mb-4 text-xl font-semibold">Nom</h2>
         <div className="flex items-center gap-2">
           <p className="font-semibold">{program.name}</p>
@@ -56,16 +57,16 @@ export default async function EditProgramPage({
             label="Modifier le nom de la filière"
           />
         </div>
-      </section>
+      </AdminCard>
 
-      <section className="mt-6 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard className="mt-6">
         <h2 className="mb-4 text-xl font-semibold">Cycles de la filière</h2>
         {program.cycles.length === 0 ? (
           <p>Aucun cycle dans cette filière.</p>
         ) : (
           <ul className="space-y-4">
             {program.cycles.map((cycle) => (
-              <li key={cycle.cycleId} className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-4">
+              <li key={cycle.cycleId} className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-rounded)] border border-[color:var(--admin-card-border)] bg-[color:var(--admin-card-background)] p-4 shadow-[var(--admin-card-shadow)]">
                 <div>
                   <h3 className="font-semibold">{cycle.name}</h3>
                   <p>{cycle.shortCode}</p>
@@ -93,6 +94,7 @@ export default async function EditProgramPage({
                       max={10}
                       defaultValue={cycle.yearsCount}
                       required
+                      className={adminFieldClass}
                     />
                   </div>
                 </StructureActionForm>
@@ -100,9 +102,9 @@ export default async function EditProgramPage({
             ))}
           </ul>
         )}
-      </section>
+      </AdminCard>
 
-      <section className="mt-6 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard className="mt-6">
         <h2 className="mb-4 text-xl font-semibold">Ajouter un cycle</h2>
         {availableCycles.length === 0 ? (
           <p>Tous les cycles sont déjà dans cette filière.</p>
@@ -112,7 +114,7 @@ export default async function EditProgramPage({
             <input type="hidden" name="programId" value={program.id} />
             <div>
               <label htmlFor="new-program-cycle">Cycle</label>
-              <select id="new-program-cycle" name="cycleId" required>
+              <select id="new-program-cycle" name="cycleId" required className={adminFieldClass}>
                 {availableCycles.map((cycle) => (
                   <option key={cycle.id} value={cycle.id}>
                     {cycle.name} ({cycle.shortCode})
@@ -129,13 +131,14 @@ export default async function EditProgramPage({
                 min={1}
                 max={10}
                 required
+                className={adminFieldClass}
               />
             </div>
           </StructureActionForm>
         )}
-      </section>
+      </AdminCard>
 
-      <section className="mt-6 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard className="mt-6">
         <h2 className="mb-4 text-xl font-semibold">Ajouter une matière</h2>
         <SubjectCreateForm
           universityId={universityId}
@@ -143,7 +146,7 @@ export default async function EditProgramPage({
           levels={programLevels}
           academicYears={overview.academicYears}
         />
-      </section>
+      </AdminCard>
     </AdminPage>
   );
 }

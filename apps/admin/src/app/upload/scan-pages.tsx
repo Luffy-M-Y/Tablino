@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { buildPdfFromImages, type ScanPdfMode } from "./build-pdf-from-images";
 import { buildScanFileName } from "@/lib/scan-pages.mjs";
+import { adminAccentButtonClass, adminSecondaryButtonClass } from "@/components/admin-ui";
 
 type ScanPage = {
   id: number;
@@ -183,7 +184,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
           type="button"
           onClick={() => cameraInputRef.current?.click()}
           disabled={pages.length >= MAX_PAGES}
-          className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`min-h-[44px] ${adminSecondaryButtonClass}`}
         >
           Prendre une photo
         </button>
@@ -191,7 +192,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
           type="button"
           onClick={() => galleryInputRef.current?.click()}
           disabled={pages.length >= MAX_PAGES}
-          className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className={`min-h-[44px] ${adminSecondaryButtonClass}`}
         >
           Choisir des images
         </button>
@@ -227,7 +228,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
                   aria-label={"Monter la page " + pageNumber}
                   onClick={() => movePage(page.id, -1)}
                   disabled={index === 0}
-                  className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`min-h-[44px] ${adminSecondaryButtonClass}`}
                 >
                   Monter
                 </button>
@@ -236,7 +237,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
                   aria-label={"Descendre la page " + pageNumber}
                   onClick={() => movePage(page.id, 1)}
                   disabled={index === pages.length - 1}
-                  className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`min-h-[44px] ${adminSecondaryButtonClass}`}
                 >
                   Descendre
                 </button>
@@ -244,7 +245,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
                   type="button"
                   aria-label={"Supprimer la page " + pageNumber}
                   onClick={() => removePage(page.id)}
-                  className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3"
+                  className={`min-h-[44px] ${adminSecondaryButtonClass}`}
                 >
                   Supprimer
                 </button>
@@ -312,7 +313,7 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
         type="button"
         onClick={handleBuildPdf}
         disabled={pages.length === 0 || isBuilding}
-        className="min-h-[44px] rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-4 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`min-h-[44px] ${adminAccentButtonClass}`}
       >
         {isBuilding ? "Création..." : "Créer le PDF"}
       </button>

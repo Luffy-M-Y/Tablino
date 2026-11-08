@@ -1,5 +1,6 @@
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
+import { AdminCard } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { CreateProgramForm } from "./create-program-form";
 
@@ -20,13 +21,13 @@ export default async function NewProgramPage({
         { label: "Ajouter" },
       ]}
     >
-      <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      <AdminCard>
         <h2 className="mb-4 text-xl font-semibold">Nom</h2>
         <CreateProgramForm universityId={universityId} />
-      </section>
-      <section className="mt-6 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 shadow-[var(--shadow-subtle)]">
+      </AdminCard>
+      <AdminCard className="mt-6">
         <p>Après la création, vous ajoutez les cycles et les matières.</p>
-      </section>
+      </AdminCard>
     </AdminPage>
   );
 }
