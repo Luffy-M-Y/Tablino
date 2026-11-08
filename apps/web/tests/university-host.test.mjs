@@ -6,6 +6,7 @@ import {
   parseUniversityHostSlugMap,
   resolveUniversityIdFromHost,
 } from "../src/lib/university-host.mjs";
+import { getTurnstileExpectedHostname } from "../src/lib/turnstile-host.mjs";
 
 const universityA = { id: "university-a", status: "active" };
 const universityB = { id: "university-b", status: "active" };
@@ -65,4 +66,19 @@ test("allows access only when session, requested tenant, and host tenant match",
   assert.equal(isUniversityAccessAllowed(universityA.id, universityA.id, universityA.id), true);
   assert.equal(isUniversityAccessAllowed(universityA.id, universityA.id, universityB.id), false);
   assert.equal(isUniversityAccessAllowed(universityA.id, universityB.id, universityB.id), false);
+});
+
+test("Turnstile expected hostname requires an active tenant and a valid host", () => {
+  assert.equal(
+    getTurnstileExpectedHostname("iscom.localhost:3000", "localhost:3000", universityA.id),
+    "iscom.localhost",
+  );
+  assert.equal(
+    getTurnstileExpectedHostname("iscom.localhost:3000", "localhost:3000", null),
+    null,
+  );
+  assert.equal(
+    getTurnstileExpectedHostname("iscom.example.test", "localhost:3000", universityA.id),
+    null,
+  );
 });

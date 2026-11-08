@@ -26,6 +26,36 @@ test("Turnstile accepts a valid token with the expected action and hostname", as
   assert.deepEqual(result, { ok: true });
 });
 
+test("Turnstile accepts the request hostname when explicitly provided", async () => {
+  const result = await verifyTurnstileToken("valid-token", expectedAction, {
+    secret: options.secret,
+    expectedHostname: "ISCOM.localhost",
+    fetcher: successfulFetcher({ hostname: "iscom.localhost" }),
+  });
+
+  assert.deepEqual(result, { ok: true });
+});
+
+test("Turnstile keeps NEXTAUTH_URL hostname fallback when expectedHostname is omitted", async () => {
+  const previousNextAuthUrl = process.env.NEXTAUTH_URL;
+  process.env.NEXTAUTH_URL = "https://legacy.example.test:3000";
+
+  try {
+    const result = await verifyTurnstileToken("valid-token", expectedAction, {
+      secret: options.secret,
+      fetcher: successfulFetcher({ hostname: "legacy.example.test" }),
+    });
+
+    assert.deepEqual(result, { ok: true });
+  } finally {
+    if (previousNextAuthUrl === undefined) {
+      delete process.env.NEXTAUTH_URL;
+    } else {
+      process.env.NEXTAUTH_URL = previousNextAuthUrl;
+    }
+  }
+});
+
 test("Turnstile sends Siteverify the secret and response token", async () => {
   let requestUrl = "";
   let requestBody = "";

@@ -44,7 +44,11 @@ type TurnstileOptions = {
 };
 
 function getExpectedHostname(hostname?: string): string | null {
-  if (hostname?.trim()) return hostname.trim().toLowerCase();
+  if (hostname !== undefined) {
+    const normalizedHostname = hostname.trim().toLowerCase();
+    return normalizedHostname || null;
+  }
+
   const nextAuthUrl = process.env.NEXTAUTH_URL;
   if (!nextAuthUrl) return null;
 
