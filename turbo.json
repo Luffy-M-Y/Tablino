@@ -7,6 +7,8 @@
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
       "env": [
         "DATABASE_URL",
+        "STUDENT_ROOT_DOMAIN",
+        "ADMIN_ROOT_DOMAIN",
         "NEXTAUTH_URL",
         "NEXTAUTH_SECRET",
         "GOOGLE_CLIENT_ID",
@@ -25,6 +27,8 @@
       "persistent": true,
       "env": [
         "DATABASE_URL",
+        "STUDENT_ROOT_DOMAIN",
+        "ADMIN_ROOT_DOMAIN",
         "NEXTAUTH_URL",
         "NEXTAUTH_SECRET",
         "GOOGLE_CLIENT_ID",

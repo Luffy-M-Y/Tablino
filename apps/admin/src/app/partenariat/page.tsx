@@ -4,6 +4,7 @@ import { requireApprovedUniversityAdmin } from "@/lib/authorization";
 import { getContractClauses } from "@/lib/partnership-contract.mjs";
 import { getUniversityPartnershipInfo } from "@tablino/db";
 import { linkClass } from "@/components/auth-ui";
+import { getUniversityHostnamePreview } from "@/lib/university-hostname-preview";
 import { PartnershipForm } from "./partnership-form";
 
 export default async function PartenariatPage() {
@@ -15,6 +16,12 @@ export default async function PartenariatPage() {
   }
 
   const contract = getContractClauses(info.revenueShareBps);
+  const initialAcronym = info.acronym ?? "";
+  const initialPreview = initialAcronym
+    && process.env.STUDENT_ROOT_DOMAIN
+    && process.env.ADMIN_ROOT_DOMAIN
+    ? getUniversityHostnamePreview(initialAcronym)
+    : null;
 
   return (
     <main className="min-h-screen bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6 sm:py-10"><div className="mx-auto max-w-2xl">
@@ -70,10 +77,12 @@ export default async function PartenariatPage() {
         <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
           Coordonnées de versement Mobile Money
         </h2>
-        <PartnershipForm />
+        <PartnershipForm
+          initialAcronym={initialAcronym}
+          initialPreview={initialPreview}
+        />
       </section>
       </div>
     </main>
   );
 }
-
