@@ -356,6 +356,19 @@ export const authAttempts = pgTable("auth_attempts", {
   check("auth_attempts_attempts_check", sql.raw("attempts >= 0")),
 ]).enableRLS();
 
+export const oauthStartTickets = pgTable("oauth_start_tickets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  ticketHash: varchar("ticket_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("oauth_start_tickets_ticket_hash_uq").on(t.ticketHash),
+]).enableRLS();
+
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
 
 export const accounts = pgTable("accounts", {
