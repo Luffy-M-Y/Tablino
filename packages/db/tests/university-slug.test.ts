@@ -13,8 +13,12 @@ test("rejects characters outside lowercase ASCII letters, digits, and hyphens", 
   });
 });
 
-test("rejects slugs longer than 63 characters", () => {
-  assert.deepEqual(validateUniversitySlug("a".repeat(64)), {
+test("accepts 57 characters and rejects 58", () => {
+  assert.deepEqual(validateUniversitySlug("a".repeat(57)), {
+    ok: true,
+    slug: "a".repeat(57),
+  });
+  assert.deepEqual(validateUniversitySlug("a".repeat(58)), {
     ok: false,
     reason: "too_long",
   });
@@ -48,11 +52,58 @@ test("rejects the -admin suffix", () => {
   });
 });
 
-test("rejects reserved names", () => {
-  assert.deepEqual(validateUniversitySlug("www"), {
-    ok: false,
-    reason: "reserved_name",
-  });
+test("rejects every reserved name", () => {
+  const reservedNames = [
+    "www",
+    "admin",
+    "api",
+    "app",
+    "auth",
+    "mail",
+    "dashboard",
+    "login",
+    "static",
+    "cdn",
+    "dev",
+    "staging",
+    "test",
+    "support",
+    "docs",
+    "status",
+    "tablino",
+    "localhost",
+    "ftp",
+    "smtp",
+    "imap",
+    "pop",
+    "ns1",
+    "ns2",
+    "webmail",
+    "blog",
+    "help",
+    "billing",
+    "pay",
+    "payment",
+    "paiement",
+    "assets",
+    "files",
+    "media",
+    "img",
+    "images",
+    "upload",
+    "uploads",
+    "web",
+    "email",
+    "root",
+    "git",
+  ];
+
+  for (const name of reservedNames) {
+    assert.deepEqual(validateUniversitySlug(name), {
+      ok: false,
+      reason: "reserved_name",
+    });
+  }
 });
 
 test("normalizes the ISCOM acronym", () => {

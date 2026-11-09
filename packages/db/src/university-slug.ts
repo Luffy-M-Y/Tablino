@@ -17,6 +17,30 @@ const reservedUniversitySlugs = new Set([
   "status",
   "tablino",
   "localhost",
+  "ftp",
+  "smtp",
+  "imap",
+  "pop",
+  "ns1",
+  "ns2",
+  "webmail",
+  "blog",
+  "help",
+  "billing",
+  "pay",
+  "payment",
+  "paiement",
+  "assets",
+  "files",
+  "media",
+  "img",
+  "images",
+  "upload",
+  "uploads",
+  "web",
+  "email",
+  "root",
+  "git",
 ]);
 
 export type UniversitySlugFailureReason =
@@ -43,7 +67,7 @@ export function validateUniversitySlug(acronym: string): UniversitySlugResult {
   if (!/^[a-z0-9-]+$/.test(slug)) {
     return { ok: false, reason: "invalid_characters" };
   }
-  if (slug.length > 63) return { ok: false, reason: "too_long" };
+  if (slug.length > 57) return { ok: false, reason: "too_long" };
   if (slug.startsWith("-")) return { ok: false, reason: "leading_hyphen" };
   if (slug.endsWith("-")) return { ok: false, reason: "trailing_hyphen" };
   if (slug.slice(2, 4) === "--") return { ok: false, reason: "idna_prefix" };
