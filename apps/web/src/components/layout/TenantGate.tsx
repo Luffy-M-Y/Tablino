@@ -1,9 +1,16 @@
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
+import { AUTH_CENTRAL_ROUTE_HEADER } from "@/lib/auth-central-host.mjs";
 import { getCurrentUniversityIdOrNull } from "@/lib/university";
 
 export async function TenantGate({ children }: { children: ReactNode }) {
+  const requestHeaders = await headers();
+  if (requestHeaders.get(AUTH_CENTRAL_ROUTE_HEADER) === "1") {
+    return children;
+  }
+
   let universityId: string | null;
   try {
     universityId = await getCurrentUniversityIdOrNull();
