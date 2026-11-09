@@ -215,7 +215,7 @@ async function testFalseMarkerCleanup(db: DbContext["db"]): Promise<boolean> {
     if (staleAfter.length > 0) return false;
 
     const inserted = await db.insert(schema.universities).values(
-      FAKE_MARKERS.map((marker) => ({ name: marker, slug: marker })),
+      FAKE_MARKERS.map((marker) => ({ name: marker, slug: marker, status: "pending" as const })),
     ).returning({ id: schema.universities.id, slug: schema.universities.slug });
     insertedIds = inserted.map(({ id }) => id);
     process.stdout.write(`FAKE_MARKERS_INSERTED=${inserted.length}\n`);
@@ -286,10 +286,12 @@ async function createFixtures(db: DbContext["db"]) {
   const [universityA] = await db.insert(schema.universities).values({
     name: markers.universityA,
     slug: markers.universityA,
+    status: "pending",
   }).returning({ id: schema.universities.id });
   const [universityB] = await db.insert(schema.universities).values({
     name: markers.universityB,
     slug: markers.universityB,
+    status: "pending",
   }).returning({ id: schema.universities.id });
   if (!universityA || !universityB) throw new Error("Fixture creation failed");
 
