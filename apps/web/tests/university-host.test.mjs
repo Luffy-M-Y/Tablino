@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   getUniversitySlugFromHost,
+  inspectUniversityHost,
   isUniversityAccessAllowed,
   parseUniversityHostSlugMap,
   resolveUniversityIdFromHost,
@@ -37,6 +38,21 @@ test("rejects malformed hosts and the root domain", () => {
   assert.equal(getUniversitySlugFromHost("localhost:3000", "localhost:3000"), null);
   assert.equal(getUniversitySlugFromHost("iscom.localhost:bad", "localhost:3000"), null);
   assert.equal(getUniversitySlugFromHost("iscom.notlocalhost:3000", "localhost:3000"), null);
+});
+
+test("classifies invalid, root, and university hosts for diagnostics", () => {
+  assert.deepEqual(inspectUniversityHost("iscom.localhost:bad", "localhost:3000"), {
+    hostSlug: null,
+    reason: "invalid_host",
+  });
+  assert.deepEqual(inspectUniversityHost("localhost:3000", "localhost:3000"), {
+    hostSlug: null,
+    reason: "root_domain",
+  });
+  assert.deepEqual(inspectUniversityHost("iscom.localhost:3000", "localhost:3000"), {
+    hostSlug: "iscom",
+    reason: null,
+  });
 });
 
 test("rejects malformed host slug configuration", () => {

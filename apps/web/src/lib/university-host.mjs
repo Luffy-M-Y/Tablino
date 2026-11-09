@@ -50,17 +50,26 @@ export function parseUniversityHostSlugMap(value) {
   return parsed;
 }
 
-export function getUniversitySlugFromHost(host, rootDomain, slugMap = {}) {
+export function inspectUniversityHost(host, rootDomain) {
   const hostname = getHostname(host);
+  if (!hostname) return { hostSlug: null, reason: "invalid_host" };
+
   const rootHostname = getHostname(rootDomain);
-  if (!hostname || !rootHostname) return null;
+  if (!rootHostname) return { hostSlug: null, reason: "invalid_root_domain" };
+  if (hostname === rootHostname) return { hostSlug: null, reason: "root_domain" };
 
   const suffix = `.${rootHostname}`;
-  if (!hostname.endsWith(suffix)) return null;
+  if (!hostname.endsWith(suffix)) return { hostSlug: null, reason: "invalid_host" };
 
-  const slug = hostname.slice(0, -suffix.length);
-  if (!UNIVERSITY_SLUG_PATTERN.test(slug)) return null;
-  return Object.hasOwn(slugMap, slug) ? slugMap[slug] : slug;
+  const hostSlug = hostname.slice(0, -suffix.length);
+  if (!UNIVERSITY_SLUG_PATTERN.test(hostSlug)) return { hostSlug: null, reason: "invalid_host" };
+  return { hostSlug, reason: null };
+}
+
+export function getUniversitySlugFromHost(host, rootDomain, slugMap = {}) {
+  const { hostSlug } = inspectUniversityHost(host, rootDomain);
+  if (!hostSlug) return null;
+  return Object.hasOwn(slugMap, hostSlug) ? slugMap[hostSlug] : hostSlug;
 }
 
 export async function resolveUniversityIdFromHost(host, rootDomain, findUniversityBySlug, slugMap = {}) {

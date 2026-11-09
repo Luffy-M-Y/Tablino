@@ -4,6 +4,13 @@ export function getUniversitySlugFromHost(
   slugMap?: Readonly<Record<string, string>>,
 ): string | null;
 
+export function inspectUniversityHost(
+  host: string | null,
+  rootDomain: string,
+):
+  | { hostSlug: string; reason: null }
+  | { hostSlug: null; reason: "invalid_host" | "invalid_root_domain" | "root_domain" };
+
 export function parseUniversityHostSlugMap(
   value: string | undefined,
 ): Readonly<Record<string, string>>;

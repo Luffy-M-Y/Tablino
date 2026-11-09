@@ -4,7 +4,18 @@ import { Navbar } from "./Navbar";
 import { getCurrentUniversityIdOrNull } from "@/lib/university";
 
 export async function TenantGate({ children }: { children: ReactNode }) {
-  const universityId = await getCurrentUniversityIdOrNull();
+  let universityId: string | null;
+  try {
+    universityId = await getCurrentUniversityIdOrNull();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.error(JSON.stringify({
+        code: "tenant_gate_resolution_error",
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      }));
+    }
+    throw error;
+  }
 
   if (!universityId) {
     return (
