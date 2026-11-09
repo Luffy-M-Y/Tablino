@@ -57,6 +57,11 @@ export {
   buildProgramSlug,
   buildSubjectSlug,
 } from "./structure-validation";
+export { validateUniversitySlug } from "./university-slug";
+export type {
+  UniversitySlugFailureReason,
+  UniversitySlugResult,
+} from "./university-slug";
 export type {
   AddProgramCycleResult,
   CanReduceYearsCountResult,
