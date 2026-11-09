@@ -141,8 +141,12 @@ export async function repairActiveUniversitySlugs(
   });
 }
 
-function printResult(result: UniversitySlugRepairResult): void {
-  console.log(`MODE=${result.applied ? "apply" : "simulation"}`);
+function printResult(result: UniversitySlugRepairResult, apply: boolean): void {
+  if (apply && result.refusals.length > 0) {
+    console.log(`APPLY_BLOCKED=${result.refusals.length}`);
+  } else {
+    console.log(`MODE=${result.applied ? "apply" : "simulation"}`);
+  }
   for (const repair of result.repairs) {
     console.log(`REPAIR id=${repair.id} before=${repair.before} after=${repair.after}`);
   }
@@ -168,7 +172,7 @@ async function main(): Promise<void> {
   const { db, pool } = openGuardedDatabase();
   try {
     const result = await repairActiveUniversitySlugs(apply, db);
-    printResult(result);
+    printResult(result, apply);
     if (result.refusals.length > 0) process.exitCode = 1;
   } finally {
     await pool.end();

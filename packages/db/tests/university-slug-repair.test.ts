@@ -138,3 +138,50 @@ test("apply updates valid repairs in the transaction", async () => {
   assert.equal(fake.transactionCount, 1);
   assert.deepEqual(fake.updates, [{ values: { slug: "iscom" } }]);
 });
+
+test("apply blocks every update when any active university is refused", async () => {
+  const repairable = { id: "university-1", acronym: "ISCOM", slug: "Legacy University" };
+  const refused = { id: "university-2", acronym: null, slug: "Another Legacy Slug" };
+  const fake = createMemoryDatabase([repairable, refused], [repairable, refused]);
+
+  const result = await repairActiveUniversitySlugs(true, fake.database);
+
+  assert.deepEqual(result.repairs, [{
+    id: repairable.id,
+    before: repairable.slug,
+    after: "iscom",
+  }]);
+  assert.deepEqual(result.refusals, [{
+    id: refused.id,
+    slug: refused.slug,
+    acronym: null,
+    reason: "missing_acronym",
+  }]);
+  assert.equal(result.applied, false);
+  assert.equal(fake.updates.length, 0);
+});
+
+test("refuses duplicate candidate slugs for both active universities", async () => {
+  const first = { id: "university-1", acronym: "ISCOM", slug: "Legacy University A" };
+  const second = { id: "university-2", acronym: "ISCOM", slug: "Legacy University B" };
+  const fake = createMemoryDatabase([first, second], [first, second]);
+
+  const result = await repairActiveUniversitySlugs(true, fake.database);
+
+  assert.deepEqual(result.refusals, [
+    {
+      id: first.id,
+      slug: first.slug,
+      acronym: first.acronym,
+      reason: "slug_collision:iscom",
+    },
+    {
+      id: second.id,
+      slug: second.slug,
+      acronym: second.acronym,
+      reason: "slug_collision:iscom",
+    },
+  ]);
+  assert.equal(result.applied, false);
+  assert.equal(fake.updates.length, 0);
+});
