@@ -1,0 +1,1 @@
+ALTER TABLE "universities" ADD CONSTRAINT "universities_active_slug_format_check" CHECK (status <> 'active' OR slug ~ '^[a-z0-9]([a-z0-9-]{0,55}[a-z0-9])?$');
