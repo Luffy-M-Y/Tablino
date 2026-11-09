@@ -27,6 +27,7 @@ export const universities = pgTable("universities", {
   revenueShareBps: integer("revenue_share_bps").default(3000).notNull(),
 }, (t) => [
   check("universities_revenue_share_check", sql.raw("revenue_share_bps >= 0 AND revenue_share_bps <= 10000")),
+  check("universities_active_slug_format_check", sql.raw("status <> 'active' OR slug ~ '^[a-z0-9]([a-z0-9-]{0,55}[a-z0-9])?$'")),
 ]).enableRLS();
 
 export const universityPayoutDetails = pgTable("university_payout_details", {

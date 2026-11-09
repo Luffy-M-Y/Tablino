@@ -14,6 +14,15 @@ const jakarta = localFont({
 export const metadata: Metadata = {
   title: "Tablino — Archive universitaire",
   description: "Consultez et téléchargez vos cours et devoirs universitaires.",
+  manifest: "/manifest.json",
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Tablino",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
