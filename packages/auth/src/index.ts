@@ -15,8 +15,12 @@ import { createGoogleSignupToken } from "./google-signup-token";
 import { createUniversitySignupToken } from "./university-signup-token";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
-
-const googleEmailsByAccount = new Map<string, { email: string; at: number }>();
+import {
+  consumeGoogleAuthContext,
+  deleteGoogleAuthContext,
+  googleAuthContexts,
+  recordGoogleAuthContext,
+} from "./google-auth-context";
 
 export type { AuthRole } from "./roles";
 
@@ -33,6 +37,7 @@ export {
 type AuthOptionsContext = {
   surface: AuthSurface;
   getCurrentUniversityId: () => Promise<string>;
+  resolveGoogleUniversityId?: () => Promise<string | null>;
 };
 
 function toAuthUser(user: StoredUser): AuthAdapterUser {
@@ -130,14 +135,26 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
     },
 
     async linkAccount(account: AdapterAccount) {
-      const googleEmail = googleEmailsByAccount.get(account.providerAccountId);
-      googleEmailsByAccount.delete(account.providerAccountId);
+      const googleContext = consumeGoogleAuthContext(
+        googleAuthContexts,
+        account.providerAccountId,
+        Date.now(),
+        context.surface,
+      );
+      if (!googleContext) throw new Error("Liaison Google refusee.");
+
       const user = await getUserById(account.userId);
       if (
-        !googleEmail
-        || Date.now() - googleEmail.at > 60000
-        || !user
-        || !googleEmailMatchesUser(user.email, googleEmail.email)
+        !user
+        || !googleEmailMatchesUser(user.email, googleContext.email)
+        || (
+          account.provider === "google"
+          && context.surface === "web"
+          && (
+            !googleContext.universityId
+            || user.universityId !== googleContext.universityId
+          )
+        )
       ) {
         throw new Error("Liaison Google refusee.");
       }
@@ -356,10 +373,17 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         if (!email || googleProfile?.email_verified !== true) return false;
 
         const now = Date.now();
-        for (const [providerAccountId, entry] of googleEmailsByAccount) {
-          if (now - entry.at > 60000) googleEmailsByAccount.delete(providerAccountId);
-        }
-        googleEmailsByAccount.set(account.providerAccountId, { email: email, at: now });
+        const googleContext = await recordGoogleAuthContext({
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          email,
+          surface: context.surface,
+          resolveGoogleUniversityId: context.resolveGoogleUniversityId,
+          getCurrentUniversityId: context.getCurrentUniversityId,
+          now,
+          store: googleAuthContexts,
+        });
+        if (!googleContext.accepted) return false;
 
         const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
         const emailUser = linkedUser ? null : await getUserByEmail(email);
@@ -380,17 +404,16 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             providerAccountId: account.providerAccountId,
           };
           if (context.surface === "web") {
-            await context.getCurrentUniversityId();
-            googleEmailsByAccount.delete(account.providerAccountId);
+            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
             return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken(payload));
           }
-          googleEmailsByAccount.delete(account.providerAccountId);
+          deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
           return "/university-signup?token=" + encodeURIComponent(createUniversitySignupToken(payload));
         }
 
         if (context.surface === "web") {
           return storedUser.role === "student"
-            && storedUser.universityId === await context.getCurrentUniversityId();
+            && storedUser.universityId === googleContext.universityId;
         }
 
         if (storedUser.role === "super_admin") return storedUser.universityId === null;

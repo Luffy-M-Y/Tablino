@@ -19,6 +19,7 @@ import {
   AUTH_CENTRAL_CSRF_FIELD_NAME,
   getAuthCentralSigninPage,
 } from "../src/lib/auth-central-signin.mjs";
+import { createGoogleUniversityResolver } from "../src/lib/google-university-resolver.mjs";
 
 const NOW = new Date("2026-11-10T09:00:00.000Z");
 const SECRET = "test-nextauth-secret";
@@ -194,4 +195,54 @@ test("auth central signin page provides the real Google form configuration with 
     csrfFieldName: AUTH_CENTRAL_CSRF_FIELD_NAME,
     callbackUrlFieldName: AUTH_CENTRAL_CALLBACK_URL_FIELD_NAME,
   });
+});
+
+test("Google resolver reads the signed transaction on the configured central host", async () => {
+  let tenantResolverCalls = 0;
+  const resolver = createGoogleUniversityResolver({
+    getHost: async () => "LOCALHOST:3000",
+    getAuthCentralHost: () => "localhost:3000",
+    getCookie: async () => createTransaction(),
+    getSecret: () => SECRET,
+    getCurrentUniversityId: async () => {
+      tenantResolverCalls++;
+      return "tenant-from-host";
+    },
+    now: () => NOW,
+  });
+
+  assert.equal(await resolver(), UNIVERSITY_ID);
+  assert.equal(tenantResolverCalls, 0);
+});
+
+test("Google resolver rejects a missing or invalid central transaction", async () => {
+  for (const cookie of [undefined, "invalid-transaction"]) {
+    const resolver = createGoogleUniversityResolver({
+      getHost: async () => "localhost:3000",
+      getAuthCentralHost: () => "localhost:3000",
+      getCookie: async () => cookie,
+      getSecret: () => SECRET,
+      getCurrentUniversityId: async () => "tenant-from-host",
+      now: () => NOW,
+    });
+    assert.equal(await resolver(), null);
+  }
+});
+
+test("Google resolver preserves host tenant resolution away from the central host", async () => {
+  let cookieCalls = 0;
+  const resolver = createGoogleUniversityResolver({
+    getHost: async () => "university.localhost:3000",
+    getAuthCentralHost: () => "localhost:3000",
+    getCookie: async () => {
+      cookieCalls++;
+      return createTransaction();
+    },
+    getSecret: () => SECRET,
+    getCurrentUniversityId: async () => "tenant-from-host",
+    now: () => NOW,
+  });
+
+  assert.equal(await resolver(), "tenant-from-host");
+  assert.equal(cookieCalls, 0);
 });
