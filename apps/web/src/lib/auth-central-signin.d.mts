@@ -1,6 +1,6 @@
 export const AUTH_CENTRAL_SIGNIN_ACTION: "/api/auth/signin/google";
 export const AUTH_CENTRAL_SIGNIN_METHOD: "post";
-export const AUTH_CENTRAL_CALLBACK_URL: "/auth-central/return";
+export const AUTH_CENTRAL_CALLBACK_URL: "/auth-central/transfer";
 export const AUTH_CENTRAL_CSRF_FIELD_NAME: "csrfToken";
 export const AUTH_CENTRAL_CALLBACK_URL_FIELD_NAME: "callbackUrl";
 export const AUTH_CENTRAL_SIGNIN_ERROR: "Session expirée";
