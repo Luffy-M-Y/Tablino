@@ -73,6 +73,17 @@ export type {
   OauthStartTicketDependencies,
   OauthStartTicketRepository,
 } from "./oauth-start-ticket";
+export {
+  consumeOauthTransferCode,
+  createOauthTransferCode,
+  createOauthTransferCodeService,
+  OAUTH_TRANSFER_CODE_TTL_MS,
+  OauthTransferCodeError,
+} from "./oauth-transfer-code";
+export type {
+  OauthTransferCodeDependencies,
+  OauthTransferCodeRepository,
+} from "./oauth-transfer-code";
 export type {
   AddProgramCycleResult,
   CanReduceYearsCountResult,
