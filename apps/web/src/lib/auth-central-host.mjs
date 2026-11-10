@@ -1,6 +1,6 @@
 export const AUTH_CENTRAL_ROUTE_HEADER = "x-tablino-auth-central-route";
 
-function normalizeAuthority(authority) {
+export function normalizeAuthority(authority) {
   if (
     typeof authority !== "string"
     || authority.length === 0

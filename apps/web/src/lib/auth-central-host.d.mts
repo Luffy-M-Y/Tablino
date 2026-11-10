@@ -1,5 +1,7 @@
 export const AUTH_CENTRAL_ROUTE_HEADER: "x-tablino-auth-central-route";
 
+export function normalizeAuthority(authority: string | undefined): string | null;
+
 export function isAuthCentralHost(
   host: string | null,
   configuredHost: string | undefined,
