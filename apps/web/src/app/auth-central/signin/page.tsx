@@ -1,9 +1,11 @@
+import { connection } from "next/server";
 import { cookies } from "next/headers";
 import { getAuthCentralSigninPage } from "@/lib/auth-central-signin.mjs";
 import { AUTH_TRANSACTION_COOKIE_NAME } from "@/lib/auth-central-start.mjs";
 import { GoogleSignInForm } from "./google-sign-in-form";
 
 export default async function AuthCentralSigninPage() {
+  await connection();
   const cookieStore = await cookies();
   const page = getAuthCentralSigninPage(
     cookieStore.get(AUTH_TRANSACTION_COOKIE_NAME)?.value,
