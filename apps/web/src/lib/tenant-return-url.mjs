@@ -1,17 +1,16 @@
 import { validateUniversitySlug } from "./university-slug-validate.mjs";
 
 /**
- * Construit l'URL de retour du sous-domaine tenant après Google OAuth.
- * @param {{ slug: string, rootDomain: string, secure: boolean }} options
- * @returns {string | null} URL absolue ou null si un paramètre est invalide
+ * Construit une URL absolue vers un sous-domaine tenant.
+ * @param {{ slug: string, rootDomain: string, secure: boolean, path: string }} options
+ * @returns {string | null}
  */
-export function getTenantReturnUrl({ slug, rootDomain, secure }) {
+export function buildTenantUrl({ slug, rootDomain, secure, path }) {
   if (typeof rootDomain !== "string" || rootDomain.length === 0) return null;
 
   const slugResult = validateUniversitySlug(slug ?? "");
   if (!slugResult.ok) return null;
 
-  // rootDomain doit être un nom d'hôte simple (sans scheme ni path)
   if (
     typeof rootDomain !== "string"
     || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/i.test(rootDomain)
@@ -22,5 +21,13 @@ export function getTenantReturnUrl({ slug, rootDomain, secure }) {
   }
 
   const scheme = secure ? "https" : "http";
-  return `${scheme}://${slugResult.slug}.${rootDomain}/auth-central/return`;
+  return `${scheme}://${slugResult.slug}.${rootDomain}/${path}`;
+}
+
+/**
+ * Construit l'URL de retour du sous-domaine tenant après Google OAuth.
+ * Source unique : délègue à buildTenantUrl.
+ */
+export function getTenantReturnUrl({ slug, rootDomain, secure }) {
+  return buildTenantUrl({ slug, rootDomain, secure, path: "auth-central/return" });
 }

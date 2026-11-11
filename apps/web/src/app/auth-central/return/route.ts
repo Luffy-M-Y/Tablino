@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { consumeOauthTransferCode, createStudentSession, db, schema, eq } from "@tablino/db";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { getCurrentUniversityIdOrNull } from "@/lib/university";
-import { getReturnCode, resolveReturnDecision } from "@/lib/auth-central-return.mjs";
+import { getReturnCode, resolveReturnDecision, resolveSessionAllowed } from "@/lib/auth-central-return.mjs";
 
 const NO_STORE_HEADERS = {
   "Cache-Control": "no-store",
@@ -40,16 +40,24 @@ export async function GET(request: NextRequest) {
   }
 
   // Refuse un utilisateur révoqué avant de créer la session.
+  let userFound = false;
+  let revokedAt: Date | null = null;
   try {
     const rows = await db
       .select({ revokedAt: schema.users.revokedAt })
       .from(schema.users)
       .where(eq(schema.users.id, decision.userId))
       .limit(1);
-    if (!(rows.length > 0) || rows[0].revokedAt !== null) {
-      return cleanRedirect(request, "/connexion");
+    if (rows.length > 0) {
+      userFound = true;
+      revokedAt = rows[0].revokedAt;
     }
   } catch {
+    return cleanRedirect(request, "/connexion");
+  }
+
+  const sessionAllowed = resolveSessionAllowed({ userFound, revokedAt });
+  if (!sessionAllowed.allowed) {
     return cleanRedirect(request, "/connexion");
   }
 

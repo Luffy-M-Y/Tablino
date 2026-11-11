@@ -5,6 +5,7 @@ export type GoogleSignupPayload = {
   name: string | null;
   image: string | null;
   providerAccountId: string;
+  universityId: string | null;
 };
 
 export const GOOGLE_SIGNUP_TOKEN_TTL_MS = 600000;
@@ -15,6 +16,7 @@ type GoogleSignupTokenData = {
   n: string | null;
   i: string | null;
   a: string;
+  u: string | null;
   x: number;
 };
 
@@ -37,6 +39,7 @@ export function createGoogleSignupToken(
     n: payload.name,
     i: payload.image,
     a: payload.providerAccountId,
+    u: payload.universityId,
     x: now + GOOGLE_SIGNUP_TOKEN_TTL_MS,
   };
   const encoded = Buffer.from(JSON.stringify(data)).toString("base64url");
@@ -82,6 +85,7 @@ export function verifyGoogleSignupToken(
     || payload.a.length === 0
     || (payload.n !== null && typeof payload.n !== "string")
     || (payload.i !== null && typeof payload.i !== "string")
+    || (payload.u !== null && typeof payload.u !== "string")
   ) {
     return null;
   }
@@ -91,5 +95,6 @@ export function verifyGoogleSignupToken(
     name: payload.n,
     image: payload.i,
     providerAccountId: payload.a,
+    universityId: payload.u ?? null,
   };
 }

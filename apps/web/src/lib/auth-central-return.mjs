@@ -24,3 +24,16 @@ export function resolveReturnDecision({ code, universityId, consumeResult }) {
   if (consumeResult === null) return { action: "redirect", path: "/connexion" };
   return { action: "session", userId: consumeResult.userId };
 }
+
+/**
+ * Décide si une session peut être créée pour un utilisateur, selon
+ * son existence et son statut de révocation.
+ *
+ * @param {{ userFound: boolean, revokedAt: Date | null }} input
+ * @returns {{ allowed: true } | { allowed: false }}
+ */
+export function resolveSessionAllowed({ userFound, revokedAt }) {
+  if (!userFound) return { allowed: false };
+  if (revokedAt !== null) return { allowed: false };
+  return { allowed: true };
+}

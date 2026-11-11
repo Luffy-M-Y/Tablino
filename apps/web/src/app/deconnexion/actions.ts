@@ -10,7 +10,11 @@ export async function logoutAction(): Promise<void> {
   const config = getSessionCookieConfig("web");
   const token = cookieStore.get(config.name)?.value;
   if (token !== undefined && token !== "") {
-    await deleteStudentSession(token);
+    try {
+      await deleteStudentSession(token);
+    } catch {
+      // Le cookie est effacé dans tous les cas.
+    }
   }
   cookieStore.set(config.name, "", { ...config.options, maxAge: 0 });
   redirect("/connexion");

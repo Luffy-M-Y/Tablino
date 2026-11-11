@@ -38,6 +38,8 @@ type AuthOptionsContext = {
   surface: AuthSurface;
   getCurrentUniversityId: () => Promise<string>;
   resolveGoogleUniversityId?: () => Promise<string | null>;
+  resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
+  errorPage?: string;
 };
 
 function toAuthUser(user: StoredUser): AuthAdapterUser {
@@ -339,9 +341,13 @@ export function getSessionCookieConfig(surface: AuthSurface) {
 }
 
 export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
+  const pages: { signIn?: string; error?: string } = {};
+  if (context.surface === "admin") pages.signIn = "/login";
+  if (context.errorPage) pages.error = context.errorPage;
+
   return {
     adapter: createDrizzleAdapter(context),
-    ...(context.surface === "admin" ? { pages: { signIn: "/login" } } : {}),
+    ...(Object.keys(pages).length > 0 ? { pages } : {}),
     providers: [GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -402,10 +408,18 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             name: user.name ?? null,
             image: user.image ?? null,
             providerAccountId: account.providerAccountId,
+            universityId: googleContext.universityId,
           };
           if (context.surface === "web") {
+            const signupToken = createGoogleSignupToken(payload);
             deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
-            return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken(payload));
+            if (context.resolveGoogleSignupUrl) {
+              if (!googleContext.universityId) return false;
+              const signupUrl = await context.resolveGoogleSignupUrl(googleContext.universityId, signupToken);
+              if (signupUrl) return signupUrl;
+              return false;
+            }
+            return "/inscription/google?token=" + encodeURIComponent(signupToken);
           }
           deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
           return "/university-signup?token=" + encodeURIComponent(createUniversitySignupToken(payload));

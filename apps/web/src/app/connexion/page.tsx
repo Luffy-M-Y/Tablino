@@ -10,7 +10,7 @@ import { LoginForm } from "./login-form";
 export default async function ConnexionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string }>;
+  searchParams: Promise<{ reset?: string; authError?: string }>;
 }) {
   const params = await searchParams;
   if (await hasStudentSession()) redirect("/");
@@ -21,6 +21,11 @@ export default async function ConnexionPage({
         {params.reset === "ok" ? (
           <p className={`mb-4 text-sm ${mutedClass}`} role="status">
             Ton mot de passe a été modifié. Connecte-toi.
+          </p>
+        ) : null}
+        {params.authError === "1" ? (
+          <p className={`mb-4 text-sm ${mutedClass}`} role="alert">
+            La connexion a échoué. Réessayez.
           </p>
         ) : null}
         <LoginForm />
