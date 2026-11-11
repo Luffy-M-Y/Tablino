@@ -6,5 +6,9 @@ export function createAuthCentralStartHandler(options: {
   consumeOauthStartTicket: (ticket: string) => Promise<string | null>;
   getSecret: () => string | undefined;
   secure: boolean;
+  baseUrl?: string;
+  authCentralHost?: string;
   now?: () => Date;
+  fetchImpl?: typeof fetch;
+  fetchTimeoutMs?: number;
 }): (request: Request) => Promise<Response>;

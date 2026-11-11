@@ -7,6 +7,8 @@ const handleStart = createAuthCentralStartHandler({
   getSecret: () => process.env.NEXTAUTH_SECRET,
   secure: process.env.NODE_ENV === "production"
     && getSessionCookieConfig("web").options.secure,
+  baseUrl: process.env.NEXTAUTH_URL,
+  authCentralHost: process.env.AUTH_CENTRAL_HOST,
 });
 
 export function POST(request: Request) {
