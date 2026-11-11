@@ -4,6 +4,8 @@ import { getAuthCentralSigninPage } from "@/lib/auth-central-signin.mjs";
 import { AUTH_TRANSACTION_COOKIE_NAME } from "@/lib/auth-central-start.mjs";
 import { GoogleSignInForm } from "./google-sign-in-form";
 
+export const instant = false;
+
 export default async function AuthCentralSigninPage() {
   await connection();
   const cookieStore = await cookies();
