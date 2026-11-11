@@ -24,6 +24,9 @@ import { createGoogleUniversityResolver } from "../src/lib/google-university-res
 const NOW = new Date("2026-11-10T09:00:00.000Z");
 const SECRET = "test-nextauth-secret";
 const UNIVERSITY_ID = "university-test";
+const BASE_URL = "http://localhost:3000";
+const AUTH_CENTRAL_HOST = "localhost:3000";
+const GOOGLE_LOCATION = "https://accounts.google.com/o/oauth2/v2/auth?client_id=test";
 
 function createTransaction(options = {}) {
   return createAuthTransaction({
@@ -46,6 +49,33 @@ function createStartHandler({
     secure,
     now: () => new Date(NOW),
   });
+}
+
+function createStartHandlerWithFetch({ secure = false, fetchImpl } = {}) {
+  return createAuthCentralStartHandler({
+    consumeOauthStartTicket: async () => UNIVERSITY_ID,
+    getSecret: () => SECRET,
+    secure,
+    baseUrl: BASE_URL,
+    authCentralHost: AUTH_CENTRAL_HOST,
+    now: () => new Date(NOW),
+    fetchImpl,
+  });
+}
+
+function makeSuccessFetch() {
+  return async (url) => {
+    if (url.endsWith("/api/auth/csrf")) {
+      return new Response(JSON.stringify({ csrfToken: "csrf-token" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response(null, {
+      status: 303,
+      headers: { Location: GOOGLE_LOCATION },
+    });
+  };
 }
 
 function createStartRequest({ includeHeader = true, ticket = "single-use-ticket" } = {}) {
@@ -146,13 +176,14 @@ test("auth central start reports missing secret without consuming a ticket", asy
 
 test("auth central start sets a secure transaction cookie and redirects without the ticket", async () => {
   const ticket = "sensitive-single-use-ticket";
-  const response = await createStartHandler({ secure: true })(
+  const response = await createStartHandlerWithFetch({ secure: true, fetchImpl: makeSuccessFetch() })(
     createStartRequest({ ticket }),
   );
-  const cookie = response.headers.get("Set-Cookie");
+  const setCookies = response.headers.getSetCookie();
+  const cookie = setCookies.find((c) => c.startsWith(AUTH_TRANSACTION_COOKIE_NAME + "=")) ?? null;
 
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get("Location"), "/auth-central/signin");
+  assert.equal(response.headers.get("Location"), GOOGLE_LOCATION);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
   assert.equal(response.headers.get("Location").includes(ticket), false);
   assert.match(cookie, new RegExp(`^${AUTH_TRANSACTION_COOKIE_NAME}=v1\\.`));
@@ -173,9 +204,26 @@ test("auth central start sets a secure transaction cookie and redirects without 
 });
 
 test("auth central start omits Secure when the configured cookie is not secure", async () => {
-  const response = await createStartHandler()(createStartRequest());
+  const response = await createStartHandlerWithFetch({ secure: false, fetchImpl: makeSuccessFetch() })(
+    createStartRequest(),
+  );
+  const setCookies = response.headers.getSetCookie();
+  const cookie = setCookies.find((c) => c.startsWith(AUTH_TRANSACTION_COOKIE_NAME + "=")) ?? null;
 
-  assert.doesNotMatch(response.headers.get("Set-Cookie"), /;\s*Secure(?:;|$)/);
+  assert.ok(cookie !== null, "cookie de transaction absent");
+  assert.doesNotMatch(cookie, /;\s*Secure(?:;|$)/);
+});
+
+test("auth central start without baseUrl or authCentralHost redirects to error page without Set-Cookie", async () => {
+  // Sans baseUrl/authCentralHost, errorResponse() : 303 vers /auth-central/error, aucun cookie.
+  const response = await createStartHandler({ secure: true })(
+    createStartRequest(),
+  );
+
+  assert.equal(response.status, 303);
+  assert.equal(response.headers.get("Location"), "/auth-central/error");
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.equal(response.headers.getSetCookie().length, 0);
 });
 
 test("auth central signin page reports an expired session without a valid cookie", () => {

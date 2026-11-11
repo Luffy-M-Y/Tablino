@@ -11,6 +11,7 @@ const AUTH_CENTRAL_HOST = "localhost:3000";
 const SECRET = "test-secret-with-enough-length";
 const CSRF_TOKEN = "csrf-token-value";
 const GOOGLE_LOCATION = "https://accounts.google.com/o/oauth2/v2/auth?client_id=test";
+const ERROR_PATH = "/auth-central/error";
 
 function makeRequest(ticket = "valid-ticket") {
   const form = new URLSearchParams();
@@ -50,6 +51,98 @@ function createHandler(fetchImpl) {
     fetchImpl,
   });
 }
+
+// ─── Réponses de protocole : statut, corps, Content-Type ─────────────────────
+
+test("404 response has correct status, body and Content-Type", async () => {
+  const handler = createAuthCentralStartHandler({
+    consumeOauthStartTicket: async () => "university-1",
+    getSecret: () => SECRET,
+    secure: false,
+  });
+  const req = new Request("http://localhost:3000/auth-central/start", { method: "POST" });
+  const res = await handler(req);
+
+  assert.equal(res.status, 404);
+  const body = await res.text();
+  assert.ok(body.length > 0, "corps 404 vide");
+  assert.ok(res.headers.get("Content-Type")?.startsWith("text/plain"), "Content-Type 404 manquant");
+});
+
+test("500 response (missing secret) has correct status, body and Content-Type", async () => {
+  const handler = createAuthCentralStartHandler({
+    consumeOauthStartTicket: async () => "university-1",
+    getSecret: () => undefined,
+    secure: false,
+    baseUrl: BASE_URL,
+    authCentralHost: AUTH_CENTRAL_HOST,
+  });
+  const req = new Request("http://localhost:3000/auth-central/start", {
+    method: "POST",
+    headers: { [AUTH_CENTRAL_ROUTE_HEADER]: "1" },
+    body: new URLSearchParams({ ticket: "t" }).toString(),
+  });
+  const res = await handler(req);
+
+  assert.equal(res.status, 500);
+  const body = await res.text();
+  assert.ok(body.length > 0, "corps 500 vide");
+  assert.ok(res.headers.get("Content-Type")?.startsWith("text/plain"), "Content-Type 500 manquant");
+});
+
+test("400 response (invalid ticket) has correct status, body and Content-Type", async () => {
+  const handler = createAuthCentralStartHandler({
+    consumeOauthStartTicket: async () => null,
+    getSecret: () => SECRET,
+    secure: false,
+    baseUrl: BASE_URL,
+    authCentralHost: AUTH_CENTRAL_HOST,
+  });
+  const res = await handler(makeRequest("any-ticket"));
+
+  assert.equal(res.status, 400);
+  const body = await res.text();
+  assert.ok(body.length > 0, "corps 400 vide");
+  assert.ok(res.headers.get("Content-Type")?.startsWith("text/plain"), "Content-Type 400 manquant");
+});
+
+// ─── baseUrl ou authCentralHost absent => errorResponse, aucun fetch ─────────
+
+test("redirects to error page without calling fetch when baseUrl is absent", async () => {
+  let fetchCalled = false;
+  const fetchImpl = async () => { fetchCalled = true; return makeCsrfResponse(); };
+  const handler = createAuthCentralStartHandler({
+    consumeOauthStartTicket: async () => "university-1",
+    getSecret: () => SECRET,
+    secure: false,
+    authCentralHost: AUTH_CENTRAL_HOST,
+    fetchImpl,
+  });
+  const res = await handler(makeRequest());
+
+  assert.equal(res.status, 303);
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
+  assert.equal(res.headers.getSetCookie().length, 0, "aucun Set-Cookie attendu");
+  assert.equal(fetchCalled, false);
+});
+
+test("redirects to error page without calling fetch when authCentralHost is absent", async () => {
+  let fetchCalled = false;
+  const fetchImpl = async () => { fetchCalled = true; return makeCsrfResponse(); };
+  const handler = createAuthCentralStartHandler({
+    consumeOauthStartTicket: async () => "university-1",
+    getSecret: () => SECRET,
+    secure: false,
+    baseUrl: BASE_URL,
+    fetchImpl,
+  });
+  const res = await handler(makeRequest());
+
+  assert.equal(res.status, 303);
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
+  assert.equal(res.headers.getSetCookie().length, 0, "aucun Set-Cookie attendu");
+  assert.equal(fetchCalled, false);
+});
 
 // ─── Succès : 303 vers Google, tous les Set-Cookie présents ──────────────────
 
@@ -101,23 +194,22 @@ test("POST signin receives Cookie header with tx token and CSRF cookie", async (
   );
 });
 
-// ─── CSRF en échec : repli vers /auth-central/signin ─────────────────────────
+// ─── CSRF en échec : 303 vers /auth-central/error (aucun Set-Cookie tx) ───────
 
-test("falls back to signin page when CSRF request fails", async () => {
+test("redirects to error page when CSRF request fails (no tx Set-Cookie)", async () => {
   const fetchImpl = async () => makeCsrfResponse({ status: 500 });
   const handler = createHandler(fetchImpl);
   const res = await handler(makeRequest());
 
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("Location"), "/auth-central/signin");
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
   const setCookies = res.headers.getSetCookie();
-  assert.ok(setCookies.some((c) => c.startsWith(AUTH_TRANSACTION_COOKIE_NAME + "=")));
-  assert.equal(setCookies.length, 1);
+  assert.equal(setCookies.length, 0, "aucun Set-Cookie attendu sur erreur");
 });
 
-// ─── Signin répond 200 : repli ────────────────────────────────────────────────
+// ─── Signin répond 200 : 303 vers /auth-central/error ────────────────────────
 
-test("falls back when signin responds with 200 instead of 302/303", async () => {
+test("redirects to error page when signin responds with 200 instead of 302/303", async () => {
   const fetchImpl = async (url) => {
     if (url.endsWith("/api/auth/csrf")) return makeCsrfResponse();
     return makeSigninResponse({ status: 200, location: null });
@@ -126,12 +218,12 @@ test("falls back when signin responds with 200 instead of 302/303", async () => 
   const res = await handler(makeRequest());
 
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("Location"), "/auth-central/signin");
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
 });
 
-// ─── Location hors accounts.google.com : repli ───────────────────────────────
+// ─── Location hors accounts.google.com : 303 vers /auth-central/error ────────
 
-test("falls back when Location is not accounts.google.com", async () => {
+test("redirects to error page when Location is not accounts.google.com", async () => {
   const fetchImpl = async (url) => {
     if (url.endsWith("/api/auth/csrf")) return makeCsrfResponse();
     return makeSigninResponse({ location: "https://evil.example.com/redirect" });
@@ -140,12 +232,12 @@ test("falls back when Location is not accounts.google.com", async () => {
   const res = await handler(makeRequest());
 
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("Location"), "/auth-central/signin");
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
 });
 
-// ─── baseUrl ≠ authCentralHost : repli, aucun fetch ─────────────────────────
+// ─── baseUrl ≠ authCentralHost : 303 vers /auth-central/error, aucun fetch ───
 
-test("falls back without calling fetch when baseUrl host differs from authCentralHost", async () => {
+test("redirects to error page without calling fetch when baseUrl host differs from authCentralHost", async () => {
   let fetchCalled = false;
   const fetchImpl = async () => { fetchCalled = true; return makeCsrfResponse(); };
   const handler = createAuthCentralStartHandler({
@@ -159,39 +251,34 @@ test("falls back without calling fetch when baseUrl host differs from authCentra
   const res = await handler(makeRequest());
 
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("Location"), "/auth-central/signin");
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
   assert.equal(fetchCalled, false);
 });
 
-// ─── Erreur réseau : repli ────────────────────────────────────────────────────
+// ─── Erreur réseau : 303 vers /auth-central/error ────────────────────────────
 
-test("falls back on network error", async () => {
+test("redirects to error page on network error", async () => {
   const fetchImpl = async () => { throw new Error("network error"); };
   const handler = createHandler(fetchImpl);
   const res = await handler(makeRequest());
 
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("Location"), "/auth-central/signin");
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
 });
 
-// ─── Délai dépassé via signal d'abandon : repli ───────────────────────────────
-// Note : le vrai délai de 5 s n'est pas attendu. On simule l'abandon via
-// un fetchImpl qui détecte signal.aborted ou lève DOMException("AbortError").
+// ─── Plafond dépassé (fetchTimeoutMs: 1 ms) : 303 vers /auth-central/error ───
 
-test("falls back when fetch aborts via signal", async () => {
+test("redirects to error page when fetch times out (fetchTimeoutMs: 1)", async () => {
   const fetchImpl = async (url, opts) => {
-    if (opts?.signal) {
-      return new Promise((_, reject) => {
-        if (opts.signal.aborted) {
-          reject(new DOMException("Aborted", "AbortError"));
-          return;
-        }
-        opts.signal.addEventListener("abort", () => {
-          reject(new DOMException("Aborted", "AbortError"));
-        });
+    return new Promise((_, reject) => {
+      if (opts?.signal?.aborted) {
+        reject(new DOMException("Aborted", "AbortError"));
+        return;
+      }
+      opts?.signal?.addEventListener("abort", () => {
+        reject(new DOMException("Aborted", "AbortError"));
       });
-    }
-    throw new Error("no signal");
+    });
   };
 
   const handler = createAuthCentralStartHandler({
@@ -200,14 +287,13 @@ test("falls back when fetch aborts via signal", async () => {
     secure: false,
     baseUrl: BASE_URL,
     authCentralHost: AUTH_CENTRAL_HOST,
-    // Timeout à 1 ms pour déclencher l'abort sans attendre 5 s.
     fetchImpl,
     fetchTimeoutMs: 1,
   });
   const res = await handler(makeRequest());
 
   assert.equal(res.status, 303);
-  assert.equal(res.headers.get("Location"), "/auth-central/signin");
+  assert.equal(res.headers.get("Location"), ERROR_PATH);
 });
 
 // ─── Aucun secret dans le corps de réponse ───────────────────────────────────

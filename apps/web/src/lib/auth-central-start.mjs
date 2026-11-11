@@ -9,7 +9,9 @@ export const AUTH_TRANSACTION_MAX_AGE_SECONDS = 15 * 60;
 const CSRF_PATH = "/api/auth/csrf";
 const SIGNIN_PATH = "/api/auth/signin/google";
 const GOOGLE_ACCOUNTS_ORIGIN = "https://accounts.google.com";
-const FETCH_TIMEOUT_MS = 5000;
+const FETCH_TIMEOUT_MS = 60_000;
+
+const FALLBACK_ERROR_PATH = "/auth-central/error";
 
 const GENERIC_START_ERROR = "Impossible de démarrer la connexion.";
 
@@ -20,6 +22,16 @@ function response(status, body = GENERIC_START_ERROR, headers = {}) {
       "Cache-Control": "no-store",
       "Content-Type": "text/plain; charset=utf-8",
       ...headers,
+    },
+  });
+}
+
+function errorResponse() {
+  return new Response(null, {
+    status: 303,
+    headers: {
+      "Cache-Control": "no-store",
+      Location: FALLBACK_ERROR_PATH,
     },
   });
 }
@@ -37,8 +49,8 @@ function transactionCookie(value, secure) {
 }
 
 /**
- * Tente une redirection directe vers Google OAuth.
- * Retourne la Response 303 vers Google si elle réussit, ou null (repli).
+ * Redirige directement vers Google OAuth.
+ * Tout échec retourne une Response 303 vers /auth-central/error (jamais null).
  * Ne journalise jamais cookies, csrfToken ni URL Google.
  */
 async function tryDirectGoogleRedirect({
@@ -53,12 +65,12 @@ async function tryDirectGoogleRedirect({
   try {
     baseHostNormalized = normalizeAuthority(new URL(baseUrl).host);
   } catch {
-    return null;
+    return errorResponse();
   }
-  if (baseHostNormalized === null) return null;
+  if (baseHostNormalized === null) return errorResponse();
   const centralHostNormalized = normalizeAuthority(authCentralHost);
   if (centralHostNormalized === null || baseHostNormalized !== centralHostNormalized) {
-    return null;
+    return errorResponse();
   }
 
   const fetchFn = fetchImpl ?? globalThis.fetch;
@@ -79,7 +91,7 @@ async function tryDirectGoogleRedirect({
     } finally {
       clearTimeout(timer);
     }
-    if (!csrfRes.ok) return null;
+    if (!csrfRes.ok) return errorResponse();
 
     const csrfData = await csrfRes.json();
     if (
@@ -88,14 +100,14 @@ async function tryDirectGoogleRedirect({
       || typeof csrfData.csrfToken !== "string"
       || csrfData.csrfToken.length === 0
     ) {
-      return null;
+      return errorResponse();
     }
     csrfToken = csrfData.csrfToken;
     csrfCookies = csrfRes.headers.getSetCookie
       ? csrfRes.headers.getSetCookie()
       : [];
   } catch {
-    return null;
+    return errorResponse();
   }
 
   // 3. POST /api/auth/signin/google
@@ -127,20 +139,20 @@ async function tryDirectGoogleRedirect({
       clearTimeout(timer);
     }
   } catch {
-    return null;
+    return errorResponse();
   }
 
   // 4. Accepter seulement 302/303 avec Location d'origine accounts.google.com.
-  if (signinRes.status !== 302 && signinRes.status !== 303) return null;
+  if (signinRes.status !== 302 && signinRes.status !== 303) return errorResponse();
   const location = signinRes.headers.get("Location");
-  if (!location) return null;
+  if (!location) return errorResponse();
   let locationUrl;
   try {
     locationUrl = new URL(location);
   } catch {
-    return null;
+    return errorResponse();
   }
-  if (locationUrl.origin !== GOOGLE_ACCOUNTS_ORIGIN) return null;
+  if (locationUrl.origin !== GOOGLE_ACCOUNTS_ORIGIN) return errorResponse();
 
   signinCookies = signinRes.headers.getSetCookie
     ? signinRes.headers.getSetCookie()
@@ -202,22 +214,18 @@ export function createAuthCentralStartHandler({
     });
     const txCookie = transactionCookie(transaction, secure);
 
-    // Piste B : tentative de redirection directe vers Google.
+    // Piste B : redirection directe vers Google. Toujours une Response.
     if (baseUrl && authCentralHost) {
-      const direct = await tryDirectGoogleRedirect({
+      return tryDirectGoogleRedirect({
         baseUrl,
         authCentralHost,
         txCookie,
         fetchImpl,
         fetchTimeoutMs,
       });
-      if (direct) return direct;
     }
 
-    // Repli : comportement actuel.
-    return response(303, "", {
-      Location: "/auth-central/signin",
-      "Set-Cookie": txCookie,
-    });
+    // baseUrl ou authCentralHost absent : erreur de configuration.
+    return errorResponse();
   };
 }
