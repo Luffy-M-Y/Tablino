@@ -13,6 +13,7 @@ import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@ta
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
 import { createUniversitySignupToken } from "./university-signup-token";
+import { createGoogleExistingAccountToken } from "./google-existing-account-token";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 import {
@@ -39,6 +40,7 @@ type AuthOptionsContext = {
   getCurrentUniversityId: () => Promise<string>;
   resolveGoogleUniversityId?: () => Promise<string | null>;
   resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
+  resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
   errorPage?: string;
 };
 
@@ -398,7 +400,31 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             .from(schema.accounts)
             .where(eq(schema.accounts.userId, emailUser.id))
             .limit(1);
+          // Utilisateur trouvé par e-mail avec un compte Google déjà lié : refus.
           if (existingAccount) return false;
+          // Surface web, emailUser sans compte lié : refus de liaison + redirection informative.
+          if (context.surface === "web") {
+            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            if (
+              emailUser.role === "student"
+              && googleContext.universityId !== null
+              && emailUser.universityId === googleContext.universityId
+              && context.resolveGoogleExistingAccountUrl
+            ) {
+              const existingToken = createGoogleExistingAccountToken({
+                email,
+                universityId: googleContext.universityId,
+                now,
+                secret: process.env.NEXTAUTH_SECRET ?? "",
+              });
+              const redirectUrl = await context.resolveGoogleExistingAccountUrl(
+                googleContext.universityId,
+                existingToken,
+              );
+              if (redirectUrl) return redirectUrl;
+            }
+            return false;
+          }
         }
         const storedUser = linkedUser ?? emailUser;
 
@@ -533,3 +559,10 @@ export type {
   TurnstileResult,
 } from "./turnstile";
 export { getCloudflareClientIp } from "./client-ip";
+export {
+  createGoogleExistingAccountToken,
+  verifyGoogleExistingAccountToken,
+  createGoogleExistingAccountTokenEnv,
+  verifyGoogleExistingAccountTokenEnv,
+  GOOGLE_EXISTING_ACCOUNT_TOKEN_TTL_MS,
+} from "./google-existing-account-token";

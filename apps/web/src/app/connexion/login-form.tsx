@@ -5,7 +5,7 @@ import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/compon
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { loginAction } from "./actions";
 
-export function LoginForm() {
+export function LoginForm({ defaultEmail }: { defaultEmail?: string } = {}) {
   const [state, action, pending] = useActionState(loginAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
 
@@ -21,6 +21,7 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
+          defaultValue={defaultEmail}
           className={inputClass}
         />
       </div>

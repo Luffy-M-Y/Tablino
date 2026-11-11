@@ -36,5 +36,25 @@ export const authOptions = createAuthOptions({
       return null;
     }
   },
+  resolveGoogleExistingAccountUrl: async (universityId, token) => {
+    try {
+      const rows = await db
+        .select({ slug: schema.universities.slug })
+        .from(schema.universities)
+        .where(eq(schema.universities.id, universityId))
+        .limit(1);
+      if (!(rows.length > 0) || !rows[0].slug) return null;
+      const rootDomain = process.env.ROOT_DOMAIN;
+      if (!rootDomain) return null;
+      return buildTenantUrl({
+        slug: rows[0].slug,
+        rootDomain,
+        secure: process.env.NODE_ENV === "production",
+        path: `connexion?googleExisting=${encodeURIComponent(token)}`,
+      });
+    } catch {
+      return null;
+    }
+  },
   errorPage: "/auth-central/error",
 });
