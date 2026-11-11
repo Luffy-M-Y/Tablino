@@ -8,6 +8,7 @@
       "env": [
         "DATABASE_URL",
         "ROOT_DOMAIN",
+        "AUTH_CENTRAL_HOST",
         "UNIVERSITY_HOST_SLUG_MAP",
         "STUDENT_ROOT_DOMAIN",
         "ADMIN_ROOT_DOMAIN",
@@ -30,6 +31,7 @@
       "env": [
         "DATABASE_URL",
         "ROOT_DOMAIN",
+        "AUTH_CENTRAL_HOST",
         "UNIVERSITY_HOST_SLUG_MAP",
         "STUDENT_ROOT_DOMAIN",
         "ADMIN_ROOT_DOMAIN",
