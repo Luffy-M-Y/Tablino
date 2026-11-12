@@ -38,6 +38,9 @@ export async function registerGoogleAction(
     return { message: "Lien expiré. Recommence avec Google." };
   }
   if (payload === null) return { message: "Lien expiré. Recommence avec Google." };
+  if (payload.universityId !== universityId) {
+    return { message: "Lien expiré. Recommence avec Google." };
+  }
 
   const limit = await checkRateLimit("signup_code", payload.email);
   if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };

@@ -6,11 +6,9 @@ import {
   requireRole,
 } from "@tablino/auth";
 import { getStudentEmailById, getStudentNameById } from "@tablino/db";
-import { getCurrentUniversityId } from "@/lib/university";
 import { UserMenuDropdown } from "./UserMenuDropdown";
 
-export async function UserMenu() {
-  const universityId = await getCurrentUniversityId();
+export async function UserMenu({ universityId }: { universityId: string }) {
   let userId: string | null = null;
   try {
     const sessionUser = await requireRole("web", ["student"]);

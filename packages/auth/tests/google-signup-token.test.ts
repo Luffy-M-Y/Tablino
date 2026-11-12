@@ -14,6 +14,7 @@ const payload: GoogleSignupPayload = {
   name: "Ada Lovelace",
   image: "https://example.com/avatar.png",
   providerAccountId: "google-account-id",
+  universityId: "university-1",
 };
 
 test("Google signup token round trips its payload", () => {
@@ -79,4 +80,42 @@ test("Google signup token preserves null name and image", () => {
   const token = createGoogleSignupToken(nullablePayload, now, secret);
 
   assert.deepEqual(verifyGoogleSignupToken(token, now, secret), nullablePayload);
+});
+
+test("Google signup token round trips a null universityId", () => {
+  const nullUniversityPayload = { ...payload, universityId: null };
+  const token = createGoogleSignupToken(nullUniversityPayload, now, secret);
+
+  assert.deepEqual(verifyGoogleSignupToken(token, now, secret), nullUniversityPayload);
+});
+
+test("Google signup token rejects a token without the universityId field", () => {
+  const data = {
+    p: "google-signup",
+    e: payload.email,
+    n: payload.name,
+    i: payload.image,
+    a: payload.providerAccountId,
+    x: now + GOOGLE_SIGNUP_TOKEN_TTL_MS,
+  };
+  const encoded = Buffer.from(JSON.stringify(data)).toString("base64url");
+  const signature = createGoogleSignupToken(payload, now, secret).split(".")[1];
+
+  assert.equal(verifyGoogleSignupToken(encoded + "." + signature, now, secret), null);
+});
+
+test("Google signup token rejects a non-string universityId", () => {
+  const data = {
+    p: "google-signup",
+    e: payload.email,
+    n: payload.name,
+    i: payload.image,
+    a: payload.providerAccountId,
+    u: 12345,
+    x: now + GOOGLE_SIGNUP_TOKEN_TTL_MS,
+  };
+  const encoded = Buffer.from(JSON.stringify(data)).toString("base64url");
+  const signature = createGoogleSignupToken(payload, now, secret).split(".")[1];
+
+  assert.equal(verifyGoogleSignupToken(encoded + "." + signature, now, secret), null);
 });

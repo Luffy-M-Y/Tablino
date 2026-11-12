@@ -1,13 +1,19 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { loginAction } from "./actions";
 
-export function LoginForm() {
+export function LoginForm({ defaultEmail }: { defaultEmail?: string } = {}) {
   const [state, action, pending] = useActionState(loginAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
+
+  useEffect(() => {
+    if (state.redirectTo) {
+      window.location.assign(state.redirectTo);
+    }
+  }, [state.redirectTo]);
 
   return (
     <form action={action} className="space-y-4">
@@ -21,6 +27,7 @@ export function LoginForm() {
           type="email"
           autoComplete="email"
           required
+          defaultValue={defaultEmail}
           className={inputClass}
         />
       </div>

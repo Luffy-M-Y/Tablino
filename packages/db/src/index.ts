@@ -62,6 +62,28 @@ export type {
   UniversitySlugFailureReason,
   UniversitySlugResult,
 } from "./university-slug";
+export {
+  consumeOauthStartTicket,
+  createOauthStartTicket,
+  createOauthStartTicketService,
+  OAUTH_START_TICKET_TTL_MS,
+  OauthStartTicketError,
+} from "./oauth-start-ticket";
+export type {
+  OauthStartTicketDependencies,
+  OauthStartTicketRepository,
+} from "./oauth-start-ticket";
+export {
+  consumeOauthTransferCode,
+  createOauthTransferCode,
+  createOauthTransferCodeService,
+  OAUTH_TRANSFER_CODE_TTL_MS,
+  OauthTransferCodeError,
+} from "./oauth-transfer-code";
+export type {
+  OauthTransferCodeDependencies,
+  OauthTransferCodeRepository,
+} from "./oauth-transfer-code";
 export type {
   AddProgramCycleResult,
   CanReduceYearsCountResult,

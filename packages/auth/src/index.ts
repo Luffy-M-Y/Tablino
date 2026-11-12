@@ -13,10 +13,15 @@ import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@ta
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
 import { createUniversitySignupToken } from "./university-signup-token";
+import { createGoogleExistingAccountToken } from "./google-existing-account-token";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
-
-const googleEmailsByAccount = new Map<string, { email: string; at: number }>();
+import {
+  consumeGoogleAuthContext,
+  deleteGoogleAuthContext,
+  googleAuthContexts,
+  recordGoogleAuthContext,
+} from "./google-auth-context";
 
 export type { AuthRole } from "./roles";
 
@@ -33,6 +38,10 @@ export {
 type AuthOptionsContext = {
   surface: AuthSurface;
   getCurrentUniversityId: () => Promise<string>;
+  resolveGoogleUniversityId?: () => Promise<string | null>;
+  resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
+  resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
+  errorPage?: string;
 };
 
 function toAuthUser(user: StoredUser): AuthAdapterUser {
@@ -130,14 +139,26 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
     },
 
     async linkAccount(account: AdapterAccount) {
-      const googleEmail = googleEmailsByAccount.get(account.providerAccountId);
-      googleEmailsByAccount.delete(account.providerAccountId);
+      const googleContext = consumeGoogleAuthContext(
+        googleAuthContexts,
+        account.providerAccountId,
+        Date.now(),
+        context.surface,
+      );
+      if (!googleContext) throw new Error("Liaison Google refusee.");
+
       const user = await getUserById(account.userId);
       if (
-        !googleEmail
-        || Date.now() - googleEmail.at > 60000
-        || !user
-        || !googleEmailMatchesUser(user.email, googleEmail.email)
+        !user
+        || !googleEmailMatchesUser(user.email, googleContext.email)
+        || (
+          account.provider === "google"
+          && context.surface === "web"
+          && (
+            !googleContext.universityId
+            || user.universityId !== googleContext.universityId
+          )
+        )
       ) {
         throw new Error("Liaison Google refusee.");
       }
@@ -322,9 +343,13 @@ export function getSessionCookieConfig(surface: AuthSurface) {
 }
 
 export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions {
+  const pages: { signIn?: string; error?: string } = {};
+  if (context.surface === "admin") pages.signIn = "/login";
+  if (context.errorPage) pages.error = context.errorPage;
+
   return {
     adapter: createDrizzleAdapter(context),
-    ...(context.surface === "admin" ? { pages: { signIn: "/login" } } : {}),
+    ...(Object.keys(pages).length > 0 ? { pages } : {}),
     providers: [GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -356,10 +381,17 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         if (!email || googleProfile?.email_verified !== true) return false;
 
         const now = Date.now();
-        for (const [providerAccountId, entry] of googleEmailsByAccount) {
-          if (now - entry.at > 60000) googleEmailsByAccount.delete(providerAccountId);
-        }
-        googleEmailsByAccount.set(account.providerAccountId, { email: email, at: now });
+        const googleContext = await recordGoogleAuthContext({
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          email,
+          surface: context.surface,
+          resolveGoogleUniversityId: context.resolveGoogleUniversityId,
+          getCurrentUniversityId: context.getCurrentUniversityId,
+          now,
+          store: googleAuthContexts,
+        });
+        if (!googleContext.accepted) return false;
 
         const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
         const emailUser = linkedUser ? null : await getUserByEmail(email);
@@ -368,7 +400,31 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             .from(schema.accounts)
             .where(eq(schema.accounts.userId, emailUser.id))
             .limit(1);
+          // Utilisateur trouvé par e-mail avec un compte Google déjà lié : refus.
           if (existingAccount) return false;
+          // Surface web, emailUser sans compte lié : refus de liaison + redirection informative.
+          if (context.surface === "web") {
+            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            if (
+              emailUser.role === "student"
+              && googleContext.universityId !== null
+              && emailUser.universityId === googleContext.universityId
+              && context.resolveGoogleExistingAccountUrl
+            ) {
+              const existingToken = createGoogleExistingAccountToken({
+                email,
+                universityId: googleContext.universityId,
+                now,
+                secret: process.env.NEXTAUTH_SECRET ?? "",
+              });
+              const redirectUrl = await context.resolveGoogleExistingAccountUrl(
+                googleContext.universityId,
+                existingToken,
+              );
+              if (redirectUrl) return redirectUrl;
+            }
+            return false;
+          }
         }
         const storedUser = linkedUser ?? emailUser;
 
@@ -378,19 +434,26 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             name: user.name ?? null,
             image: user.image ?? null,
             providerAccountId: account.providerAccountId,
+            universityId: googleContext.universityId,
           };
           if (context.surface === "web") {
-            await context.getCurrentUniversityId();
-            googleEmailsByAccount.delete(account.providerAccountId);
-            return "/inscription/google?token=" + encodeURIComponent(createGoogleSignupToken(payload));
+            const signupToken = createGoogleSignupToken(payload);
+            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            if (context.resolveGoogleSignupUrl) {
+              if (!googleContext.universityId) return false;
+              const signupUrl = await context.resolveGoogleSignupUrl(googleContext.universityId, signupToken);
+              if (signupUrl) return signupUrl;
+              return false;
+            }
+            return "/inscription/google?token=" + encodeURIComponent(signupToken);
           }
-          googleEmailsByAccount.delete(account.providerAccountId);
+          deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
           return "/university-signup?token=" + encodeURIComponent(createUniversitySignupToken(payload));
         }
 
         if (context.surface === "web") {
           return storedUser.role === "student"
-            && storedUser.universityId === await context.getCurrentUniversityId();
+            && storedUser.universityId === googleContext.universityId;
         }
 
         if (storedUser.role === "super_admin") return storedUser.universityId === null;
@@ -496,3 +559,10 @@ export type {
   TurnstileResult,
 } from "./turnstile";
 export { getCloudflareClientIp } from "./client-ip";
+export {
+  createGoogleExistingAccountToken,
+  verifyGoogleExistingAccountToken,
+  createGoogleExistingAccountTokenEnv,
+  verifyGoogleExistingAccountTokenEnv,
+  GOOGLE_EXISTING_ACCOUNT_TOKEN_TTL_MS,
+} from "./google-existing-account-token";

@@ -356,6 +356,35 @@ export const authAttempts = pgTable("auth_attempts", {
   check("auth_attempts_attempts_check", sql.raw("attempts >= 0")),
 ]).enableRLS();
 
+export const oauthStartTickets = pgTable("oauth_start_tickets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  ticketHash: varchar("ticket_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("oauth_start_tickets_ticket_hash_uq").on(t.ticketHash),
+]).enableRLS();
+
+export const oauthTransferCodes = pgTable("oauth_transfer_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("oauth_transfer_codes_code_hash_uq").on(t.codeHash),
+]).enableRLS();
+
 // ─── Auth.js tables ───────────────────────────────────────────────────────────
 
 export const accounts = pgTable("accounts", {

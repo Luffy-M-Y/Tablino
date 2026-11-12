@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Suspense } from "react";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { TenantGate } from "@/components/layout/TenantGate";
 
 const jakarta = localFont({
   src: "../fonts/plus-jakarta-sans-latin-wght-normal.woff2",
@@ -29,11 +29,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`h-full antialiased ${jakarta.variable}`}>
       <body className="min-h-full flex flex-col bg-[color:var(--color-page-background)] text-[color:var(--color-text)]">
-        <Navbar />
-        <main id="main-content" className="flex-1">
-          {children}
-        </main>
-        <Footer />
+        <Suspense
+          fallback={
+            <main
+              id="main-content"
+              aria-busy="true"
+              className="flex flex-1 items-center justify-center px-4 py-16"
+            >
+              <p className="sr-only">Chargement…</p>
+            </main>
+          }
+        >
+          <TenantGate>{children}</TenantGate>
+        </Suspense>
       </body>
     </html>
   );
