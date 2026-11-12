@@ -1,11 +1,12 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { deleteStudentSession } from "@tablino/db";
 
-export async function logoutAction(): Promise<void> {
+export type LogoutActionResult = { redirectTo: "/connexion" };
+
+export async function logoutAction(): Promise<LogoutActionResult> {
   const cookieStore = await cookies();
   const config = getSessionCookieConfig("web");
   const token = cookieStore.get(config.name)?.value;
@@ -17,5 +18,5 @@ export async function logoutAction(): Promise<void> {
     }
   }
   cookieStore.set(config.name, "", { ...config.options, maxAge: 0 });
-  redirect("/connexion");
+  return { redirectTo: "/connexion" };
 }

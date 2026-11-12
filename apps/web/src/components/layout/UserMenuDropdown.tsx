@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LogOut, User } from "lucide-react";
 import { logoutAction } from "@/app/deconnexion/actions";
 
@@ -14,6 +14,15 @@ export function UserMenuDropdown({
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  async function handleLogout(event: FormEvent<HTMLFormElement>, closeMenu = false) {
+    event.preventDefault();
+    if (closeMenu) setOpen(false);
+    try {
+      const result = await logoutAction();
+      window.location.assign(result.redirectTo);
+    } catch {}
+  }
 
   useEffect(function () {
     if (!open) return;
@@ -42,7 +51,7 @@ export function UserMenuDropdown({
 
   if (name === null && email === null) {
     return (
-      <form action={logoutAction}>
+      <form onSubmit={handleLogout}>
         <button
           type="submit"
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
@@ -88,7 +97,7 @@ export function UserMenuDropdown({
             ) : null}
           </div>
           <div className="mt-4 border-t border-[color:var(--color-border)] pt-3">
-            <form action={logoutAction} onSubmit={function () { setOpen(false); }}>
+            <form onSubmit={(event) => handleLogout(event, true)}>
               <button
                 type="submit"
                 className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
