@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LogOut, User } from "lucide-react";
-import { logoutAction } from "@/app/deconnexion/actions";
 
 export function UserMenuDropdown({
   name,
@@ -19,7 +18,12 @@ export function UserMenuDropdown({
     event.preventDefault();
     if (closeMenu) setOpen(false);
     try {
-      const result = await logoutAction();
+      const response = await fetch("/api/deconnexion", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const result: { redirectTo: string } = await response.json();
       window.location.assign(result.redirectTo);
     } catch {}
   }
