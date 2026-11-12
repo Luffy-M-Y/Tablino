@@ -10,12 +10,14 @@ import {
 } from "@tablino/db";
 import { getCloudflareClientIp, getSessionCookieConfig } from "@tablino/auth";
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type LoginActionState = { message: string | null };
+export type LoginActionState = {
+  message: string | null;
+  redirectTo?: "/" | "/verification";
+};
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -54,7 +56,7 @@ export async function loginAction(
     if (verifiedEmail !== null) {
       await startEmailVerification(result.userId, verifiedEmail);
     }
-    redirect("/verification");
+    return { message: null, redirectTo: "/verification" };
   }
   if (!result.ok) {
     await recordFailure("login", email);
@@ -71,5 +73,5 @@ export async function loginAction(
     ...cookieConfig.options,
     expires: session.expires,
   });
-  redirect("/");
+  return { message: null, redirectTo: "/" };
 }
