@@ -5,11 +5,11 @@ import {
 } from "@tablino/db";
 import {
   AuthorizationDeniedError,
-  requireRole,
   requireUniversityAccess,
   SessionRequiredError,
 } from "@tablino/auth";
 import { forbidden, redirect } from "next/navigation";
+import { requireRoleOnHost } from "@/lib/authorization";
 
 function handleGuardError(error: unknown): never {
   if (error instanceof SessionRequiredError) redirect("/api/auth/signin");
@@ -19,7 +19,7 @@ function handleGuardError(error: unknown): never {
 
 export async function getDashboardCountsForUniversity(universityId: string) {
   try {
-    await requireRole("admin", ["super_admin", "university_admin"]);
+    await requireRoleOnHost(["super_admin", "university_admin"]);
     await requireUniversityAccess("admin", universityId);
   } catch (error) {
     return handleGuardError(error);
@@ -30,7 +30,7 @@ export async function getDashboardCountsForUniversity(universityId: string) {
 
 export async function getSuperAdminDashboard() {
   try {
-    await requireRole("admin", ["super_admin"]);
+    await requireRoleOnHost(["super_admin"]);
   } catch (error) {
     return handleGuardError(error);
   }
@@ -40,7 +40,7 @@ export async function getSuperAdminDashboard() {
 
 export async function getSuperAdminRevenue() {
   try {
-    await requireRole("admin", ["super_admin"]);
+    await requireRoleOnHost(["super_admin"]);
   } catch (error) {
     return handleGuardError(error);
   }
