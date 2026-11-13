@@ -1,5 +1,6 @@
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,55}[a-z0-9])?$/;
 const ADMIN_SUFFIX = "-admin";
+const SUPER_ADMIN_HOST_LABEL = "sup-admin";
 
 function normalizeHost(authority) {
   if (
@@ -49,22 +50,29 @@ function parseHostSlugMap(value) {
 }
 
 /**
- * Résout un hôte admin en type (super, université) ou null.
+ * Résout un hôte admin en type (super, central, université) ou null.
  *
  * @param {string | null} host - en-tête Host de la requête
  * @param {string} adminRootDomain - domaine racine admin (ex: localhost:3001 ou tablino.com)
  * @param {string | undefined} slugMapJson - JSON optionnel mappant hostSlug → databaseSlug
- * @returns {{ kind: "super" } | { kind: "university", slug: string } | null}
+ * @param {string | undefined} authAdminCentralHost - valeur de AUTH_ADMIN_CENTRAL_HOST
+ * @returns {{ kind: "super" } | { kind: "central" } | { kind: "university", slug: string } | null}
  */
-export function resolveAdminHost(host, adminRootDomain, slugMapJson) {
+export function resolveAdminHost(host, adminRootDomain, slugMapJson, authAdminCentralHost) {
   const hostname = normalizeHost(host);
   if (!hostname) return null;
 
   const rootHostname = normalizeHost(adminRootDomain);
+  if (rootHostname && hostname === rootHostname) return null;
+
+  const centralHostname = normalizeHost(authAdminCentralHost);
+  if (centralHostname && hostname === centralHostname) {
+    return { kind: "central" };
+  }
   if (!rootHostname) return null;
 
-  // Hôte racine = super_admin
-  if (hostname === rootHostname) {
+  const superAdminHostname = normalizeHost(`${SUPER_ADMIN_HOST_LABEL}.${rootHostname}`);
+  if (hostname === superAdminHostname) {
     return { kind: "super" };
   }
 
@@ -87,4 +95,38 @@ export function resolveAdminHost(host, adminRootDomain, slugMapJson) {
   const slug = Object.hasOwn(slugMap, hostSlug) ? slugMap[hostSlug] : hostSlug;
 
   return { kind: "university", slug };
+}
+
+/**
+ * Vérifie si un chemin est disponible sur l'hôte admin résolu.
+ *
+ * @param {"super" | "central" | "university"} kind
+ * @param {string} pathname
+ */
+export function isAdminProxyPathAllowed(kind, pathname) {
+  if (typeof pathname !== "string" || !pathname.startsWith("/")) return false;
+  let decodedPathname;
+  try {
+    decodedPathname = decodeURIComponent(pathname);
+  } catch {
+    return false;
+  }
+
+  if (kind === "central") {
+    return decodedPathname.startsWith("/auth-admin/")
+      || decodedPathname.startsWith("/api/auth/");
+  }
+
+  return decodedPathname !== "/api/auth/signin/google"
+    && decodedPathname !== "/api/auth/callback/google";
+}
+
+/**
+ * Le mot de passe super_admin n'est accepté que sur son hôte dédié.
+ *
+ * @param {"super_admin" | "university_admin"} role
+ * @param {"super" | "university" | null} hostKind
+ */
+export function isAdminPasswordLoginAllowed(role, hostKind) {
+  return role !== "super_admin" || hostKind === "super";
 }

@@ -15,8 +15,13 @@ export const getAdminHostContext = cache(async (): Promise<AdminHostContext> => 
   const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
   if (!adminRootDomain) return null;
 
-  const resolution = resolveAdminHost(host, adminRootDomain, process.env.ADMIN_HOST_SLUG_MAP);
-  if (resolution === null) return null;
+  const resolution = resolveAdminHost(
+    host,
+    adminRootDomain,
+    process.env.ADMIN_HOST_SLUG_MAP,
+    process.env.AUTH_ADMIN_CENTRAL_HOST,
+  );
+  if (resolution === null || resolution.kind === "central") return null;
   if (resolution.kind === "super") return { kind: "super" };
 
   const [university] = await db

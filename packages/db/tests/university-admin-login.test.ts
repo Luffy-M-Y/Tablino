@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { authenticateUniversityAdmin } from "../src/university-admin-login";
+import {
+  authenticateAdminPassword,
+  authenticateUniversityAdmin,
+} from "../src/university-admin-login";
 import { hashPassword } from "../src/password";
 import * as schema from "../src/schema";
 
@@ -127,5 +130,64 @@ test("authenticateUniversityAdmin accepts a verified university admin", async ()
       fake.database,
     ),
     { ok: true, userId: "university-admin-id" },
+  );
+});
+
+test("authenticateAdminPassword accepts a verified super admin with a password hash", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      id: "super-admin-id",
+      role: "super_admin",
+      passwordHash: hashPassword(validPassword),
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateAdminPassword(
+      { email: " ADMIN@EXAMPLE.COM ", password: validPassword },
+      fake.database,
+    ),
+    { ok: true, userId: "super-admin-id", role: "super_admin" },
+  );
+});
+
+test("authenticateAdminPassword reports unverified super-admin credentials", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      id: "super-admin-id",
+      role: "super_admin",
+      passwordHash: hashPassword(validPassword),
+      emailVerified: null,
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateAdminPassword(
+      { email: "admin@example.com", password: validPassword },
+      fake.database,
+    ),
+    {
+      ok: false,
+      reason: "email_not_verified",
+      userId: "super-admin-id",
+      role: "super_admin",
+    },
+  );
+});
+
+test("authenticateUniversityAdmin still rejects a super admin", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      role: "super_admin",
+      passwordHash: hashPassword(validPassword),
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateUniversityAdmin(
+      { email: "admin@example.com", password: validPassword },
+      fake.database,
+    ),
+    { ok: false, reason: "invalid_credentials" },
   );
 });

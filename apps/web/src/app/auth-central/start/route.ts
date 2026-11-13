@@ -3,7 +3,7 @@ import { getSessionCookieConfig } from "@tablino/auth";
 import { createAuthCentralStartHandler } from "@/lib/auth-central-start.mjs";
 
 const handleStart = createAuthCentralStartHandler({
-  consumeOauthStartTicket,
+  consumeOauthStartTicket: (ticket) => consumeOauthStartTicket(ticket, "web"),
   getSecret: () => process.env.NEXTAUTH_SECRET,
   secure: process.env.NODE_ENV === "production"
     && getSessionCookieConfig("web").options.secure,

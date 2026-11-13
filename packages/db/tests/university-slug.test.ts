@@ -96,6 +96,7 @@ test("rejects every reserved name", () => {
     "email",
     "root",
     "git",
+    "sup",
   ];
 
   for (const name of reservedNames) {

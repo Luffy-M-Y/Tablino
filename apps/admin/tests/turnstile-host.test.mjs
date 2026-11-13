@@ -5,8 +5,19 @@ import { getAdminTurnstileExpectedHostname } from "../src/lib/turnstile-host.mjs
 const ROOT = "localhost:3001";
 const ROOT_NO_PORT = "admin.tablino.com";
 
-test("hôte racine localhost:3001 → 'localhost'", () => {
-  assert.equal(getAdminTurnstileExpectedHostname("localhost:3001", ROOT), "localhost");
+test("hôte racine → null et hôte super-admin localhost → hostname dédié", () => {
+  assert.equal(getAdminTurnstileExpectedHostname("localhost:3001", ROOT), null);
+  assert.equal(
+    getAdminTurnstileExpectedHostname("sup-admin.localhost:3001", ROOT),
+    "sup-admin.localhost",
+  );
+});
+
+test("hôte super-admin en production → hostname sans port", () => {
+  assert.equal(
+    getAdminTurnstileExpectedHostname("sup-admin.admin.tablino.com", ROOT_NO_PORT),
+    "sup-admin.admin.tablino.com",
+  );
 });
 
 test("hôte université iscom-admin.localhost:3001 → 'iscom-admin.localhost'", () => {
@@ -43,6 +54,18 @@ test("hôte inconnu → null", () => {
 
 test("hôte nul → null", () => {
   assert.equal(getAdminTurnstileExpectedHostname(null, ROOT), null);
+});
+
+test("hôte central auth → null", () => {
+  assert.equal(
+    getAdminTurnstileExpectedHostname(
+      "auth-admin.admin.tablino.com",
+      ROOT_NO_PORT,
+      undefined,
+      "auth-admin.admin.tablino.com",
+    ),
+    null,
+  );
 });
 
 test("ADMIN_ROOT_DOMAIN absent → null", () => {

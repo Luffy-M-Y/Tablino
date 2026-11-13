@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --port 3001",
     "lint": "eslint",
-    "test": "node --test tests/structure-view.test.mjs tests/structure-actions.test.mjs tests/admin-menu.test.mjs tests/admin-profile.test.mjs tests/admin-home-cards.test.mjs tests/current-university.test.mjs tests/scan-pages.test.mjs tests/files-filter.test.mjs tests/admin-search.test.mjs tests/approval-alert-url.test.mjs tests/format-amount.test.mjs tests/approval-messages.test.mjs tests/partnership-contract.test.mjs tests/partnership-routing.test.mjs tests/partnership-validation.test.mjs tests/university-hostnames.test.mjs tests/payout-encryption.test.mjs tests/phone-validation.test.mjs tests/send-with-retry.test.mjs tests/ui-tokens.test.mjs tests/admin-host.test.mjs tests/host-access.test.mjs tests/turnstile-host.test.mjs"
+    "test": "node --test tests/structure-view.test.mjs tests/structure-actions.test.mjs tests/admin-menu.test.mjs tests/admin-profile.test.mjs tests/admin-home-cards.test.mjs tests/current-university.test.mjs tests/scan-pages.test.mjs tests/files-filter.test.mjs tests/admin-search.test.mjs tests/approval-alert-url.test.mjs tests/format-amount.test.mjs tests/approval-messages.test.mjs tests/partnership-contract.test.mjs tests/partnership-routing.test.mjs tests/partnership-validation.test.mjs tests/university-hostnames.test.mjs tests/payout-encryption.test.mjs tests/phone-validation.test.mjs tests/send-with-retry.test.mjs tests/ui-tokens.test.mjs tests/admin-host.test.mjs tests/admin-return-url.test.mjs tests/host-access.test.mjs tests/turnstile-host.test.mjs"
   },
   "dependencies": {
     "@tablino/auth": "workspace:*",

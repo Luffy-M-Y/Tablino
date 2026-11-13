@@ -14,6 +14,7 @@ import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
 import { createUniversitySignupToken } from "./university-signup-token";
 import { createGoogleExistingAccountToken } from "./google-existing-account-token";
+import { AUTH_ADMIN_GOOGLE_ERROR_PATH, decideAdminGoogleSignIn } from "./admin-google-signin";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 import {
@@ -41,6 +42,7 @@ type AuthOptionsContext = {
   resolveGoogleUniversityId?: () => Promise<string | null>;
   resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
+  isAuthAdminCentral?: boolean;
   errorPage?: string;
 };
 
@@ -346,6 +348,9 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
   const pages: { signIn?: string; error?: string } = {};
   if (context.surface === "admin") pages.signIn = "/login";
   if (context.errorPage) pages.error = context.errorPage;
+  if (context.surface === "admin" && context.isAuthAdminCentral) {
+    pages.error = AUTH_ADMIN_GOOGLE_ERROR_PATH;
+  }
 
   return {
     adapter: createDrizzleAdapter(context),
@@ -401,7 +406,13 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             .where(eq(schema.accounts.userId, emailUser.id))
             .limit(1);
           // Utilisateur trouvé par e-mail avec un compte Google déjà lié : refus.
-          if (existingAccount) return false;
+          if (existingAccount) {
+            if (context.surface === "admin" && context.isAuthAdminCentral) {
+              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+            return false;
+          }
           // Surface web, emailUser sans compte lié : refus de liaison + redirection informative.
           if (context.surface === "web") {
             deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
@@ -429,6 +440,14 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
         const storedUser = linkedUser ?? emailUser;
 
         if (!storedUser) {
+          if (context.surface === "admin" && context.isAuthAdminCentral) {
+            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            return decideAdminGoogleSignIn({
+              isAuthAdminCentral: true,
+              user: null,
+              googleUniversityId: googleContext.universityId,
+            }) ?? false;
+          }
           const payload = {
             email: email,
             name: user.name ?? null,
@@ -456,9 +475,15 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             && storedUser.universityId === googleContext.universityId;
         }
 
-        if (storedUser.role === "super_admin") return storedUser.universityId === null;
-        return storedUser.role === "university_admin"
-          && storedUser.universityId !== null;
+        const decision = decideAdminGoogleSignIn({
+          isAuthAdminCentral: context.isAuthAdminCentral === true,
+          user: storedUser,
+          googleUniversityId: googleContext.universityId,
+        });
+        if (decision === AUTH_ADMIN_GOOGLE_ERROR_PATH) {
+          deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+        }
+        return decision ?? false;
       },
 
       async session({ session, user }) {

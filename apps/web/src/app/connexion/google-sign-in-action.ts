@@ -10,7 +10,7 @@ export type { StartGoogleSignInResult } from "@/lib/google-sign-in-start.mjs";
 export async function startGoogleSignInAction() {
   return runStartGoogleSignIn({
     getUniversityId: getCurrentUniversityId,
-    createTicket: createOauthStartTicket,
+    createTicket: (universityId) => createOauthStartTicket(universityId, "web"),
     getCentralHost: () => process.env.AUTH_CENTRAL_HOST,
     secure: process.env.NODE_ENV === "production",
   });

@@ -5,6 +5,8 @@ import * as schema from "./schema";
 
 export const OAUTH_START_TICKET_TTL_MS = 5 * 60 * 1000;
 
+export type OauthStartTicketSurface = "web" | "admin";
+
 export type OauthStartTicketRepository = {
   createForActiveUniversity: (
     universityId: string,
@@ -31,8 +33,8 @@ export class OauthStartTicketError extends Error {
   }
 }
 
-function hashTicket(ticket: string): string {
-  return createHash("sha256").update(ticket).digest("hex");
+function hashTicket(ticket: string, surface: OauthStartTicketSurface): string {
+  return createHash("sha256").update(ticket + ":" + surface).digest("hex");
 }
 
 function isValidTicket(ticket: string): boolean {
@@ -47,7 +49,7 @@ export function createOauthStartTicketService({
   randomBytes: createRandomBytes = randomBytes,
 }: OauthStartTicketDependencies) {
   return {
-    async createOauthStartTicket(universityId: string): Promise<string> {
+    async createOauthStartTicket(universityId: string, surface: OauthStartTicketSurface): Promise<string> {
       const createdAt = now();
       const ticketBytes = createRandomBytes(32);
       if (ticketBytes.length !== 32) {
@@ -57,17 +59,17 @@ export function createOauthStartTicketService({
       const ticket = ticketBytes.toString("base64url");
       const created = await repository.createForActiveUniversity(
         universityId,
-        hashTicket(ticket),
+        hashTicket(ticket, surface),
         new Date(createdAt.getTime() + OAUTH_START_TICKET_TTL_MS),
       );
       if (!created) throw new OauthStartTicketError();
       return ticket;
     },
 
-    async consumeOauthStartTicket(ticket: string): Promise<string | null> {
+    async consumeOauthStartTicket(ticket: string, surface: OauthStartTicketSurface): Promise<string | null> {
       if (!isValidTicket(ticket)) return null;
       const consumedAt = now();
-      return repository.consume(hashTicket(ticket), consumedAt, consumedAt);
+      return repository.consume(hashTicket(ticket, surface), consumedAt, consumedAt);
     },
   };
 }

@@ -9,7 +9,7 @@ export function getHostDenialReason(user, hostContext) {
   if (hostContext === null) return "host_context_null";
 
   if (user.role === "super_admin") {
-    return hostContext.kind === "super" ? null : "super_admin_not_on_root_host";
+    return hostContext.kind === "super" ? null : "super_admin_not_on_super_host";
   }
 
   if (user.role === "university_admin") {
