@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
-import { createAuthOptions, getCurrentUniversityId } from "@tablino/auth";
+import type { NextRequest } from "next/server";
+import { getAdminAuthOptions } from "@/lib/auth";
 
-const handler = NextAuth(createAuthOptions({
-  surface: "admin",
-  getCurrentUniversityId,
-}));
+type NextAuthRouteContext = { params: Promise<{ nextauth: string[] }> };
+
+function handler(request: NextRequest, context: NextAuthRouteContext) {
+  return NextAuth(request, context, getAdminAuthOptions(request.headers.get("host")));
+}
 
 export { handler as GET, handler as POST };

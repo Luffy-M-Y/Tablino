@@ -3,11 +3,11 @@ import "server-only";
 import { and, db, eq, schema } from "@tablino/db";
 import {
   AuthorizationDeniedError,
-  requireRole,
   requireUniversityAccess,
   SessionRequiredError,
 } from "@tablino/auth";
 import { forbidden, redirect } from "next/navigation";
+import { requireRoleOnHost } from "@/lib/authorization";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -19,7 +19,7 @@ function handleGuardError(error: unknown): never {
 
 async function requireUniversityAdminAccess(universityId: string) {
   try {
-    await requireRole("admin", ["super_admin", "university_admin"]);
+    await requireRoleOnHost(["super_admin", "university_admin"]);
     await requireUniversityAccess("admin", universityId);
     if (!UUID_PATTERN.test(universityId)) throw new AuthorizationDeniedError();
   } catch (error) {

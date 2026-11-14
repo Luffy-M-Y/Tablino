@@ -2,14 +2,18 @@
 
 import { getCloudflareClientIp, getSessionCookieConfig } from "@tablino/auth";
 import {
-  authenticateUniversityAdmin,
+  authenticateAdminPassword,
   checkRateLimit,
+  createOauthStartTicket,
   createStudentSession,
   recordFailure,
   resetAttempts,
 } from "@tablino/db";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAdminHostContext } from "@/lib/admin-host-context";
+import { isAdminPasswordLoginAllowed } from "@/lib/admin-host.mjs";
+import { runStartAdminGoogleSignIn } from "@/lib/auth-admin-google-start.mjs";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
@@ -21,6 +25,15 @@ export type LoginActionState = {
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";
+}
+
+export async function startAdminGoogleSignInAction() {
+  return runStartAdminGoogleSignIn({
+    getHostContext: getAdminHostContext,
+    createTicket: (universityId, surface) => createOauthStartTicket(universityId, surface),
+    getCentralHost: () => process.env.AUTH_ADMIN_CENTRAL_HOST,
+    secure: process.env.NODE_ENV === "production",
+  });
 }
 
 export async function loginAction(
@@ -49,11 +62,26 @@ export async function loginAction(
     return { message: "Trop de tentatives. Réessaie plus tard.", email };
   }
 
-  const result = await authenticateUniversityAdmin({ email, password });
+  const result = await authenticateAdminPassword({ email, password });
+  const authenticatedRole = result.ok
+    ? result.role
+    : result.reason === "email_not_verified"
+      ? result.role
+      : null;
+  if (authenticatedRole === "super_admin") {
+    const hostContext = await getAdminHostContext();
+    if (!isAdminPasswordLoginAllowed(authenticatedRole, hostContext?.kind ?? null)) {
+      await recordFailure("login", email);
+      if (clientIp !== null) await recordFailure("login_ip", clientIp);
+      return { message: "Email ou mot de passe incorrect.", email };
+    }
+  }
+
   if (!result.ok && result.reason === "email_not_verified") {
     await startEmailVerification(result.userId, email);
     redirect("/verify");
   }
+
   if (!result.ok) {
     await recordFailure("login", email);
     if (clientIp !== null) await recordFailure("login_ip", clientIp);

@@ -72,6 +72,7 @@ export {
 export type {
   OauthStartTicketDependencies,
   OauthStartTicketRepository,
+  OauthStartTicketSurface,
 } from "./oauth-start-ticket";
 export {
   consumeOauthTransferCode,
@@ -154,8 +155,15 @@ export {
   getStudentEmailById,
   SESSION_MAX_AGE_DAYS,
 } from "./login";
-export { authenticateUniversityAdmin } from "./university-admin-login";
-export type { AuthenticateUniversityAdminResult } from "./university-admin-login";
+export {
+  authenticateAdminPassword,
+  authenticateUniversityAdmin,
+} from "./university-admin-login";
+export type {
+  AdminPasswordRole,
+  AuthenticateAdminPasswordResult,
+  AuthenticateUniversityAdminResult,
+} from "./university-admin-login";
 export {
   RATE_LIMITS,
   hashAttemptKey,

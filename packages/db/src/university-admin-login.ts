@@ -16,6 +16,18 @@ export type AuthenticateUniversityAdminResult =
   | { ok: false; reason: "invalid_credentials" }
   | { ok: false; reason: "email_not_verified"; userId: string };
 
+export type AdminPasswordRole = "super_admin" | "university_admin";
+
+export type AuthenticateAdminPasswordResult =
+  | { ok: true; userId: string; role: AdminPasswordRole }
+  | { ok: false; reason: "invalid_credentials" }
+  | {
+      ok: false;
+      reason: "email_not_verified";
+      userId: string;
+      role: AdminPasswordRole;
+    };
+
 let dummyPasswordHash: string | undefined;
 
 function getDummyPasswordHash(): string {
@@ -25,10 +37,10 @@ function getDummyPasswordHash(): string {
   return dummyPasswordHash;
 }
 
-export async function authenticateUniversityAdmin(
+export async function authenticateAdminPassword(
   input: { email: unknown; password: unknown },
   database?: UniversityAdminLoginDatabase,
-): Promise<AuthenticateUniversityAdminResult> {
+): Promise<AuthenticateAdminPasswordResult> {
   if (
     typeof input !== "object"
     || input === null
@@ -67,7 +79,7 @@ export async function authenticateUniversityAdmin(
   const passwordMatches = verifyPassword(input.password, passwordHash);
   if (
     !user
-    || user.role !== "university_admin"
+    || (user.role !== "university_admin" && user.role !== "super_admin")
     || user.passwordHash === null
     || user.revokedAt !== null
     || !passwordMatches
@@ -76,8 +88,30 @@ export async function authenticateUniversityAdmin(
   }
 
   if (user.emailVerified === null) {
-    return { ok: false, reason: "email_not_verified", userId: user.id };
+    return {
+      ok: false,
+      reason: "email_not_verified",
+      userId: user.id,
+      role: user.role,
+    };
   }
 
-  return { ok: true, userId: user.id };
+  return { ok: true, userId: user.id, role: user.role };
+}
+
+export async function authenticateUniversityAdmin(
+  input: { email: unknown; password: unknown },
+  database?: UniversityAdminLoginDatabase,
+): Promise<AuthenticateUniversityAdminResult> {
+  const result = await authenticateAdminPassword(input, database);
+  if (!result.ok) {
+    if (result.reason === "email_not_verified" && result.role === "university_admin") {
+      return { ok: false, reason: "email_not_verified", userId: result.userId };
+    }
+    return { ok: false, reason: "invalid_credentials" };
+  }
+  if (result.role !== "university_admin") {
+    return { ok: false, reason: "invalid_credentials" };
+  }
+  return { ok: true, userId: result.userId };
 }

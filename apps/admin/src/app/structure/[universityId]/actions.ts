@@ -33,7 +33,6 @@ import {
 } from "@tablino/db";
 import {
   AuthorizationDeniedError,
-  requireRole,
   requireUniversityAccess,
   SessionRequiredError,
 } from "@tablino/auth";
@@ -49,6 +48,7 @@ import {
   type StructureActionState,
 } from "@/lib/structure-action-utils.mjs";
 import { getCurrentUniversity } from "@/lib/current-university";
+import { requireRoleOnHost } from "@/lib/authorization";
 
 function failure(reason: ActionReason): StructureActionState {
   return { ok: false, reason, message: messageForReason(reason) };
@@ -62,7 +62,7 @@ function handleGuardFailure(error: unknown): never {
 
 async function requireUniversityForAction(formData: FormData): Promise<string> {
   try {
-    await requireRole("admin", ["super_admin", "university_admin"]);
+    await requireRoleOnHost(["super_admin", "university_admin"]);
   } catch (error) {
     return handleGuardFailure(error);
   }
@@ -183,7 +183,7 @@ export async function uploadFileAction(
   const universityId = await requireUniversityForAction(formData);
   let userId: string;
   try {
-    const user = await requireRole("admin", ["super_admin", "university_admin"]);
+    const user = await requireRoleOnHost(["super_admin", "university_admin"]);
     userId = user.id;
   } catch (error) {
     return handleGuardFailure(error);
