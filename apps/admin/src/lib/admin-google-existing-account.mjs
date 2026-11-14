@@ -29,3 +29,8 @@ export function getAdminGoogleExistingAccountEmail({
 
   return verified.email;
 }
+
+export function getAdminGoogleExistingAccountMessage(email) {
+  if (typeof email !== "string" || email.length === 0) return null;
+  return `Un compte existe déjà avec l’adresse ${email}. Entrez votre mot de passe pour vous connecter.`;
+}

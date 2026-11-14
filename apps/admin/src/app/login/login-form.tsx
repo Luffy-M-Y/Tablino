@@ -8,6 +8,7 @@ import {
   startAdminGoogleSignInAction,
   type LoginActionState,
 } from "./actions";
+import { getAdminGoogleExistingAccountMessage } from "@/lib/admin-google-existing-account.mjs";
 
 const initialState: LoginActionState = {
   message: null,
@@ -35,6 +36,7 @@ export function LoginForm({
     ...initialState,
     email: googleExistingEmail ?? "",
   });
+  const googleExistingMessage = getAdminGoogleExistingAccountMessage(googleExistingEmail);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [googlePending, setGooglePending] = useState(false);
   const [googleError, setGoogleError] = useState(googleSignInError);
@@ -76,12 +78,12 @@ export function LoginForm({
           Mot de passe r&eacute;initialis&eacute;. Connectez-vous avec votre nouveau mot de passe.
         </p>
       ) : null}
-      {googleExistingEmail ? (
+      {googleExistingMessage ? (
         <p
           role="status"
           className="mb-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm text-[color:var(--color-text)]"
         >
-          Ce compte utilise un mot de passe. Connectez-vous avec celui-ci.
+          {googleExistingMessage}
         </p>
       ) : null}
       <form action={formAction} className="space-y-4">

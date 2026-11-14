@@ -5,3 +5,7 @@ export function getAdminGoogleExistingAccountEmail(options: {
   hostContext: AdminHostContext;
   verifyToken: (token: string) => { email: string; universityId: string } | null;
 }): string | null;
+
+export function getAdminGoogleExistingAccountMessage(
+  email: string | null | undefined,
+): string | null;
