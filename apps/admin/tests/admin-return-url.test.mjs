@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAdminGoogleExistingAccountUrl,
   buildAdminReturnUrl,
   buildAdminTransferRedirectUrl,
 } from "../src/lib/admin-return-url.mjs";
@@ -58,6 +59,36 @@ test("transfer URL validates its root domain and encodes the code", () => {
       adminRootDomain: "admin.tablino.com/path",
       secure: true,
       code: "code",
+    }),
+    null,
+  );
+});
+
+test("existing Google account URL is built on the validated university login host", () => {
+  assert.equal(
+    buildAdminGoogleExistingAccountUrl({
+      slug: "iscom",
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      token: "encrypted/token+value",
+    }),
+    "http://iscom-admin.localhost:3001/login?googleExisting=encrypted%2Ftoken%2Bvalue",
+  );
+  assert.equal(
+    buildAdminGoogleExistingAccountUrl({
+      slug: "invalid/host",
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      token: "token",
+    }),
+    null,
+  );
+  assert.equal(
+    buildAdminGoogleExistingAccountUrl({
+      slug: "iscom",
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      token: "",
     }),
     null,
   );

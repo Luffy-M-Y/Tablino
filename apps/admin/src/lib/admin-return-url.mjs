@@ -49,6 +49,28 @@ export function buildAdminReturnUrl({ slug, adminRootDomain, secure }) {
 }
 
 /**
+ * Construit l'URL de connexion avec un jeton de compte Google existant.
+ *
+ * @param {{ slug: string, adminRootDomain: string, secure: boolean, token: string }} options
+ * @returns {string | null}
+ */
+export function buildAdminGoogleExistingAccountUrl({
+  slug,
+  adminRootDomain,
+  secure,
+  token,
+}) {
+  if (typeof token !== "string" || token.length === 0) return null;
+  const returnUrl = buildAdminReturnUrl({ slug, adminRootDomain, secure });
+  if (returnUrl === null) return null;
+
+  const url = new URL(returnUrl);
+  url.pathname = "/login";
+  url.searchParams.set("googleExisting", token);
+  return url.toString();
+}
+
+/**
  * Construit l'URL de transfert avec le code.
  *
  * @param {{ slug: string, adminRootDomain: string, secure: boolean, code: string }} options

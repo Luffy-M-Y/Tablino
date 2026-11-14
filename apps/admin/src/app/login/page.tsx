@@ -1,13 +1,26 @@
 import { LoginForm } from "./login-form";
 import { getAdminHostContext } from "@/lib/admin-host-context";
+import { verifyGoogleExistingAccountToken } from "@tablino/auth";
+import { getAdminGoogleExistingAccountEmail } from "@/lib/admin-google-existing-account.mjs";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string | string[]; error?: string | string[] }>;
+  searchParams: Promise<{
+    reset?: string | string[];
+    error?: string | string[];
+    googleExisting?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   const hostContext = await getAdminHostContext();
+  const googleExistingEmail = getAdminGoogleExistingAccountEmail({
+    token: typeof params.googleExisting === "string" ? params.googleExisting : undefined,
+    hostContext,
+    verifyToken: (token) => verifyGoogleExistingAccountToken(token, {
+      secret: process.env.NEXTAUTH_SECRET,
+    }),
+  });
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6">
@@ -23,6 +36,7 @@ export default async function LoginPage({
         </p>
         <LoginForm
           passwordResetComplete={params.reset === "ok"}
+          googleExistingEmail={googleExistingEmail ?? undefined}
           showGoogleSignIn={hostContext?.kind === "university"}
           googleSignInError={
             params.error === "google"

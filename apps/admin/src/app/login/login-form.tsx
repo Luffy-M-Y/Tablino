@@ -22,14 +22,19 @@ const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border border-[c
 
 export function LoginForm({
   passwordResetComplete = false,
+  googleExistingEmail,
   showGoogleSignIn = false,
   googleSignInError = null,
 }: {
   passwordResetComplete?: boolean;
+  googleExistingEmail?: string;
   showGoogleSignIn?: boolean;
   googleSignInError?: string | null;
 }) {
-  const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const [state, formAction, pending] = useActionState(loginAction, {
+    ...initialState,
+    email: googleExistingEmail ?? "",
+  });
   const [turnstileToken, setTurnstileToken] = useState("");
   const [googlePending, setGooglePending] = useState(false);
   const [googleError, setGoogleError] = useState(googleSignInError);
@@ -69,6 +74,14 @@ export function LoginForm({
           className="mb-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm text-[color:var(--color-text)]"
         >
           Mot de passe r&eacute;initialis&eacute;. Connectez-vous avec votre nouveau mot de passe.
+        </p>
+      ) : null}
+      {googleExistingEmail ? (
+        <p
+          role="status"
+          className="mb-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm text-[color:var(--color-text)]"
+        >
+          Ce compte utilise un mot de passe. Connectez-vous avec celui-ci.
         </p>
       ) : null}
       <form action={formAction} className="space-y-4">

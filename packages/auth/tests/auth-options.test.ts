@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  AUTH_ADMIN_GOOGLE_EXISTING_ACCOUNT,
   AUTH_ADMIN_GOOGLE_ERROR_PATH,
   decideAdminGoogleSignIn,
+  isAdminCentralGoogleLinkAllowed,
+  shouldMarkGoogleEmailVerified,
 } from "../src/admin-google-signin";
 import { createAuthOptions } from "../src/index";
 
@@ -56,8 +59,17 @@ test("central admin Google sign-in requires the matching university_admin tenant
     decideAdminGoogleSignIn({
       ...base,
       user: { role: "university_admin", universityId: "university-a" },
+      hasGoogleAccountLinked: true,
     }),
     true,
+  );
+  assert.equal(
+    decideAdminGoogleSignIn({
+      ...base,
+      user: { role: "university_admin", universityId: "university-a" },
+      hasGoogleAccountLinked: false,
+    }),
+    AUTH_ADMIN_GOOGLE_EXISTING_ACCOUNT,
   );
   assert.equal(
     decideAdminGoogleSignIn({
@@ -73,6 +85,43 @@ test("central admin Google sign-in requires the matching university_admin tenant
     }),
     AUTH_ADMIN_GOOGLE_ERROR_PATH,
   );
+});
+
+test("central admin Google sign-in never accepts an unlinked, cross-university, or wrong-role account", () => {
+  const base = {
+    isAuthAdminCentral: true,
+    googleUniversityId: "university-a",
+    hasGoogleAccountLinked: false,
+  };
+
+  assert.notEqual(
+    decideAdminGoogleSignIn({
+      ...base,
+      user: { role: "university_admin", universityId: "university-a" },
+    }),
+    true,
+  );
+  assert.equal(
+    decideAdminGoogleSignIn({
+      ...base,
+      user: { role: "university_admin", universityId: "university-b" },
+    }),
+    AUTH_ADMIN_GOOGLE_ERROR_PATH,
+  );
+  assert.equal(
+    decideAdminGoogleSignIn({
+      ...base,
+      user: { role: "student", universityId: "university-a" },
+    }),
+    AUTH_ADMIN_GOOGLE_ERROR_PATH,
+  );
+});
+
+test("central admin adapter cannot link Google accounts and admin links never trigger password removal", () => {
+  assert.equal(isAdminCentralGoogleLinkAllowed(true), false);
+  assert.equal(isAdminCentralGoogleLinkAllowed(false), true);
+  assert.equal(shouldMarkGoogleEmailVerified("admin"), false);
+  assert.equal(shouldMarkGoogleEmailVerified("web"), true);
 });
 
 test("non-central admin Google sign-in keeps its existing role and scope decisions", () => {
