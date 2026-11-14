@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export const roleEnum = pgEnum("role", ["super_admin", "university_admin", "student"]);
+export const roleEnum = pgEnum("role", ["super_admin", "super_admin_editor", "university_admin", "student"]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
 export const universityStatusEnum = pgEnum("university_status", ["pending", "approved", "active"]);
 export const planEnum = pgEnum("plan", ["premium_pro", "premium_pro_max"]);
@@ -307,9 +307,43 @@ export const users = pgTable("users", {
   uniqueIndex("users_email_lower_unique").on(sql`lower(${t.email})`),
   check(
     "users_role_university_scope_check",
-    sql`(${t.role} = 'super_admin' AND ${t.universityId} IS NULL) OR (${t.role} <> 'super_admin' AND ${t.universityId} IS NOT NULL)`,
+    sql`(${t.role}::text IN ('super_admin', 'super_admin_editor') AND ${t.universityId} IS NULL) OR (${t.role}::text NOT IN ('super_admin', 'super_admin_editor') AND ${t.universityId} IS NOT NULL)`,
   ),
   check("users_trial_pair_check", sql.raw("(trial_started_at IS NULL) = (trial_ends_at IS NULL)")),
+]).enableRLS();
+
+export const superAdminEditorInvitations = pgTable("super_admin_editor_invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: varchar("email", { length: 255 }).notNull(),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+  invitedByUserId: uuid("invited_by_user_id")
+    .references(() => users.id, { onDelete: "restrict" })
+    .notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  acceptedUserId: uuid("accepted_user_id")
+    .references(() => users.id, { onDelete: "set null" }),
+}, (t) => [
+  check(
+    "super_admin_editor_invitations_email_normalized_check",
+    sql`(${t.email} = lower(btrim(${t.email})))`,
+  ),
+  check(
+    "super_admin_editor_invitations_token_hash_check",
+    sql`(${t.tokenHash} ~ '^[0-9a-f]{64}$')`,
+  ),
+  check(
+    "super_admin_editor_invitations_acceptance_check",
+    sql`(${t.acceptedUserId} IS NULL OR ${t.consumedAt} IS NOT NULL)`,
+  ),
+  uniqueIndex("super_admin_editor_invitations_token_hash_uq").on(t.tokenHash),
+  uniqueIndex("super_admin_editor_invitations_accepted_user_uq").on(t.acceptedUserId),
+  uniqueIndex("super_admin_editor_invitations_pending_email_uq")
+    .on(sql`lower(${t.email})`)
+    .where(sql`${t.consumedAt} IS NULL AND ${t.revokedAt} IS NULL`),
+  index("super_admin_editor_invitations_expires_at_idx").on(t.expiresAt),
 ]).enableRLS();
 
 export const emailVerificationCodes = pgTable("email_verification_codes", {

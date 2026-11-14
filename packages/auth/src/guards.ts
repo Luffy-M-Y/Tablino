@@ -1,5 +1,5 @@
 export type AuthSurface = "web" | "admin";
-export type GuardRole = "super_admin" | "university_admin" | "student";
+export type GuardRole = "super_admin" | "super_admin_editor" | "university_admin" | "student";
 
 export type GuardUser = {
   id: string;
