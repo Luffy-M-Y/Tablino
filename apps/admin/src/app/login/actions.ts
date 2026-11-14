@@ -68,13 +68,11 @@ export async function loginAction(
     : result.reason === "email_not_verified"
       ? result.role
       : null;
-  if (authenticatedRole === "super_admin") {
-    const hostContext = await getAdminHostContext();
-    if (!isAdminPasswordLoginAllowed(authenticatedRole, hostContext?.kind ?? null)) {
-      await recordFailure("login", email);
-      if (clientIp !== null) await recordFailure("login_ip", clientIp);
-      return { message: "Email ou mot de passe incorrect.", email };
-    }
+  const hostContext = await getAdminHostContext();
+  if (!isAdminPasswordLoginAllowed(authenticatedRole, hostContext?.kind ?? null)) {
+    await recordFailure("login", email);
+    if (clientIp !== null) await recordFailure("login_ip", clientIp);
+    return { message: "Email ou mot de passe incorrect.", email };
   }
 
   if (!result.ok && result.reason === "email_not_verified") {

@@ -16,7 +16,7 @@ export type AuthenticateUniversityAdminResult =
   | { ok: false; reason: "invalid_credentials" }
   | { ok: false; reason: "email_not_verified"; userId: string };
 
-export type AdminPasswordRole = "super_admin" | "university_admin";
+export type AdminPasswordRole = "super_admin" | "super_admin_editor" | "university_admin";
 
 export type AuthenticateAdminPasswordResult =
   | { ok: true; userId: string; role: AdminPasswordRole }
@@ -67,6 +67,7 @@ export async function authenticateAdminPassword(
     .select({
       id: schema.users.id,
       role: schema.users.role,
+      universityId: schema.users.universityId,
       passwordHash: schema.users.passwordHash,
       revokedAt: schema.users.revokedAt,
       emailVerified: schema.users.emailVerified,
@@ -79,7 +80,11 @@ export async function authenticateAdminPassword(
   const passwordMatches = verifyPassword(input.password, passwordHash);
   if (
     !user
-    || (user.role !== "university_admin" && user.role !== "super_admin")
+    || !(
+      user.role === "university_admin"
+      || user.role === "super_admin"
+      || (user.role === "super_admin_editor" && user.universityId === null)
+    )
     || user.passwordHash === null
     || user.revokedAt !== null
     || !passwordMatches

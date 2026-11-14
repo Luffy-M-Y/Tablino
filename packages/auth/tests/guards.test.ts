@@ -37,6 +37,16 @@ const superAdmin = {
   subscriptionExpiresAt: null,
   currentPlan: null,
 };
+const superAdminEditor = {
+  id: "user-4",
+  role: "super_admin_editor" as const,
+  universityId: null,
+  universityStatus: null,
+  revokedAt: null,
+  trialEndsAt: null,
+  subscriptionExpiresAt: null,
+  currentPlan: null,
+};
 
 function harness(initialUser: GuardUser | null) {
   let currentUser = initialUser;
@@ -65,6 +75,18 @@ test("a student is denied on the admin surface", async () => {
   const { guards } = harness(student);
   await assert.rejects(
     guards.requireRole("admin", ["super_admin", "university_admin"]),
+    AuthorizationDeniedError,
+  );
+});
+
+test("a super admin editor is denied by generic admin and university guards", async () => {
+  const { guards } = harness(superAdminEditor);
+  await assert.rejects(
+    guards.requireRole("admin", ["super_admin", "university_admin"]),
+    AuthorizationDeniedError,
+  );
+  await assert.rejects(
+    guards.requireUniversityAccess("admin", "university-a"),
     AuthorizationDeniedError,
   );
 });

@@ -4,10 +4,12 @@ import { getCurrentUniversity } from "@/lib/current-university";
 import {
   getDashboardCountsForUniversity,
   getSuperAdminDashboard,
+  getSuperAdminEditorDashboard,
   getSuperAdminRevenue,
 } from "@/lib/dashboard-queries";
 import { formatAmount } from "@/lib/format-amount.mjs";
 import { requireAdminAccess } from "@/lib/authorization";
+import { getAvatarInitial, getRoleLabel } from "@/lib/admin-profile.mjs";
 import Link from "next/link";
 import {
   BookOpen,
@@ -18,7 +20,10 @@ import {
   Upload,
 } from "lucide-react";
 import { getAdminProfile } from "@/lib/get-admin-profile";
+import type { AdminProfile } from "@/lib/get-admin-profile";
 import { AdminLinkCard } from "@/components/admin-ui";
+import { getServerSession } from "next-auth/next";
+import { createAuthOptions, getCurrentUniversityId } from "@tablino/auth";
 
 const COUNT_LABELS = [
   ["programs", "Filières"],
@@ -44,6 +49,106 @@ const HOME_CARD_ICONS = {
 } satisfies Record<(typeof ADMIN_HOME_CARDS)[number]["id"], typeof Layers>;
 
 export default async function HomePage() {
+  const session = await getServerSession(createAuthOptions({
+    surface: "admin",
+    getCurrentUniversityId,
+  }));
+  if (session?.user?.role === "super_admin_editor") {
+    const { statusTotals, universities, totalStudents, totalPaid } =
+      await getSuperAdminEditorDashboard();
+    const name = session.user.name ?? null;
+    const email = session.user.email ?? null;
+    const profile: AdminProfile = {
+      email,
+      name,
+      roleLabel: getRoleLabel("super_admin_editor"),
+      initial: getAvatarInitial(name, email),
+      role: "super_admin_editor",
+      universityName: null,
+      universityAcronym: null,
+    };
+
+    return (
+      <AdminPage
+        title="Tableau de bord"
+        breadcrumbs={[{ label: "Accueil" }]}
+        profile={profile}
+      >
+        <section aria-labelledby="editor-status-totals-heading" className="mb-8">
+          <h2 id="editor-status-totals-heading" className="mb-4 text-xl font-semibold">
+            Universités par statut
+          </h2>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]">
+              <dt className="text-sm text-[color:var(--color-muted-foreground)]">En attente</dt>
+              <dd className="mt-2 text-2xl font-semibold text-amber-800">{statusTotals.pending}</dd>
+            </div>
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]">
+              <dt className="text-sm text-[color:var(--color-muted-foreground)]">Validées</dt>
+              <dd className="mt-2 text-2xl font-semibold text-[color:var(--color-primary-text)]">{statusTotals.approved}</dd>
+            </div>
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]">
+              <dt className="text-sm text-[color:var(--color-muted-foreground)]">Actives</dt>
+              <dd className="mt-2 text-2xl font-semibold text-emerald-800">{statusTotals.active}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="editor-overview-totals-heading" className="mb-8">
+          <h2 id="editor-overview-totals-heading" className="sr-only">Totaux généraux</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]">
+              <span className="text-sm text-[color:var(--color-muted-foreground)]">Étudiants (toutes universités)</span>
+              <p className="mt-2 text-2xl font-semibold text-[color:var(--color-primary-text)]">
+                {totalStudents}
+              </p>
+            </div>
+            <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]">
+              <span className="text-sm text-[color:var(--color-muted-foreground)]">Revenu total</span>
+              <p className="mt-2 text-2xl font-semibold text-emerald-800">
+                {formatAmount(totalPaid)}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="editor-universities-list-heading">
+          <h2 id="editor-universities-list-heading" className="mb-4 text-xl font-semibold">
+            Universités
+          </h2>
+          {universities.length === 0 ? (
+            <p className="text-[color:var(--color-muted-foreground)]">Aucune université enregistrée.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] shadow-[var(--shadow-subtle)]">
+              <table className="min-w-full divide-y divide-[color:var(--color-border)] text-left text-sm">
+                <thead className="bg-[color:var(--color-background)] text-[color:var(--color-muted-foreground)] font-medium">
+                  <tr>
+                    <th scope="col" className="px-4 py-3">Université</th>
+                    <th scope="col" className="px-4 py-3">Statut</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[color:var(--color-border)]">
+                  {universities.map((university, index) => (
+                    <tr key={`${university.name}-${university.acronym ?? ""}-${index}`}>
+                      <td className="px-4 py-3 font-medium text-[color:var(--color-text)]">
+                        {university.acronym
+                          ? `${university.name} (${university.acronym})`
+                          : university.name}
+                      </td>
+                      <td className="px-4 py-3">
+                        {STATUS_LABELS[university.status] ?? university.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </AdminPage>
+    );
+  }
+
   const user = await requireAdminAccess();
 
   if (user.role === "super_admin") {

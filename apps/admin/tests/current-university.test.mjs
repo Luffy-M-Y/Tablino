@@ -23,6 +23,15 @@ test("returns null for super_admin even with configured university (UNIVERSITY_I
   }), null);
 });
 
+test("returns null for super_admin_editor even with a session university", () => {
+  assert.equal(selectUniversityId({
+    role: "super_admin_editor",
+    sessionUniversityId: universityA,
+    configuredUniversityId: universityA,
+    knownUniversityIds: [universityA],
+  }), null);
+});
+
 test("rejects roles outside the admin roles", () => {
   assert.equal(selectUniversityId({
     role: "student",

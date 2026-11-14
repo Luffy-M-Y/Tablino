@@ -199,11 +199,12 @@ export function isAdminProxyPathAllowed(kind, pathname) {
 }
 
 /**
- * Le mot de passe super_admin n'est accepté que sur son hôte dédié.
+ * Les comptes globaux ne peuvent se connecter que sur l'hôte super.
  *
- * @param {"super_admin" | "university_admin"} role
+ * @param {string | null} role
  * @param {"super" | "university" | null} hostKind
  */
 export function isAdminPasswordLoginAllowed(role, hostKind) {
-  return role !== "super_admin" || hostKind === "super";
+  if (role === "university_admin") return true;
+  return (role === "super_admin" || role === "super_admin_editor") && hostKind === "super";
 }

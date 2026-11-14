@@ -175,6 +175,43 @@ test("authenticateAdminPassword reports unverified super-admin credentials", asy
   );
 });
 
+test("authenticateAdminPassword accepts a super admin editor with null university scope", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      id: "editor-id",
+      role: "super_admin_editor",
+      universityId: null,
+      passwordHash: hashPassword(validPassword),
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateAdminPassword(
+      { email: "editor@example.com", password: validPassword },
+      fake.database,
+    ),
+    { ok: true, userId: "editor-id", role: "super_admin_editor" },
+  );
+});
+
+test("authenticateAdminPassword refuses a super admin editor with a university scope", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      role: "super_admin_editor",
+      universityId: "university-id",
+      passwordHash: hashPassword(validPassword),
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateAdminPassword(
+      { email: "editor@example.com", password: validPassword },
+      fake.database,
+    ),
+    { ok: false, reason: "invalid_credentials" },
+  );
+});
+
 test("authenticateUniversityAdmin still rejects a super admin", async () => {
   const fake = createMemoryDatabase([[
     universityAdminRow({
@@ -186,6 +223,24 @@ test("authenticateUniversityAdmin still rejects a super admin", async () => {
   assert.deepEqual(
     await authenticateUniversityAdmin(
       { email: "admin@example.com", password: validPassword },
+      fake.database,
+    ),
+    { ok: false, reason: "invalid_credentials" },
+  );
+});
+
+test("authenticateUniversityAdmin still rejects a super admin editor", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      role: "super_admin_editor",
+      universityId: null,
+      passwordHash: hashPassword(validPassword),
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateUniversityAdmin(
+      { email: "editor@example.com", password: validPassword },
       fake.database,
     ),
     { ok: false, reason: "invalid_credentials" },

@@ -252,6 +252,12 @@ test("le super_admin garde le mot de passe uniquement sur son hôte dédié", ()
   assert.equal(isAdminPasswordLoginAllowed("super_admin", "super"), true);
   assert.equal(isAdminPasswordLoginAllowed("super_admin", "university"), false);
   assert.equal(isAdminPasswordLoginAllowed("super_admin", null), false);
+  assert.equal(isAdminPasswordLoginAllowed("super_admin_editor", "super"), true);
+  assert.equal(isAdminPasswordLoginAllowed("super_admin_editor", "university"), false);
+  assert.equal(isAdminPasswordLoginAllowed("super_admin_editor", null), false);
   assert.equal(isAdminPasswordLoginAllowed("university_admin", "super"), true);
   assert.equal(isAdminPasswordLoginAllowed("university_admin", "university"), true);
+  assert.equal(isAdminPasswordLoginAllowed("university_admin", null), true);
+  assert.equal(isAdminPasswordLoginAllowed("student", "super"), false);
+  assert.equal(isAdminPasswordLoginAllowed(null, "university"), false);
 });

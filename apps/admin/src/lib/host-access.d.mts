@@ -1,6 +1,8 @@
 export type HostDenialReason =
   | "host_context_null"
   | "super_admin_not_on_super_host"
+  | "editor_not_on_super_host"
+  | "editor_with_university"
   | "university_admin_not_on_university_host"
   | "university_admin_without_university"
   | "university_mismatch"
