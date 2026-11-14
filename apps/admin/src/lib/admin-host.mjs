@@ -98,6 +98,19 @@ export function resolveAdminHost(host, adminRootDomain, slugMapJson, authAdminCe
 }
 
 /**
+ * Vérifie que l'hôte courant correspond exactement à l'hôte central configuré.
+ *
+ * @param {string | null} host
+ * @param {string | undefined} authAdminCentralHost
+ * @returns {boolean}
+ */
+export function isAuthAdminCentralHost(host, authAdminCentralHost) {
+  const hostname = normalizeHost(host);
+  const centralHostname = normalizeHost(authAdminCentralHost);
+  return hostname !== null && centralHostname !== null && hostname === centralHostname;
+}
+
+/**
  * Vérifie si un chemin est disponible sur l'hôte admin résolu.
  *
  * @param {"super" | "central" | "university"} kind

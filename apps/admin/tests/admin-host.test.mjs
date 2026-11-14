@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   isAdminPasswordLoginAllowed,
   isAdminProxyPathAllowed,
+  isAuthAdminCentralHost,
   resolveAdminHost,
 } from "../src/lib/admin-host.mjs";
 
@@ -25,6 +26,13 @@ test("hôte central exact → central avant résolution des sous-domaines", () =
     resolveAdminHost("auth-admin.localhost:3002", "", undefined, "auth-admin.localhost:3002"),
     { kind: "central" },
   );
+});
+
+test("détecte le central par égalité exacte normalisée", () => {
+  assert.equal(isAuthAdminCentralHost("AUTH-ADMIN.localhost:3001", "auth-admin.localhost:3001"), true);
+  assert.equal(isAuthAdminCentralHost("iscom-admin.localhost:3001", "auth-admin.localhost:3001"), false);
+  assert.equal(isAuthAdminCentralHost("auth-admin.localhost:3002", "auth-admin.localhost:3001"), false);
+  assert.equal(isAuthAdminCentralHost(null, "auth-admin.localhost:3001"), false);
 });
 
 test("l'hôte racine reste inaccessible même s'il est configuré comme hôte central", () => {

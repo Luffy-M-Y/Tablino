@@ -11,6 +11,11 @@ export function resolveAdminHost(
   authAdminCentralHost?: string,
 ): AdminHostResolution;
 
+export function isAuthAdminCentralHost(
+  host: string | null,
+  authAdminCentralHost?: string,
+): boolean;
+
 export function isAdminProxyPathAllowed(
   kind: "super" | "central" | "university",
   pathname: string,
