@@ -25,6 +25,20 @@ function maskProviderAccountId(value: string): string {
   return `****${value.slice(-4)}`;
 }
 
+export function maskDiagnosticEmail(value: string): string {
+  const separator = value.lastIndexOf("@");
+  if (separator <= 0 || separator === value.length - 1) return "***";
+
+  const localPart = value.slice(0, separator);
+  const domain = value.slice(separator + 1);
+  const maskedDomain = domain.split(".").map((label, index, labels) => {
+    if (label.length === 0) return "***";
+    return index === labels.length - 1 ? label : `${label[0]}***`;
+  }).join(".");
+
+  return `${localPart[0]}***@${maskedDomain}`;
+}
+
 async function main(): Promise<void> {
   if (Object.hasOwn(process.env, "DATABASE_URL")) {
     process.stdout.write("ECHEC DATABASE_URL_PREEXISTANTE\n");
@@ -129,4 +143,6 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+if (process.argv[1]?.endsWith("diagnose-admin-google-account.ts")) {
+  void main();
+}
