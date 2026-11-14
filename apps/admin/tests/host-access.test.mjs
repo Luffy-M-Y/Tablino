@@ -4,7 +4,7 @@ import { getHostDenialReason, isHostAllowedForUser } from "../src/lib/host-acces
 
 // ─── isHostAllowedForUser : 8 cas existants inchangés ─────────────────────────
 
-test("super_admin sur hôte racine → vrai", () => {
+test("super_admin sur hôte super-admin → vrai", () => {
   assert.equal(
     isHostAllowedForUser({ role: "super_admin", universityId: null }, { kind: "super" }),
     true,
@@ -53,7 +53,7 @@ test("rôle inconnu → faux", () => {
   );
 });
 
-test("university_admin sur hôte racine → faux", () => {
+test("university_admin sur hôte super-admin → faux", () => {
   assert.equal(
     isHostAllowedForUser({ role: "university_admin", universityId: "u1" }, { kind: "super" }),
     false,
@@ -69,14 +69,14 @@ test("getHostDenialReason: host_context_null quand hostContext est nul", () => {
   );
 });
 
-test("getHostDenialReason: super_admin_not_on_root_host sur hôte université", () => {
+test("getHostDenialReason: super_admin_not_on_super_host sur hôte université", () => {
   assert.equal(
     getHostDenialReason({ role: "super_admin", universityId: null }, { kind: "university", universityId: "u1" }),
-    "super_admin_not_on_root_host",
+    "super_admin_not_on_super_host",
   );
 });
 
-test("getHostDenialReason: university_admin_not_on_university_host sur hôte racine", () => {
+test("getHostDenialReason: university_admin_not_on_university_host sur hôte super-admin", () => {
   assert.equal(
     getHostDenialReason({ role: "university_admin", universityId: "u1" }, { kind: "super" }),
     "university_admin_not_on_university_host",
@@ -104,7 +104,7 @@ test("getHostDenialReason: unknown_role pour rôle inconnu", () => {
   );
 });
 
-test("getHostDenialReason: null (autorisé) pour super_admin sur hôte racine", () => {
+test("getHostDenialReason: null (autorisé) pour super_admin sur hôte super-admin", () => {
   assert.equal(
     getHostDenialReason({ role: "super_admin", universityId: null }, { kind: "super" }),
     null,

@@ -6,12 +6,14 @@ import {
   OAUTH_START_TICKET_TTL_MS,
   OauthStartTicketError,
   type OauthStartTicketRepository,
+  type OauthStartTicketSurface,
 } from "../src/oauth-start-ticket";
 
 const ACTIVE_UNIVERSITY_ID = "university-active";
 const NOW = new Date("2026-11-09T12:00:00.000Z");
 const RAW_TICKET = Buffer.from("0123456789abcdef0123456789abcdef").toString("base64url");
-const RAW_TICKET_HASH = createHash("sha256").update(RAW_TICKET).digest("hex");
+const RAW_TICKET_HASH_WEB = createHash("sha256").update(RAW_TICKET + ":web").digest("hex");
+const RAW_TICKET_HASH_ADMIN = createHash("sha256").update(RAW_TICKET + ":admin").digest("hex");
 
 function createMemoryRepository({
   activeUniversityIds = [ACTIVE_UNIVERSITY_ID],
@@ -84,27 +86,53 @@ function createService(activeUniversityIds = [ACTIVE_UNIVERSITY_ID]) {
   return Object.assign(fake, { service });
 }
 
-test("creates a 32-byte opaque ticket and stores only its SHA-256 hash", async () => {
+test("creates a 32-byte opaque ticket and stores only its SHA-256 hash (web surface)", async () => {
   const fake = createService();
 
-  const ticket = await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID);
+  const ticket = await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "web");
 
   assert.equal(ticket, RAW_TICKET);
   assert.equal(Buffer.from(ticket, "base64url").length, 32);
   assert.equal(fake.createCount, 1);
   assert.equal(fake.storedTickets.length, 1);
   assert.equal(fake.storedTickets[0].universityId, ACTIVE_UNIVERSITY_ID);
-  assert.equal(fake.storedTickets[0].ticketHash, RAW_TICKET_HASH);
+  assert.equal(fake.storedTickets[0].ticketHash, RAW_TICKET_HASH_WEB);
   assert.notEqual(fake.storedTickets[0].ticketHash, ticket);
   assert.equal(fake.storedTickets[0].expiresAt.getTime(), NOW.getTime() + OAUTH_START_TICKET_TTL_MS);
   assert.equal(fake.storedTickets[0].consumedAt, null);
+});
+
+test("creates a ticket with admin surface and stores admin-scoped hash", async () => {
+  const fake = createService();
+
+  const ticket = await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "admin");
+
+  assert.equal(ticket, RAW_TICKET);
+  assert.equal(fake.storedTickets[0].ticketHash, RAW_TICKET_HASH_ADMIN);
+  assert.notEqual(fake.storedTickets[0].ticketHash, RAW_TICKET_HASH_WEB);
+});
+
+test("web ticket cannot be consumed with admin surface", async () => {
+  const fake = createService();
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "web");
+
+  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET, "admin"), null);
+  assert.equal(fake.consumeCount, 1);
+});
+
+test("admin ticket cannot be consumed with web surface", async () => {
+  const fake = createService();
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "admin");
+
+  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET, "web"), null);
+  assert.equal(fake.consumeCount, 1);
 });
 
 test("refuses an unknown or inactive university without creating a ticket", async () => {
   const fake = createService([]);
 
   await assert.rejects(
-    fake.service.createOauthStartTicket("university-inactive"),
+    fake.service.createOauthStartTicket("university-inactive", "web"),
     OauthStartTicketError,
   );
   assert.equal(fake.createCount, 1);
@@ -113,16 +141,16 @@ test("refuses an unknown or inactive university without creating a ticket", asyn
 
 test("consumes a valid ticket and returns its university", async () => {
   const fake = createService();
-  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID);
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "web");
 
-  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET), ACTIVE_UNIVERSITY_ID);
+  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET, "web"), ACTIVE_UNIVERSITY_ID);
 });
 
 test("refuses expired tickets", async () => {
   const fake = createMemoryRepository({
     tickets: [{
       universityId: ACTIVE_UNIVERSITY_ID,
-      ticketHash: RAW_TICKET_HASH,
+      ticketHash: RAW_TICKET_HASH_WEB,
       expiresAt: new Date(NOW.getTime() - 1),
       consumedAt: null,
     }],
@@ -132,31 +160,31 @@ test("refuses expired tickets", async () => {
     now: () => new Date(NOW),
   });
 
-  assert.equal(await service.consumeOauthStartTicket(RAW_TICKET), null);
+  assert.equal(await service.consumeOauthStartTicket(RAW_TICKET, "web"), null);
 });
 
 test("refuses replay after a ticket has been consumed", async () => {
   const fake = createService();
-  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID);
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "web");
 
-  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET), ACTIVE_UNIVERSITY_ID);
-  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET), null);
+  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET, "web"), ACTIVE_UNIVERSITY_ID);
+  assert.equal(await fake.service.consumeOauthStartTicket(RAW_TICKET, "web"), null);
 });
 
 test("refuses malformed tickets without querying the repository", async () => {
   const fake = createService();
 
-  assert.equal(await fake.service.consumeOauthStartTicket("invalid"), null);
+  assert.equal(await fake.service.consumeOauthStartTicket("invalid", "web"), null);
   assert.equal(fake.consumeCount, 0);
 });
 
 test("only one concurrent consumer can consume a ticket", async () => {
   const fake = createService();
-  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID);
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "web");
 
   const results = await Promise.all([
-    fake.service.consumeOauthStartTicket(RAW_TICKET),
-    fake.service.consumeOauthStartTicket(RAW_TICKET),
+    fake.service.consumeOauthStartTicket(RAW_TICKET, "web"),
+    fake.service.consumeOauthStartTicket(RAW_TICKET, "web"),
   ]);
 
   assert.deepEqual(results.sort(), [null, ACTIVE_UNIVERSITY_ID].sort());

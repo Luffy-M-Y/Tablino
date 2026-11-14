@@ -18,6 +18,7 @@ export async function verifyTurnstileForm(
     host,
     process.env.ADMIN_ROOT_DOMAIN,
     process.env.ADMIN_HOST_SLUG_MAP,
+    process.env.AUTH_ADMIN_CENTRAL_HOST,
   );
 
   if (!expectedHostname) {

@@ -9,11 +9,16 @@ import { resolveAdminHost } from "./admin-host.mjs";
  * @param {string | undefined} slugMapJson - valeur de ADMIN_HOST_SLUG_MAP
  * @returns {string | null} hostname seul (sans port, minuscules) ou null
  */
-export function getAdminTurnstileExpectedHostname(host, adminRootDomain, slugMapJson) {
+export function getAdminTurnstileExpectedHostname(
+  host,
+  adminRootDomain,
+  slugMapJson,
+  authAdminCentralHost,
+) {
   if (!adminRootDomain) return null;
 
-  const resolution = resolveAdminHost(host, adminRootDomain, slugMapJson);
-  if (resolution === null) return null;
+  const resolution = resolveAdminHost(host, adminRootDomain, slugMapJson, authAdminCentralHost);
+  if (resolution === null || resolution.kind === "central") return null;
 
   try {
     return new URL(`http://${host}`).hostname.toLowerCase();

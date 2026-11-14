@@ -4,7 +4,7 @@ const reservedUniversitySlugs = new Set([
   "tablino", "localhost", "ftp", "smtp", "imap", "pop", "ns1", "ns2",
   "webmail", "blog", "help", "billing", "pay", "payment", "paiement",
   "assets", "files", "media", "img", "images", "upload", "uploads",
-  "web", "email", "root", "git",
+  "web", "email", "root", "git", "sup",
 ]);
 
 /** @param {string} acronym @returns {{ ok: true, slug: string } | { ok: false, reason: string }} */
