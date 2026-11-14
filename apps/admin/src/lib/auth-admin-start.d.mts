@@ -1,5 +1,10 @@
 export const AUTH_ADMIN_START_ERROR_MESSAGE: string;
 
+export function getAuthAdminStartUrl(
+  authAdminCentralHost: string | undefined,
+  options: { secure: boolean },
+): string | null;
+
 export function createAuthAdminStartHandler(options: {
   consumeOauthStartTicket: (
     ticket: string,

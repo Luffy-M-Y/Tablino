@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { signIn } from "next-auth/react";
 import { TurnstileField } from "@/components/auth/TurnstileField";
-import { loginAction, type LoginActionState } from "./actions";
+import {
+  loginAction,
+  startAdminGoogleSignInAction,
+  type LoginActionState,
+} from "./actions";
 
 const initialState: LoginActionState = {
   message: null,
@@ -17,9 +20,46 @@ const labelClass =
   "mb-1.5 block text-sm font-semibold text-[color:var(--color-text)]";
 const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 text-base text-[color:var(--color-text)] ${focusRing}`;
 
-export function LoginForm({ passwordResetComplete = false }: { passwordResetComplete?: boolean }) {
+export function LoginForm({
+  passwordResetComplete = false,
+  showGoogleSignIn = false,
+  googleSignInError = null,
+}: {
+  passwordResetComplete?: boolean;
+  showGoogleSignIn?: boolean;
+  googleSignInError?: string | null;
+}) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [googlePending, setGooglePending] = useState(false);
+  const [googleError, setGoogleError] = useState(googleSignInError);
+
+  async function startGoogleSignIn() {
+    setGooglePending(true);
+    setGoogleError(null);
+    try {
+      const result = await startAdminGoogleSignInAction();
+      if (!result.ok) {
+        setGoogleError(result.message);
+        setGooglePending(false);
+        return;
+      }
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = result.action;
+      const ticketField = document.createElement("input");
+      ticketField.type = "hidden";
+      ticketField.name = "ticket";
+      ticketField.value = result.ticket;
+      form.appendChild(ticketField);
+      document.body.appendChild(form);
+      form.submit();
+    } catch {
+      setGoogleError("Impossible de démarrer la connexion. Réessayez.");
+      setGooglePending(false);
+    }
+  }
 
   return (
     <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6">
@@ -90,25 +130,35 @@ export function LoginForm({ passwordResetComplete = false }: { passwordResetComp
           Mot de passe oubli&eacute; ?
         </Link>
       </p>
-      <div className="my-4 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
-        <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
-        ou
-        <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
-      </div>
-
-      <button
-        type="button"
-        onClick={() => { void signIn("google", { callbackUrl: "/" }); }}
-        className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-4 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`}
-      >
-        <svg aria-hidden="true" viewBox="0 0 18 18" className="h-[18px] w-[18px]">
-          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
-          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
-          <path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z" />
-          <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
-        </svg>
-        Continuer avec Google
-      </button>
+      {showGoogleSignIn ? (
+        <>
+          <div className="my-4 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
+            <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
+            ou
+            <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
+          </div>
+          <button
+            type="button"
+            disabled={googlePending}
+            onClick={() => { void startGoogleSignIn(); }}
+            className={`inline-flex h-11 w-full items-center justify-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-4 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`}
+            aria-busy={googlePending}
+          >
+            <svg aria-hidden="true" viewBox="0 0 18 18" className="h-[18px] w-[18px]">
+              <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
+              <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
+              <path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z" />
+              <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
+            </svg>
+            {googlePending ? "Connexion en cours…" : "Continuer avec Google"}
+          </button>
+          {googleError ? (
+            <p role="alert" className="mt-2 text-sm text-[color:var(--color-destructive-text)]">
+              {googleError}
+            </p>
+          ) : null}
+        </>
+      ) : null}
       <p className="mt-3 text-center text-sm text-[color:var(--color-muted-foreground)]">
         Vous n'avez pas de compte ?{" "}
         <Link

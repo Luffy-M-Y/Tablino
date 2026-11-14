@@ -7,13 +7,36 @@ import { isAuthAdminCentralHost } from "./admin-host.mjs";
 
 const CSRF_PATH = "/api/auth/csrf";
 const SIGNIN_PATH = "/api/auth/signin/google";
-const CALLBACK_URL = "/auth-admin/signin";
+const CALLBACK_URL = "/auth-admin/transfer";
 const GOOGLE_ACCOUNTS_ORIGIN = "https://accounts.google.com";
 const FALLBACK_PATH = "/auth-admin/signin";
 const FETCH_TIMEOUT_MS = 60_000;
 const AUTH_ADMIN_OAUTH_SURFACE = "admin";
 
 export const AUTH_ADMIN_START_ERROR_MESSAGE = "Impossible de démarrer la connexion.";
+
+export function getAuthAdminStartUrl(authAdminCentralHost, { secure }) {
+  if (!isAuthAdminCentralHost(authAdminCentralHost, authAdminCentralHost)) return null;
+
+  try {
+    const url = new URL(
+      `${secure ? "https" : "http"}://${authAdminCentralHost}/auth-admin/start`,
+    );
+    if (
+      url.pathname !== "/auth-admin/start"
+      || url.search
+      || url.hash
+      || url.username
+      || url.password
+      || !isAuthAdminCentralHost(url.host, authAdminCentralHost)
+    ) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 
 function textResponse(status, body = AUTH_ADMIN_START_ERROR_MESSAGE) {
   return new Response(body, {

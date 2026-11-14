@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createAuthAdminStartHandler,
+  getAuthAdminStartUrl,
 } from "../src/lib/auth-admin-start.mjs";
 import {
   AUTH_ADMIN_TRANSACTION_COOKIE_NAME,
@@ -40,6 +41,18 @@ function createHandler(options = {}) {
 test("admin start rejects requests not sent to the exact central host", async () => {
   const response = await createHandler()(makeRequest({ host: "iscom-admin.localhost:3001" }));
   assert.equal(response.status, 404);
+});
+
+test("admin start URL is built only from a valid central host", () => {
+  assert.equal(
+    getAuthAdminStartUrl(CENTRAL_HOST, { secure: false }),
+    `http://${CENTRAL_HOST}/auth-admin/start`,
+  );
+  assert.equal(
+    getAuthAdminStartUrl("https://auth-admin.example.test", { secure: true }),
+    null,
+  );
+  assert.equal(getAuthAdminStartUrl(undefined, { secure: true }), null);
 });
 
 test("admin start consumes tickets without placing the ticket in the redirect URL", async () => {
@@ -88,6 +101,10 @@ test("admin start sends the consumed transaction cookie and CSRF cookie to NextA
   assert.equal(response.status, 303);
   assert.equal(response.headers.get("Location"), GOOGLE_URL);
   assert.equal(signinRequest?.input.endsWith("/api/auth/signin/google"), true);
+  assert.equal(
+    new URLSearchParams(signinRequest?.init.body).get("callbackUrl"),
+    "/auth-admin/transfer",
+  );
   assert.match(signinRequest?.init.headers.Cookie ?? "", /tablino-admin-oauth-tx=/);
   assert.match(signinRequest?.init.headers.Cookie ?? "", /csrf-cookie/);
   assert.equal(signinRequest?.init.body.includes("start-ticket"), false);

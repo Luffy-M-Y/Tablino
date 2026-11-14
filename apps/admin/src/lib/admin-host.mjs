@@ -126,8 +126,21 @@ export function isAdminProxyPathAllowed(kind, pathname) {
   }
 
   if (kind === "central") {
-    return decodedPathname.startsWith("/auth-admin/")
-      || decodedPathname.startsWith("/api/auth/");
+    return [
+      "/auth-admin/start",
+      "/auth-admin/signin",
+      "/auth-admin/transfer",
+      "/auth-admin/error",
+    ].includes(decodedPathname)
+      || [
+        "/api/auth/csrf",
+        "/api/auth/signin/google",
+        "/api/auth/callback/google",
+      ].includes(decodedPathname);
+  }
+
+  if (decodedPathname.startsWith("/auth-admin/")) {
+    return kind === "university" && decodedPathname === "/auth-admin/return";
   }
 
   return decodedPathname !== "/api/auth/signin/google"

@@ -141,24 +141,49 @@ test("slug avec tirets valides", () => {
   );
 });
 
-test("l'hôte central ne sert que auth-admin et API auth", () => {
-  assert.equal(isAdminProxyPathAllowed("central", "/auth-admin/error"), true);
+test("l'hôte central n'expose que les routes auth-admin du flux et l'API NextAuth", () => {
+  for (const pathname of [
+    "/auth-admin/start",
+    "/auth-admin/signin",
+    "/auth-admin/transfer",
+    "/auth-admin/error",
+  ]) {
+    assert.equal(isAdminProxyPathAllowed("central", pathname), true);
+  }
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/csrf"), true);
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/signin/google"), true);
   assert.equal(isAdminProxyPathAllowed("central", "/api/auth/callback/google"), true);
   assert.equal(isAdminProxyPathAllowed("central", "/auth-admin"), false);
+  assert.equal(isAdminProxyPathAllowed("central", "/auth-admin/other"), false);
+  assert.equal(isAdminProxyPathAllowed("central", "/auth-admin/transfer/extra"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/api/auth"), false);
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/signin/credentials"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/login"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/api/deconnexion"), false);
 });
 
-test("les hôtes super-admin et université bloquent seulement les endpoints Google OAuth", () => {
-  for (const kind of ["super", "university"]) {
-    assert.equal(isAdminProxyPathAllowed(kind, "/api/auth/signin/google"), false);
-    assert.equal(isAdminProxyPathAllowed(kind, "/api/auth/callback/google"), false);
-    assert.equal(isAdminProxyPathAllowed(kind, "/api/auth/signin/%67oogle"), false);
-    assert.equal(isAdminProxyPathAllowed(kind, "/login"), true);
-    assert.equal(isAdminProxyPathAllowed(kind, "/api/auth/signin/credentials"), true);
-  }
+test("l'hôte université n'expose que le retour auth-admin parmi ces routes", () => {
+  assert.equal(isAdminProxyPathAllowed("university", "/auth-admin/return"), true);
+  assert.equal(isAdminProxyPathAllowed("university", "/auth-admin/start"), false);
+  assert.equal(isAdminProxyPathAllowed("university", "/auth-admin/signin"), false);
+  assert.equal(isAdminProxyPathAllowed("university", "/auth-admin/transfer"), false);
+  assert.equal(isAdminProxyPathAllowed("university", "/auth-admin/return/extra"), false);
+  assert.equal(isAdminProxyPathAllowed("university", "/auth-admin/%72eturn"), true);
+  assert.equal(isAdminProxyPathAllowed("university", "/login"), true);
+  assert.equal(isAdminProxyPathAllowed("university", "/api/auth/signin/credentials"), true);
+  assert.equal(isAdminProxyPathAllowed("university", "/api/auth/signin/google"), false);
+  assert.equal(isAdminProxyPathAllowed("university", "/api/auth/callback/google"), false);
+  assert.equal(isAdminProxyPathAllowed("university", "/api/auth/signin/%67oogle"), false);
+});
+
+test("l'hôte super-admin ne publie pas les routes du flux Google central", () => {
+  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/return"), false);
+  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/transfer"), false);
+  assert.equal(isAdminProxyPathAllowed("super", "/api/auth/signin/google"), false);
+  assert.equal(isAdminProxyPathAllowed("super", "/api/auth/callback/google"), false);
+  assert.equal(isAdminProxyPathAllowed("super", "/login"), true);
+  assert.equal(isAdminProxyPathAllowed("super", "/api/auth/signin/credentials"), true);
 });
 
 test("le super_admin garde le mot de passe uniquement sur son hôte dédié", () => {

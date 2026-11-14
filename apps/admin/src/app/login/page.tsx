@@ -1,11 +1,13 @@
 import { LoginForm } from "./login-form";
+import { getAdminHostContext } from "@/lib/admin-host-context";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string | string[] }>;
+  searchParams: Promise<{ reset?: string | string[]; error?: string | string[] }>;
 }) {
   const params = await searchParams;
+  const hostContext = await getAdminHostContext();
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6">
@@ -19,7 +21,15 @@ export default async function LoginPage({
         <p className="mb-5 mt-1 text-center text-sm text-[color:var(--color-muted-foreground)]">
           Acc&eacute;dez &agrave; votre espace d'administration.
         </p>
-        <LoginForm passwordResetComplete={params.reset === "ok"} />
+        <LoginForm
+          passwordResetComplete={params.reset === "ok"}
+          showGoogleSignIn={hostContext?.kind === "university"}
+          googleSignInError={
+            params.error === "google"
+              ? "Impossible de finaliser la connexion. Réessayez."
+              : null
+          }
+        />
       </div>
     </main>
   );
