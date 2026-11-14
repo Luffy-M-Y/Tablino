@@ -30,6 +30,13 @@ test("returns university_admin menu items: current admin menu", () => {
   );
 });
 
+test("returns only Accueil for super_admin_editor", () => {
+  assert.deepEqual(
+    getAdminMenuItems("super_admin_editor").map(({ label, href }) => ({ label, href })),
+    [{ label: "Accueil", href: "/" }],
+  );
+});
+
 test("returns empty menu for unknown or absent role", () => {
   assert.deepEqual(getAdminMenuItems("student"), []);
   assert.deepEqual(getAdminMenuItems(null), []);

@@ -32,6 +32,6 @@ export function isAdminProxyPathAllowed(
 ): boolean;
 
 export function isAdminPasswordLoginAllowed(
-  role: "super_admin" | "university_admin",
+  role: string | null,
   hostKind: "super" | "university" | null,
 ): boolean;

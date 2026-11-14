@@ -60,6 +60,21 @@ test("university_admin sur hôte super-admin → faux", () => {
   );
 });
 
+test("super_admin_editor est autorisé seulement sur hôte super sans université", () => {
+  assert.equal(
+    isHostAllowedForUser({ role: "super_admin_editor", universityId: null }, { kind: "super" }),
+    true,
+  );
+  assert.equal(
+    isHostAllowedForUser({ role: "super_admin_editor", universityId: null }, { kind: "university", universityId: "u1" }),
+    false,
+  );
+  assert.equal(
+    isHostAllowedForUser({ role: "super_admin_editor", universityId: "u1" }, { kind: "super" }),
+    false,
+  );
+});
+
 // ─── getHostDenialReason : une assertion par raison ───────────────────────────
 
 test("getHostDenialReason: host_context_null quand hostContext est nul", () => {
@@ -115,5 +130,16 @@ test("getHostDenialReason: null (autorisé) pour university_admin sur son hôte"
   assert.equal(
     getHostDenialReason({ role: "university_admin", universityId: "u1" }, { kind: "university", universityId: "u1" }),
     null,
+  );
+});
+
+test("getHostDenialReason refuse l'éditeur hors hôte super ou avec une université", () => {
+  assert.equal(
+    getHostDenialReason({ role: "super_admin_editor", universityId: null }, { kind: "university", universityId: "u1" }),
+    "editor_not_on_super_host",
+  );
+  assert.equal(
+    getHostDenialReason({ role: "super_admin_editor", universityId: "u1" }, { kind: "super" }),
+    "editor_with_university",
   );
 });

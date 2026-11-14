@@ -4,7 +4,7 @@
 
 /** @type {readonly AdminMenuEntry[]} */
 export const ADMIN_MENU_ITEMS = Object.freeze([
-  Object.freeze({ id: "home", label: "Accueil", href: "/", icon: "LayoutDashboard", disabled: false, roles: Object.freeze(["super_admin", "university_admin"]) }),
+  Object.freeze({ id: "home", label: "Accueil", href: "/", icon: "LayoutDashboard", disabled: false, roles: Object.freeze(["super_admin", "super_admin_editor", "university_admin"]) }),
   Object.freeze({ id: "approvals", label: "Validations", href: "/approvals", icon: "UserCheck", disabled: false, roles: Object.freeze(["super_admin"]) }),
   Object.freeze({ id: "structure", label: "Structure", href: "/structure", icon: "Layers", disabled: false, roles: Object.freeze(["university_admin"]) }),
   Object.freeze({ id: "scan", label: "Scan", href: "/scan", icon: "ScanLine", disabled: false, roles: Object.freeze(["university_admin"]) }),

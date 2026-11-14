@@ -5,6 +5,14 @@ export type {
   SuperAdminUniversityRow,
   SuperAdminDashboardData,
 } from "./dashboard";
+export {
+  getSuperAdminEditorDashboardData,
+  projectSuperAdminEditorDashboard,
+} from "./super-admin-editor-dashboard";
+export type {
+  SuperAdminEditorDashboardData,
+  SuperAdminEditorDashboardProjectionInput,
+} from "./super-admin-editor-dashboard";
 export { getSuperAdminRevenue } from "./revenue";
 export type {
   SuperAdminRevenueRow,

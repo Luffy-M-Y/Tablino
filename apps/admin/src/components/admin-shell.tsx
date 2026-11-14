@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import { getAdminMenuItems, type AdminMenuEntry } from "@/lib/admin-menu.mjs";
+import { getAdminSidebarPinPolicy } from "@/lib/admin-sidebar-pinning.mjs";
 import AdminSearchBox from "@/components/admin-search-box";
 import {
   BookOpen,
@@ -73,6 +74,7 @@ export function AdminShell({
   const accountButtonRef = useRef<HTMLButtonElement | null>(null);
   const accountPanelRef = useRef<HTMLDivElement | null>(null);
   const menuItems = getAdminMenuItems(profile.role);
+  const pinPolicy = getAdminSidebarPinPolicy(profile.role);
   const isDesktopMenuExpanded = isSidebarPinned || isSidebarHoverOpen || isSidebarFocusWithin;
   const name = profile.name?.trim() || null;
   const email = profile.email?.trim() || null;
@@ -85,6 +87,11 @@ export function AdminShell({
     : null;
 
   useEffect(function () {
+    if (!pinPolicy.loadStoredValue) {
+      setIsSidebarPinned(false);
+      return;
+    }
+
     try {
       setIsSidebarPinned(window.localStorage.getItem(SIDEBAR_PIN_STORAGE_KEY) === "true");
     } catch {
@@ -96,7 +103,7 @@ export function AdminShell({
         clearTimeout(sidebarHoverTimerRef.current);
       }
     };
-  }, []);
+  }, [pinPolicy.loadStoredValue]);
 
   useEffect(function () {
     if (!isAccountMenuOpen) return;
@@ -152,6 +159,7 @@ export function AdminShell({
   }
 
   function handleSidebarPinToggle() {
+    if (!pinPolicy.showControl) return;
     const nextPinned = !isSidebarPinned;
     setIsSidebarPinned(nextPinned);
     try {
@@ -182,7 +190,7 @@ export function AdminShell({
           </button>
         </div>
 
-        <AdminSearchBox />
+        {profile.role !== "super_admin_editor" && <AdminSearchBox />}
         {accountLabel === null ? (
           <button
             type="button"
@@ -331,7 +339,7 @@ export function AdminShell({
               })}
             </ul>
           </nav>
-          <button
+          {pinPolicy.showControl && <button
             type="button"
             aria-label={isSidebarPinned ? "Désépingler le menu" : "Épingler le menu"}
             aria-pressed={isSidebarPinned}
@@ -346,7 +354,7 @@ export function AdminShell({
             <span className="whitespace-nowrap">
               {isSidebarPinned ? "Désépingler le menu" : "Épingler le menu"}
             </span>
-          </button>
+          </button>}
         </aside>
 
         <div className="min-w-0 flex-1 p-4 sm:p-6 md:p-8">{children}</div>
