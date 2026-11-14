@@ -84,7 +84,7 @@ async function issuePasswordResetCodeForRoles(
         .where(eq(schema.users.id, userId))
         .limit(1);
       if (!(users.length > 0)) return { ok: false, reason: "not_found" };
-      if (!allowedRoles.includes(users[0].role)) {
+      if (!allowedRoles.some((role) => role === users[0].role)) {
         return { ok: false, reason: roleFailureReason };
       }
       if (users[0].emailVerified === null) return { ok: false, reason: "not_verified" };

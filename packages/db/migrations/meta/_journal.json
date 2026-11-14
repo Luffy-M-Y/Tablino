@@ -134,6 +134,20 @@
       "when": 1794325698684,
       "tag": "0018_black_speed",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794681754742,
+      "tag": "0019_big_jack_murdock",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794682579369,
+      "tag": "0020_bent_frightful_four",
+      "breakpoints": true
     }
   ]
 }

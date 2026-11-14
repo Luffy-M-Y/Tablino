@@ -219,6 +219,21 @@ export type {
   ResendPasswordResetResult,
 } from "./password-reset";
 export {
+  consumeSuperAdminEditorInvitation,
+  createSuperAdminEditorInvitation,
+  createSuperAdminEditorInvitationService,
+  hashSuperAdminEditorInvitationToken,
+  normalizeSuperAdminEditorInvitationEmail,
+  revokeSuperAdminEditorInvitation,
+  SUPER_ADMIN_EDITOR_INVITATION_TTL_MS,
+} from "./super-admin-editor-invitation";
+export type {
+  ConsumeSuperAdminEditorInvitationResult,
+  CreateSuperAdminEditorInvitationResult,
+  SuperAdminEditorInvitationDependencies,
+  SuperAdminEditorInvitationRepository,
+} from "./super-admin-editor-invitation";
+export {
   listPendingUniversitiesForApproval,
   approveUniversity,
 } from "./university-approval";
