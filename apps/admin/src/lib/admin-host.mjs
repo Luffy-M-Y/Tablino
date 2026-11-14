@@ -111,6 +111,57 @@ export function isAuthAdminCentralHost(host, authAdminCentralHost) {
 }
 
 /**
+ * Construit une URL locale uniquement pour un hôte admin reconnu.
+ *
+ * @param {{
+ *   host: string | null,
+ *   pathname: string,
+ *   adminRootDomain: string | undefined,
+ *   slugMapJson?: string,
+ *   authAdminCentralHost?: string,
+ *   secure: boolean,
+ *   expectedKind: "central" | "university"
+ * }} options
+ * @returns {string | null}
+ */
+export function buildAdminRequestUrl({
+  host,
+  pathname,
+  adminRootDomain,
+  slugMapJson,
+  authAdminCentralHost,
+  secure,
+  expectedKind,
+}) {
+  const resolution = resolveAdminHost(
+    host,
+    adminRootDomain ?? "",
+    slugMapJson,
+    authAdminCentralHost,
+  );
+  const normalizedHost = normalizeHost(host);
+  if (
+    resolution?.kind !== expectedKind
+    || normalizedHost === null
+    || typeof pathname !== "string"
+    || !pathname.startsWith("/")
+    || pathname.startsWith("//")
+    || /[\\\u0000-\u001f#]/.test(pathname)
+  ) {
+    return null;
+  }
+
+  try {
+    const origin = `${secure ? "https" : "http"}://${normalizedHost}`;
+    const url = new URL(pathname, origin);
+    if (url.origin !== origin || url.username || url.password) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Vérifie si un chemin est disponible sur l'hôte admin résolu.
  *
  * @param {"super" | "central" | "university"} kind

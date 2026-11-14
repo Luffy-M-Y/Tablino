@@ -68,7 +68,7 @@ test("admin start consumes tickets without placing the ticket in the redirect UR
 
   assert.equal(consumedSurface, "admin");
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get("Location"), "/auth-admin/signin");
+  assert.equal(response.headers.get("Location"), `http://${CENTRAL_HOST}/auth-admin/signin`);
   assert.equal(response.headers.get("Location")?.includes("start-ticket"), false);
   const cookie = response.headers.get("Set-Cookie") ?? "";
   const transaction = cookie.split(";")[0]?.slice(`${AUTH_ADMIN_TRANSACTION_COOKIE_NAME}=`.length);
@@ -117,6 +117,6 @@ test("admin start falls back to signin when the direct OAuth flow is unavailable
   })(makeRequest());
 
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get("Location"), "/auth-admin/signin");
+  assert.equal(response.headers.get("Location"), `http://${CENTRAL_HOST}/auth-admin/signin`);
   assert.match(response.headers.get("Set-Cookie") ?? "", /tablino-admin-oauth-tx=/);
 });

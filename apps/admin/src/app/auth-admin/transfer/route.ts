@@ -4,6 +4,7 @@ import { db, deleteStudentSession, eq, schema, createOauthTransferCode } from "@
 import { getSessionCookieConfig } from "@tablino/auth";
 import { getAdminAuthOptions } from "@/lib/auth";
 import { AUTH_ADMIN_TRANSACTION_COOKIE_NAME } from "@/lib/auth-admin-transaction.mjs";
+import { buildAdminRequestUrl } from "@/lib/admin-host.mjs";
 import {
   getAuthAdminTransferCookieExpirations,
   runAuthAdminTransfer,
@@ -15,7 +16,18 @@ const NO_STORE_HEADERS = {
 };
 
 function redirectTo(request: NextRequest, path: string) {
-  return NextResponse.redirect(new URL(path, request.url), {
+  const url = buildAdminRequestUrl({
+    host: request.headers.get("host"),
+    pathname: path,
+    adminRootDomain: process.env.ADMIN_ROOT_DOMAIN,
+    slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
+    authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
+    secure: process.env.NODE_ENV === "production",
+    expectedKind: "central",
+  });
+  if (url === null) return new NextResponse(null, { status: 404, headers: NO_STORE_HEADERS });
+
+  return NextResponse.redirect(new URL(url), {
     status: 303,
     headers: NO_STORE_HEADERS,
   });

@@ -8,6 +8,7 @@ import {
 } from "@tablino/db";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { getAdminHostContext } from "@/lib/admin-host-context";
+import { buildAdminRequestUrl } from "@/lib/admin-host.mjs";
 import {
   AUTH_ADMIN_RETURN_ERROR_PATH,
   getAuthAdminReturnCode,
@@ -20,7 +21,18 @@ const NO_STORE_HEADERS = {
 };
 
 function cleanRedirect(request: NextRequest, path: string) {
-  return NextResponse.redirect(new URL(path, request.url), {
+  const url = buildAdminRequestUrl({
+    host: request.headers.get("host"),
+    pathname: path,
+    adminRootDomain: process.env.ADMIN_ROOT_DOMAIN,
+    slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
+    authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
+    secure: process.env.NODE_ENV === "production",
+    expectedKind: "university",
+  });
+  if (url === null) return new NextResponse(null, { status: 404, headers: NO_STORE_HEADERS });
+
+  return NextResponse.redirect(new URL(url), {
     status: 303,
     headers: NO_STORE_HEADERS,
   });
@@ -92,8 +104,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const redirectUrl = buildAdminRequestUrl({
+      host: request.headers.get("host"),
+      pathname: "/",
+      adminRootDomain: process.env.ADMIN_ROOT_DOMAIN,
+      slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
+      authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
+      secure: process.env.NODE_ENV === "production",
+      expectedKind: "university",
+    });
+    if (redirectUrl === null) {
+      return new NextResponse(null, { status: 404, headers: NO_STORE_HEADERS });
+    }
     const cookieConfig = getSessionCookieConfig("admin");
-    const response = NextResponse.redirect(new URL("/", request.url), {
+    const response = NextResponse.redirect(new URL(redirectUrl), {
       status: 303,
       headers: NO_STORE_HEADERS,
     });

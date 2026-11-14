@@ -16,6 +16,16 @@ export function isAuthAdminCentralHost(
   authAdminCentralHost?: string,
 ): boolean;
 
+export function buildAdminRequestUrl(options: {
+  host: string | null;
+  pathname: string;
+  adminRootDomain: string | undefined;
+  slugMapJson?: string;
+  authAdminCentralHost?: string;
+  secure: boolean;
+  expectedKind: "central" | "university";
+}): string | null;
+
 export function isAdminProxyPathAllowed(
   kind: "super" | "central" | "university",
   pathname: string,

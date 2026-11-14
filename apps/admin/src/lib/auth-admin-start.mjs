@@ -3,7 +3,7 @@ import {
   AUTH_ADMIN_TRANSACTION_MAX_AGE_SECONDS,
   createAuthAdminTransaction,
 } from "./auth-admin-transaction.mjs";
-import { isAuthAdminCentralHost } from "./admin-host.mjs";
+import { buildAdminRequestUrl, isAuthAdminCentralHost } from "./admin-host.mjs";
 
 const CSRF_PATH = "/api/auth/csrf";
 const SIGNIN_PATH = "/api/auth/signin/google";
@@ -60,12 +60,12 @@ function transactionCookie(value, secure) {
   return attributes.join("; ");
 }
 
-function fallbackResponse(txCookie) {
+function fallbackResponse(txCookie, location) {
   return new Response(null, {
     status: 303,
     headers: {
       "Cache-Control": "no-store",
-      Location: FALLBACK_PATH,
+      Location: location,
       "Set-Cookie": txCookie,
     },
   });
@@ -222,6 +222,17 @@ export function createAuthAdminStartHandler({
       })
       : null;
 
-    return directResponse ?? fallbackResponse(txCookie);
+    if (directResponse) return directResponse;
+    const fallbackUrl = buildAdminRequestUrl({
+      host: request.headers.get("host"),
+      pathname: FALLBACK_PATH,
+      adminRootDomain: undefined,
+      authAdminCentralHost,
+      secure,
+      expectedKind: "central",
+    });
+    return fallbackUrl
+      ? fallbackResponse(txCookie, fallbackUrl)
+      : textResponse(404);
   };
 }

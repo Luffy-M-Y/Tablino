@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAdminRequestUrl,
   isAdminPasswordLoginAllowed,
   isAdminProxyPathAllowed,
   isAuthAdminCentralHost,
@@ -9,6 +10,67 @@ import {
 
 const ROOT = "localhost:3001";
 const ROOT_NO_PORT = "admin.tablino.com";
+
+test("builds redirect URLs from only a resolved central or university Host", () => {
+  assert.equal(
+    buildAdminRequestUrl({
+      host: "auth-admin.localhost:3001",
+      pathname: "/auth-admin/error",
+      adminRootDomain: ROOT,
+      authAdminCentralHost: "auth-admin.localhost:3001",
+      secure: false,
+      expectedKind: "central",
+    }),
+    "http://auth-admin.localhost:3001/auth-admin/error",
+  );
+  assert.equal(
+    buildAdminRequestUrl({
+      host: "127.0.0.1:3001",
+      pathname: "/auth-admin/error",
+      adminRootDomain: ROOT,
+      authAdminCentralHost: "127.0.0.1:3001",
+      secure: false,
+      expectedKind: "central",
+    }),
+    "http://127.0.0.1:3001/auth-admin/error",
+  );
+  assert.equal(
+    buildAdminRequestUrl({
+      host: "iscom-admin.localhost:3001",
+      pathname: "/",
+      adminRootDomain: ROOT,
+      secure: true,
+      expectedKind: "university",
+    }),
+    "https://iscom-admin.localhost:3001/",
+  );
+});
+
+test("rejects unrecognized hosts, mismatched host kinds, and external paths", () => {
+  const options = {
+    pathname: "/login?error=google",
+    adminRootDomain: ROOT,
+    authAdminCentralHost: "auth-admin.localhost:3001",
+    secure: false,
+    expectedKind: "university",
+  };
+  assert.equal(
+    buildAdminRequestUrl({ ...options, host: "unknown.localhost:3001" }),
+    null,
+  );
+  assert.equal(
+    buildAdminRequestUrl({ ...options, host: "auth-admin.localhost:3001" }),
+    null,
+  );
+  assert.equal(
+    buildAdminRequestUrl({ ...options, host: "iscom-admin.localhost:3001", pathname: "//evil.test" }),
+    null,
+  );
+  assert.equal(
+    buildAdminRequestUrl({ ...options, host: "iscom-admin.localhost:3001", pathname: "/\\evil.test" }),
+    null,
+  );
+});
 
 test("hôte racine → null et sup-admin → super", () => {
   assert.equal(resolveAdminHost("localhost:3001", ROOT), null);
