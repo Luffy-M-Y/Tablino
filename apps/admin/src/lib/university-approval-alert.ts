@@ -42,7 +42,13 @@ export async function notifySuperAdminOfPendingUniversity(userId: string): Promi
       return;
     }
 
-    const approvalsUrl = resolveApprovalsUrl(process.env.NEXTAUTH_URL);
+    const approvalsUrl = resolveApprovalsUrl({
+      rootDomain: process.env.ADMIN_ROOT_DOMAIN,
+      secure: process.env.NODE_ENV === "production",
+    });
+    if (approvalsUrl === null) {
+      console.error("[alerte-universite] lien /approvals indisponible : ADMIN_ROOT_DOMAIN absent ou invalide.");
+    }
 
     await sendWithRetry(() =>
       sendUniversityApprovalAlertEmail(
