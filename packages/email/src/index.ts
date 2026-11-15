@@ -114,3 +114,23 @@ export async function sendUniversityApprovedEmail(
     textContent: `Votre université ${textName} a été validée par l'administrateur.\nVous pouvez dès à présent vous connecter pour poursuivre la configuration de votre établissement.`,
   });
 }
+
+export async function sendSuperAdminEditorInvitationEmail(
+  to: string,
+  invitationUrl: string,
+  expiresAt: Date,
+): Promise<void> {
+  const safeUrl = escapeHtml(invitationUrl);
+  const expiry = new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(expiresAt);
+
+  return sendBrevoEmail({
+    to,
+    subject: "Invitation à rejoindre l'administration Tablino",
+    htmlContent: `<p>Vous avez été invité à rejoindre l'administration Tablino comme éditeur.</p><p><a href="${safeUrl}">Accepter l'invitation</a></p><p>Ce lien ne peut être utilisé qu'une seule fois.</p><p>Ce lien expire le ${escapeHtml(expiry)} (UTC).</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`,
+    textContent: `Vous avez été invité à rejoindre l'administration Tablino comme éditeur.\n\nAccepter l'invitation : ${invitationUrl}\n\nCe lien ne peut être utilisé qu'une seule fois.\n\nCe lien expire le ${expiry} (UTC). Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
+  });
+}

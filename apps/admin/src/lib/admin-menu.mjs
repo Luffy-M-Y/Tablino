@@ -1,11 +1,12 @@
 /**
- * @typedef {{ id: string, label: string, href: string, icon: "LayoutDashboard" | "UserCheck" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound", disabled: false, roles?: readonly string[] } | { id: string, label: string, icon: "LayoutDashboard" | "UserCheck" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound", disabled: true, availabilityLabel: string, roles?: readonly string[] }} AdminMenuEntry
+ * @typedef {{ id: string, label: string, href: string, icon: "LayoutDashboard" | "UserCheck" | "UserPlus" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound", disabled: false, roles?: readonly string[] } | { id: string, label: string, icon: "LayoutDashboard" | "UserCheck" | "UserPlus" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound", disabled: true, availabilityLabel: string, roles?: readonly string[] }} AdminMenuEntry
  */
 
 /** @type {readonly AdminMenuEntry[]} */
 export const ADMIN_MENU_ITEMS = Object.freeze([
   Object.freeze({ id: "home", label: "Accueil", href: "/", icon: "LayoutDashboard", disabled: false, roles: Object.freeze(["super_admin", "super_admin_editor", "university_admin"]) }),
   Object.freeze({ id: "approvals", label: "Validations", href: "/approvals", icon: "UserCheck", disabled: false, roles: Object.freeze(["super_admin"]) }),
+  Object.freeze({ id: "admin-invitations", label: "Ajouter un admin", href: "/admin-invitations", icon: "UserPlus", disabled: false, roles: Object.freeze(["super_admin"]) }),
   Object.freeze({ id: "structure", label: "Structure", href: "/structure", icon: "Layers", disabled: false, roles: Object.freeze(["university_admin"]) }),
   Object.freeze({ id: "scan", label: "Scan", href: "/scan", icon: "ScanLine", disabled: false, roles: Object.freeze(["university_admin"]) }),
   Object.freeze({ id: "upload", label: "Upload", href: "/upload", icon: "Upload", disabled: false, roles: Object.freeze(["university_admin"]) }),

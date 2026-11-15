@@ -21,6 +21,7 @@ import {
   Upload,
   User,
   UserCheck,
+  UserPlus,
 } from "lucide-react";
 
 type MenuIconName = keyof typeof MENU_ICONS;
@@ -38,6 +39,7 @@ const SIDEBAR_PIN_STORAGE_KEY = "tablino-admin-sidebar-pinned";
 const MENU_ICONS = {
   LayoutDashboard,
   UserCheck,
+  UserPlus,
   Layers,
   ScanLine,
   Upload,

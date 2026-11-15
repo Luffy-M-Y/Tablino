@@ -242,6 +242,11 @@ export type {
   SuperAdminEditorInvitationRepository,
 } from "./super-admin-editor-invitation";
 export {
+  checkSuperAdminEditorInvitationToken,
+  createInvitationCheckService,
+} from "./super-admin-editor-invitation-check";
+export type { InvitationCheckDependencies } from "./super-admin-editor-invitation-check";
+export {
   listPendingUniversitiesForApproval,
   approveUniversity,
 } from "./university-approval";
