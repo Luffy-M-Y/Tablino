@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ADMIN_MENU_ITEMS, getAdminMenuItems } from "../src/lib/admin-menu.mjs";
 
-test("returns super_admin menu items: Accueil (/) and Validations (/approvals)", () => {
+test("returns super_admin menu items: Accueil, Validations, and Ajouter un admin", () => {
   const items = getAdminMenuItems("super_admin");
   assert.deepEqual(
     items.map(({ label, href }) => ({ label, href })),
     [
       { label: "Accueil", href: "/" },
       { label: "Validations", href: "/approvals" },
+      { label: "Ajouter un admin", href: "/admin-invitations" },
     ],
   );
 });
