@@ -4,7 +4,7 @@ import { getCurrentUniversity } from "@/lib/current-university";
 import {
   getDashboardCountsForUniversity,
   getSuperAdminDashboard,
-  getSuperAdminEditorDashboard,
+  getSuperAdminLectorDashboard,
   getSuperAdminRevenue,
 } from "@/lib/dashboard-queries";
 import { formatAmount } from "@/lib/format-amount.mjs";
@@ -53,17 +53,17 @@ export default async function HomePage() {
     surface: "admin",
     getCurrentUniversityId,
   }));
-  if (session?.user?.role === "super_admin_editor") {
+  if (session?.user?.role === "super_admin_lector") {
     const { statusTotals, universities, totalStudents, totalPaid } =
-      await getSuperAdminEditorDashboard();
+      await getSuperAdminLectorDashboard();
     const name = session.user.name ?? null;
     const email = session.user.email ?? null;
     const profile: AdminProfile = {
       email,
       name,
-      roleLabel: getRoleLabel("super_admin_editor"),
+      roleLabel: getRoleLabel("super_admin_lector"),
       initial: getAvatarInitial(name, email),
-      role: "super_admin_editor",
+      role: "super_admin_lector",
       universityName: null,
       universityAcronym: null,
     };
@@ -74,8 +74,8 @@ export default async function HomePage() {
         breadcrumbs={[{ label: "Accueil" }]}
         profile={profile}
       >
-        <section aria-labelledby="editor-status-totals-heading" className="mb-8">
-          <h2 id="editor-status-totals-heading" className="mb-4 text-xl font-semibold">
+        <section aria-labelledby="lector-status-totals-heading" className="mb-8">
+          <h2 id="lector-status-totals-heading" className="mb-4 text-xl font-semibold">
             Universités par statut
           </h2>
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -94,8 +94,8 @@ export default async function HomePage() {
           </dl>
         </section>
 
-        <section aria-labelledby="editor-overview-totals-heading" className="mb-8">
-          <h2 id="editor-overview-totals-heading" className="sr-only">Totaux généraux</h2>
+        <section aria-labelledby="lector-overview-totals-heading" className="mb-8">
+          <h2 id="lector-overview-totals-heading" className="sr-only">Totaux généraux</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-subtle)]">
               <span className="text-sm text-[color:var(--color-muted-foreground)]">Étudiants (toutes universités)</span>
@@ -112,8 +112,8 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section aria-labelledby="editor-universities-list-heading">
-          <h2 id="editor-universities-list-heading" className="mb-4 text-xl font-semibold">
+        <section aria-labelledby="lector-universities-list-heading">
+          <h2 id="lector-universities-list-heading" className="mb-4 text-xl font-semibold">
             Universités
           </h2>
           {universities.length === 0 ? (
@@ -151,7 +151,7 @@ export default async function HomePage() {
 
   const user = await requireAdminAccess();
 
-  if (user.role === "super_admin") {
+  if (user.role === "super_admin" || user.role === "super_admin_editor") {
     const [{ totalStudents, statusTotals, universities }, revenueData] = await Promise.all([
       getSuperAdminDashboard(),
       getSuperAdminRevenue(),

@@ -48,7 +48,7 @@ import {
   type StructureActionState,
 } from "@/lib/structure-action-utils.mjs";
 import { getCurrentUniversity } from "@/lib/current-university";
-import { requireRoleOnHost } from "@/lib/authorization";
+import { requireAdminPermission } from "@/lib/authorization";
 
 function failure(reason: ActionReason): StructureActionState {
   return { ok: false, reason, message: messageForReason(reason) };
@@ -62,7 +62,7 @@ function handleGuardFailure(error: unknown): never {
 
 async function requireUniversityForAction(formData: FormData): Promise<string> {
   try {
-    await requireRoleOnHost(["super_admin", "university_admin"]);
+    await requireAdminPermission("structure");
   } catch (error) {
     return handleGuardFailure(error);
   }
@@ -183,7 +183,7 @@ export async function uploadFileAction(
   const universityId = await requireUniversityForAction(formData);
   let userId: string;
   try {
-    const user = await requireRoleOnHost(["super_admin", "university_admin"]);
+    const user = await requireAdminPermission("structure");
     userId = user.id;
   } catch (error) {
     return handleGuardFailure(error);

@@ -206,5 +206,9 @@ export function isAdminProxyPathAllowed(kind, pathname) {
  */
 export function isAdminPasswordLoginAllowed(role, hostKind) {
   if (role === "university_admin") return true;
-  return (role === "super_admin" || role === "super_admin_editor") && hostKind === "super";
+  return (
+    role === "super_admin"
+    || role === "super_admin_editor"
+    || role === "super_admin_lector"
+  ) && hostKind === "super";
 }

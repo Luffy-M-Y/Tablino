@@ -3,8 +3,8 @@
  * @param {{ kind: "super" } | { kind: "university", universityId: string } | null} hostContext
  * @returns {boolean}
  */
-export function isSuperAdminEditorDashboardAllowed({ role, universityId, revokedAt }, hostContext) {
-  return role === "super_admin_editor"
+export function isSuperAdminLectorDashboardAllowed({ role, universityId, revokedAt }, hostContext) {
+  return role === "super_admin_lector"
     && universityId === null
     && revokedAt === null
     && hostContext?.kind === "super";

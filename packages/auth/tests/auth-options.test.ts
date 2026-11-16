@@ -154,8 +154,8 @@ test("non-central admin Google sign-in keeps its existing role and scope decisio
   assert.equal(decideAdminGoogleSignIn({ ...base, user: null }), null);
 });
 
-test("admin Google sign-in explicitly refuses the super admin editor", () => {
-  const user = { role: "super_admin_editor", universityId: null } as const;
+test("admin Google sign-in explicitly refuses the super admin lector", () => {
+  const user = { role: "super_admin_lector", universityId: null } as const;
   assert.equal(
     decideAdminGoogleSignIn({
       isAuthAdminCentral: false,

@@ -3,19 +3,19 @@
 import { getCloudflareClientIp } from "@tablino/auth";
 import {
   checkRateLimit,
-  consumeSuperAdminEditorInvitation,
+  consumeAdminInvitation,
   recordFailure,
 } from "@tablino/db";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAdminHostContext } from "@/lib/admin-host-context";
 import {
-  getSuperAdminEditorInvitationCookieOptions,
-  getSuperAdminEditorInvitationMessage,
-  runSuperAdminEditorInvitationAcceptance,
-  SUPER_ADMIN_EDITOR_INVITATION_COOKIE,
-  SUPER_ADMIN_EDITOR_INVITATION_PATH,
-} from "@/lib/super-admin-editor-invitation.mjs";
+  getAdminInvitationCookieOptions,
+  getAdminInvitationMessage,
+  runAdminInvitationAcceptance,
+  ADMIN_INVITATION_COOKIE,
+  ADMIN_INVITATION_PATH,
+} from "@/lib/admin-invitation.mjs";
 
 export type AcceptInvitationActionState = {
   message: string | null;
@@ -35,16 +35,16 @@ export async function acceptInvitationAction(
   if (hostContext?.kind !== "super") {
     return {
       status: "error",
-      message: getSuperAdminEditorInvitationMessage("unavailable"),
+      message: getAdminInvitationMessage("unavailable"),
     };
   }
 
   const requestHeaders = await headers();
   const clientIp = getCloudflareClientIp(requestHeaders);
   const cookieStore = await cookies();
-  const token = cookieStore.get(SUPER_ADMIN_EDITOR_INVITATION_COOKIE)?.value;
+  const token = cookieStore.get(ADMIN_INVITATION_COOKIE)?.value;
 
-  const outcome = await runSuperAdminEditorInvitationAcceptance({
+  const outcome = await runAdminInvitationAcceptance({
     token,
     password: readStringField(formData, "password"),
     passwordConfirmation: readStringField(formData, "passwordConfirmation"),
@@ -52,18 +52,18 @@ export async function acceptInvitationAction(
     isProduction: process.env.NODE_ENV === "production",
     checkRateLimit,
     recordFailure,
-    consumeInvitation: consumeSuperAdminEditorInvitation,
+    consumeInvitation: consumeAdminInvitation,
   });
 
   if (outcome.clearCookie) {
     cookieStore.set(
-      SUPER_ADMIN_EDITOR_INVITATION_COOKIE,
+      ADMIN_INVITATION_COOKIE,
       "",
       {
-        ...getSuperAdminEditorInvitationCookieOptions(
+        ...getAdminInvitationCookieOptions(
           process.env.NODE_ENV === "production",
         ),
-        path: SUPER_ADMIN_EDITOR_INVITATION_PATH,
+        path: ADMIN_INVITATION_PATH,
         maxAge: 0,
       },
     );
@@ -75,6 +75,6 @@ export async function acceptInvitationAction(
 
   return {
     status: "error",
-    message: getSuperAdminEditorInvitationMessage(outcome.reason),
+    message: getAdminInvitationMessage(outcome.reason),
   };
 }

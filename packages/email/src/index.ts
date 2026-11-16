@@ -115,10 +115,11 @@ export async function sendUniversityApprovedEmail(
   });
 }
 
-export async function sendSuperAdminEditorInvitationEmail(
+export async function sendAdminInvitationEmail(
   to: string,
   invitationUrl: string,
   expiresAt: Date,
+  role: "super_admin_editor" | "super_admin_lector",
 ): Promise<void> {
   const safeUrl = escapeHtml(invitationUrl);
   const expiry = new Intl.DateTimeFormat("fr-FR", {
@@ -126,11 +127,19 @@ export async function sendSuperAdminEditorInvitationEmail(
     timeStyle: "short",
     timeZone: "UTC",
   }).format(expiresAt);
+  const roleLabels = {
+    super_admin_editor: "Éditeur super administrateur",
+    super_admin_lector: "Lecteur super administrateur",
+  } as const;
+  if (role !== "super_admin_editor" && role !== "super_admin_lector") {
+    throw new Error("Rôle d’invitation invalide.");
+  }
+  const roleLabel = roleLabels[role];
 
   return sendBrevoEmail({
     to,
     subject: "Invitation à rejoindre l'administration Tablino",
-    htmlContent: `<p>Vous avez été invité à rejoindre l'administration Tablino comme éditeur.</p><p><a href="${safeUrl}">Accepter l'invitation</a></p><p>Ce lien ne peut être utilisé qu'une seule fois.</p><p>Ce lien expire le ${escapeHtml(expiry)} (UTC).</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`,
-    textContent: `Vous avez été invité à rejoindre l'administration Tablino comme éditeur.\n\nAccepter l'invitation : ${invitationUrl}\n\nCe lien ne peut être utilisé qu'une seule fois.\n\nCe lien expire le ${expiry} (UTC). Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
+    htmlContent: `<p>Vous avez été invité à rejoindre l'administration Tablino comme ${roleLabel}.</p><p><a href="${safeUrl}">Accepter l'invitation</a></p><p>Ce lien ne peut être utilisé qu'une seule fois.</p><p>Ce lien expire le ${escapeHtml(expiry)} (UTC).</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`,
+    textContent: `Vous avez été invité à rejoindre l'administration Tablino comme ${roleLabel}.\n\nAccepter l'invitation : ${invitationUrl}\n\nCe lien ne peut être utilisé qu'une seule fois.\n\nCe lien expire le ${expiry} (UTC). Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
   });
 }

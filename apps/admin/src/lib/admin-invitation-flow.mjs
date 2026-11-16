@@ -1,6 +1,6 @@
-import { buildSuperAdminEditorInvitationUrl, normalizeAdminRootDomain } from "./super-admin-editor-invitation-url.mjs";
+import { buildAdminInvitationUrl, normalizeAdminRootDomain } from "./admin-invitation-url.mjs";
 
-export async function runSuperAdminEditorInvitationFlow({
+export async function runAdminInvitationFlow({
   email,
   invitedByUserId,
   rootDomain,
@@ -15,7 +15,7 @@ export async function runSuperAdminEditorInvitationFlow({
   const created = await createInvitation(email, invitedByUserId);
   if (!created.ok) return created;
 
-  const invitationUrl = buildSuperAdminEditorInvitationUrl(
+  const invitationUrl = buildAdminInvitationUrl(
     domain,
     created.token,
     secure,
@@ -29,7 +29,7 @@ export async function runSuperAdminEditorInvitationFlow({
   }
 
   try {
-    await sendEmail(created.email, invitationUrl, created.expiresAt);
+    await sendEmail(created.email, invitationUrl, created.expiresAt, created.role);
     return { ok: true };
   } catch {
     let revoked = false;

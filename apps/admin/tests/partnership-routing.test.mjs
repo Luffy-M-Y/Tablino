@@ -42,11 +42,19 @@ test("resolvePartnershipRoute routes super admin to home", () => {
   );
 });
 
-test("resolvePartnershipRoute forbids super_admin_editor instead of treating it as university admin", () => {
+test("resolvePartnershipRoute forbids super_admin_editor and super_admin_lector", () => {
   assert.equal(
     resolvePartnershipRoute({
       hasSession: true,
       role: "super_admin_editor",
+      status: "approved",
+    }),
+    "forbidden",
+  );
+  assert.equal(
+    resolvePartnershipRoute({
+      hasSession: true,
+      role: "super_admin_lector",
       status: "approved",
     }),
     "forbidden",

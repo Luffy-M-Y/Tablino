@@ -31,9 +31,20 @@ test("returns university_admin menu items: current admin menu", () => {
   );
 });
 
-test("returns only Accueil for super_admin_editor", () => {
+test("returns the full chief menu for super_admin_editor", () => {
   assert.deepEqual(
     getAdminMenuItems("super_admin_editor").map(({ label, href }) => ({ label, href })),
+    [
+      { label: "Accueil", href: "/" },
+      { label: "Validations", href: "/approvals" },
+      { label: "Ajouter un admin", href: "/admin-invitations" },
+    ],
+  );
+});
+
+test("returns only Accueil for super_admin_lector", () => {
+  assert.deepEqual(
+    getAdminMenuItems("super_admin_lector").map(({ label, href }) => ({ label, href })),
     [{ label: "Accueil", href: "/" }],
   );
 });

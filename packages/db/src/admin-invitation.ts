@@ -1,20 +1,24 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "./client";
 import * as schema from "./schema";
 import { hashPassword as hashUserPassword, isPasswordValid } from "./password";
 
-export const SUPER_ADMIN_EDITOR_INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
+export const ADMIN_INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
+
+export type AdminInvitationRole = "super_admin_editor" | "super_admin_lector";
 
 type CreatedInvitation = {
   invitationId: string;
+  role: AdminInvitationRole;
 };
 
-export type SuperAdminEditorInvitationRepository = {
+export type AdminInvitationRepository = {
   create: (input: {
     email: string;
     invitedByUserId: string;
     tokenHash: string;
+    role: AdminInvitationRole;
     createdAt: Date;
     expiresAt: Date;
   }) => Promise<CreatedInvitation | "account_exists" | "inviter_not_allowed">;
@@ -23,22 +27,23 @@ export type SuperAdminEditorInvitationRepository = {
     tokenHash: string;
     passwordHash: string;
     now: Date;
-  }) => Promise<boolean>;
+  }) => Promise<AdminInvitationRole | null>;
 };
 
-export type SuperAdminEditorInvitationDependencies = {
-  repository: SuperAdminEditorInvitationRepository;
+export type AdminInvitationDependencies = {
+  repository: AdminInvitationRepository;
   now?: () => Date;
   randomBytes?: (size: number) => Buffer;
   hashPassword?: (password: string) => string;
   isPasswordValid?: (password: unknown) => password is string;
 };
 
-export type CreateSuperAdminEditorInvitationResult =
+export type CreateAdminInvitationResult =
   | {
       ok: true;
       invitationId: string;
       email: string;
+      role: AdminInvitationRole;
       token: string;
       expiresAt: Date;
     }
@@ -47,11 +52,15 @@ export type CreateSuperAdminEditorInvitationResult =
       reason: "invalid_email" | "account_exists" | "inviter_not_allowed";
     };
 
-export type ConsumeSuperAdminEditorInvitationResult =
-  | { ok: true }
+export type ConsumeAdminInvitationResult =
+  | { ok: true; role: AdminInvitationRole }
   | { ok: false; reason: "invalid_password" | "invitation_unavailable" };
 
-export function normalizeSuperAdminEditorInvitationEmail(value: unknown): string | null {
+export function isAdminInvitationRole(value: unknown): value is AdminInvitationRole {
+  return value === "super_admin_editor" || value === "super_admin_lector";
+}
+
+export function normalizeAdminInvitationEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const email = value.trim().toLowerCase();
   if (
@@ -64,7 +73,7 @@ export function normalizeSuperAdminEditorInvitationEmail(value: unknown): string
   return email;
 }
 
-export function hashSuperAdminEditorInvitationToken(token: string): string {
+export function hashAdminInvitationToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
@@ -74,19 +83,19 @@ function isValidInvitationToken(token: unknown): token is string {
   return bytes.length === 32 && bytes.toString("base64url") === token;
 }
 
-export function createSuperAdminEditorInvitationService({
+export function createAdminInvitationService({
   repository,
   now = () => new Date(),
   randomBytes: createRandomBytes = randomBytes,
   hashPassword = hashUserPassword,
   isPasswordValid: validatePassword = isPasswordValid,
-}: SuperAdminEditorInvitationDependencies) {
+}: AdminInvitationDependencies) {
   return {
-    async createSuperAdminEditorInvitation(
+    async createAdminInvitation(
       emailInput: unknown,
       invitedByUserId: string,
-    ): Promise<CreateSuperAdminEditorInvitationResult> {
-      const email = normalizeSuperAdminEditorInvitationEmail(emailInput);
+    ): Promise<CreateAdminInvitationResult> {
+      const email = normalizeAdminInvitationEmail(emailInput);
       if (email === null) return { ok: false, reason: "invalid_email" };
 
       const createdAt = now();
@@ -99,9 +108,10 @@ export function createSuperAdminEditorInvitationService({
       const result = await repository.create({
         email,
         invitedByUserId,
-        tokenHash: hashSuperAdminEditorInvitationToken(token),
+        tokenHash: hashAdminInvitationToken(token),
+        role: "super_admin_lector",
         createdAt,
-        expiresAt: new Date(createdAt.getTime() + SUPER_ADMIN_EDITOR_INVITATION_TTL_MS),
+        expiresAt: new Date(createdAt.getTime() + ADMIN_INVITATION_TTL_MS),
       });
       if (result === "account_exists") return { ok: false, reason: "account_exists" };
       if (result === "inviter_not_allowed") return { ok: false, reason: "inviter_not_allowed" };
@@ -110,53 +120,59 @@ export function createSuperAdminEditorInvitationService({
         ok: true,
         invitationId: result.invitationId,
         email,
+        role: result.role,
         token,
-        expiresAt: new Date(createdAt.getTime() + SUPER_ADMIN_EDITOR_INVITATION_TTL_MS),
+        expiresAt: new Date(createdAt.getTime() + ADMIN_INVITATION_TTL_MS),
       };
     },
 
-    async revokeSuperAdminEditorInvitation(invitationId: string): Promise<boolean> {
+    async revokeAdminInvitation(invitationId: string): Promise<boolean> {
       return repository.revoke(invitationId, now());
     },
 
-    async consumeSuperAdminEditorInvitation(
+    async consumeAdminInvitation(
       token: unknown,
       password: unknown,
-    ): Promise<ConsumeSuperAdminEditorInvitationResult> {
+    ): Promise<ConsumeAdminInvitationResult> {
       if (!validatePassword(password)) return { ok: false, reason: "invalid_password" };
       if (!isValidInvitationToken(token)) {
         return { ok: false, reason: "invitation_unavailable" };
       }
 
-      const consumed = await repository.consume({
-        tokenHash: hashSuperAdminEditorInvitationToken(token),
+      const role = await repository.consume({
+        tokenHash: hashAdminInvitationToken(token),
         passwordHash: hashPassword(password),
         now: now(),
       });
-      return consumed
-        ? { ok: true }
-        : { ok: false, reason: "invitation_unavailable" };
+      return role === null
+        ? { ok: false, reason: "invitation_unavailable" }
+        : { ok: true, role };
     },
   };
 }
 
-const service = createSuperAdminEditorInvitationService({
+const service = createAdminInvitationService({
   repository: {
-    async create({ email, invitedByUserId, tokenHash, createdAt, expiresAt }) {
+    async create({ email, invitedByUserId, tokenHash, role, createdAt, expiresAt }) {
       return db.transaction(async (tx) => {
         await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${email}))`);
 
         const [inviter] = await tx
-          .select({ id: schema.users.id })
+          .select({ id: schema.users.id, role: schema.users.role })
           .from(schema.users)
           .where(and(
             eq(schema.users.id, invitedByUserId),
-            eq(schema.users.role, "super_admin"),
+            inArray(schema.users.role, ["super_admin", "super_admin_editor"]),
             isNull(schema.users.revokedAt),
           ))
           .for("share")
           .limit(1);
-        if (!inviter) return "inviter_not_allowed";
+        if (
+          !inviter
+          || (role === "super_admin_editor" && inviter.role !== "super_admin")
+        ) {
+          return "inviter_not_allowed";
+        }
 
         const [existingUser] = await tx
           .select({ id: schema.users.id })
@@ -166,33 +182,38 @@ const service = createSuperAdminEditorInvitationService({
         if (existingUser) return "account_exists";
 
         await tx
-          .update(schema.superAdminEditorInvitations)
+          .update(schema.adminInvitations)
           .set({ revokedAt: createdAt })
           .where(and(
-            sql`lower(${schema.superAdminEditorInvitations.email}) = ${email}`,
-            isNull(schema.superAdminEditorInvitations.consumedAt),
-            isNull(schema.superAdminEditorInvitations.revokedAt),
+            sql`lower(${schema.adminInvitations.email}) = ${email}`,
+            isNull(schema.adminInvitations.consumedAt),
+            isNull(schema.adminInvitations.revokedAt),
           ));
 
         const [invitation] = await tx
-          .insert(schema.superAdminEditorInvitations)
-          .values({ email, invitedByUserId, tokenHash, createdAt, expiresAt })
-          .returning({ id: schema.superAdminEditorInvitations.id });
-        if (!invitation) throw new Error("Échec de création de l’invitation.");
-        return { invitationId: invitation.id };
+          .insert(schema.adminInvitations)
+          .values({ email, invitedByUserId, tokenHash, role, createdAt, expiresAt })
+          .returning({
+            id: schema.adminInvitations.id,
+            role: schema.adminInvitations.role,
+          });
+        if (!invitation || !isAdminInvitationRole(invitation.role)) {
+          throw new Error("Échec de création de l’invitation.");
+        }
+        return { invitationId: invitation.id, role: invitation.role };
       });
     },
 
     async revoke(invitationId, revokedAt) {
       const [revoked] = await db
-        .update(schema.superAdminEditorInvitations)
+        .update(schema.adminInvitations)
         .set({ revokedAt })
         .where(and(
-          eq(schema.superAdminEditorInvitations.id, invitationId),
-          isNull(schema.superAdminEditorInvitations.consumedAt),
-          isNull(schema.superAdminEditorInvitations.revokedAt),
+          eq(schema.adminInvitations.id, invitationId),
+          isNull(schema.adminInvitations.consumedAt),
+          isNull(schema.adminInvitations.revokedAt),
         ))
-        .returning({ id: schema.superAdminEditorInvitations.id });
+        .returning({ id: schema.adminInvitations.id });
       return Boolean(revoked);
     },
 
@@ -201,19 +222,23 @@ const service = createSuperAdminEditorInvitationService({
       try {
         return await db.transaction(async (tx) => {
           const [invitation] = await tx
-            .update(schema.superAdminEditorInvitations)
+            .update(schema.adminInvitations)
             .set({ consumedAt: now })
             .where(and(
-              eq(schema.superAdminEditorInvitations.tokenHash, tokenHash),
-              isNull(schema.superAdminEditorInvitations.consumedAt),
-              isNull(schema.superAdminEditorInvitations.revokedAt),
-              gt(schema.superAdminEditorInvitations.expiresAt, now),
+              eq(schema.adminInvitations.tokenHash, tokenHash),
+              isNull(schema.adminInvitations.consumedAt),
+              isNull(schema.adminInvitations.revokedAt),
+              gt(schema.adminInvitations.expiresAt, now),
             ))
             .returning({
-              id: schema.superAdminEditorInvitations.id,
-              email: schema.superAdminEditorInvitations.email,
+              id: schema.adminInvitations.id,
+              email: schema.adminInvitations.email,
+              role: schema.adminInvitations.role,
             });
-          if (!invitation) return false;
+          if (!invitation) return null;
+          if (!isAdminInvitationRole(invitation.role)) {
+            throw new Error("Rôle d’invitation invalide.");
+          }
 
           const [user] = await tx
             .insert(schema.users)
@@ -221,7 +246,7 @@ const service = createSuperAdminEditorInvitationService({
               email: invitation.email,
               emailVerified: now,
               passwordHash,
-              role: "super_admin_editor",
+              role: invitation.role,
               universityId: null,
             })
             .onConflictDoNothing()
@@ -229,24 +254,24 @@ const service = createSuperAdminEditorInvitationService({
           if (!user) throw userNotCreated;
 
           const [accepted] = await tx
-            .update(schema.superAdminEditorInvitations)
+            .update(schema.adminInvitations)
             .set({ acceptedUserId: user.id })
             .where(and(
-              eq(schema.superAdminEditorInvitations.id, invitation.id),
-              eq(schema.superAdminEditorInvitations.consumedAt, now),
+              eq(schema.adminInvitations.id, invitation.id),
+              eq(schema.adminInvitations.consumedAt, now),
             ))
-            .returning({ id: schema.superAdminEditorInvitations.id });
+            .returning({ id: schema.adminInvitations.id });
           if (!accepted) throw new Error("Échec de consommation de l’invitation.");
-          return true;
+          return invitation.role;
         });
       } catch (error) {
-        if (error === userNotCreated) return false;
+        if (error === userNotCreated) return null;
         throw error;
       }
     },
   },
 });
 
-export const createSuperAdminEditorInvitation = service.createSuperAdminEditorInvitation;
-export const revokeSuperAdminEditorInvitation = service.revokeSuperAdminEditorInvitation;
-export const consumeSuperAdminEditorInvitation = service.consumeSuperAdminEditorInvitation;
+export const createAdminInvitation = service.createAdminInvitation;
+export const revokeAdminInvitation = service.revokeAdminInvitation;
+export const consumeAdminInvitation = service.consumeAdminInvitation;

@@ -7,7 +7,7 @@ import {
   SessionRequiredError,
 } from "@tablino/auth";
 import { forbidden, redirect } from "next/navigation";
-import { requireRoleOnHost } from "@/lib/authorization";
+import { requireAdminPermission } from "@/lib/authorization";
 import { buildCycleSections } from "./structure-view.mjs";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,9 +18,9 @@ function handleGuardError(error: unknown): never {
   throw error;
 }
 
-async function requireSuperAdmin() {
+async function requireGlobalAdmin() {
   try {
-    return await requireRoleOnHost(["super_admin"]);
+    return await requireAdminPermission("globalStructure");
   } catch (error) {
     return handleGuardError(error);
   }
@@ -28,7 +28,7 @@ async function requireSuperAdmin() {
 
 async function requireUniversityAdminAccess(universityId: string) {
   try {
-    await requireRoleOnHost(["super_admin", "university_admin"]);
+    await requireAdminPermission("structure");
     await requireUniversityAccess("admin", universityId);
     if (!UUID_PATTERN.test(universityId)) throw new AuthorizationDeniedError();
   } catch (error) {
@@ -37,7 +37,7 @@ async function requireUniversityAdminAccess(universityId: string) {
 }
 
 export async function getStructureUniversities() {
-  await requireSuperAdmin();
+  await requireGlobalAdmin();
   return db.select({
     id: schema.universities.id,
     name: schema.universities.name,

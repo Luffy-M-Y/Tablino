@@ -13,9 +13,35 @@ const INVITATION_MESSAGES = Object.freeze({
   password_mismatch: "Les mots de passe ne correspondent pas.",
   rate_limited: "Trop de tentatives. Réessayez plus tard.",
   ip_unavailable: "Connexion temporairement indisponible.",
-  accepted: "Votre compte éditeur est créé. Vous pouvez vous connecter.",
 });
 
-export function getSuperAdminEditorInvitationMessage(reason) {
-  return INVITATION_MESSAGES[reason] ?? INVITATION_MESSAGES.unavailable;
+const ROLE_LABELS = Object.freeze({
+  super_admin_editor: "Éditeur super administrateur",
+  super_admin_lector: "Lecteur super administrateur",
+});
+
+export function getAdminInvitationRoleLabel(role) {
+  if (
+    typeof role !== "string"
+    || !Object.prototype.hasOwnProperty.call(ROLE_LABELS, role)
+  ) {
+    return null;
+  }
+  return ROLE_LABELS[role];
+}
+
+export function getAdminInvitationMessage(reason, role) {
+  if (reason === "accepted") {
+    const roleLabel = getAdminInvitationRoleLabel(role);
+    return roleLabel
+      ? `Votre compte ${roleLabel} est créé. Vous pouvez vous connecter.`
+      : INVITATION_MESSAGES.unavailable;
+  }
+  if (
+    typeof reason !== "string"
+    || !Object.prototype.hasOwnProperty.call(INVITATION_MESSAGES, reason)
+  ) {
+    return INVITATION_MESSAGES.unavailable;
+  }
+  return INVITATION_MESSAGES[reason];
 }

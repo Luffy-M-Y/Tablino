@@ -5,6 +5,7 @@ DECLARE
   test_university_id uuid := gen_random_uuid();
   super_admin_id uuid := gen_random_uuid();
   super_admin_editor_id uuid := gen_random_uuid();
+  super_admin_lector_id uuid := gen_random_uuid();
   university_admin_id uuid := gen_random_uuid();
   student_id uuid := gen_random_uuid();
 BEGIN
@@ -15,8 +16,17 @@ BEGIN
   VALUES
     (super_admin_id, NULL, 'super-' || super_admin_id::text || '@example.invalid', 'super_admin'),
     (super_admin_editor_id, NULL, 'editor-' || super_admin_editor_id::text || '@example.invalid', 'super_admin_editor'),
+    (super_admin_lector_id, NULL, 'lector-' || super_admin_lector_id::text || '@example.invalid', 'super_admin_lector'),
     (university_admin_id, test_university_id, 'admin-' || university_admin_id::text || '@example.invalid', 'university_admin'),
     (student_id, test_university_id, 'student-' || student_id::text || '@example.invalid', 'student');
+
+  BEGIN
+    INSERT INTO users (university_id, email, role)
+    VALUES (NULL, 'second-super-' || gen_random_uuid()::text || '@example.invalid', 'super_admin');
+    RAISE EXCEPTION 'UNIQUE allowed a second super_admin';
+  EXCEPTION WHEN unique_violation THEN
+    NULL;
+  END;
 
   BEGIN
     INSERT INTO users (university_id, email, role)
@@ -30,6 +40,14 @@ BEGIN
     INSERT INTO users (university_id, email, role)
     VALUES (test_university_id, 'invalid-editor-' || gen_random_uuid()::text || '@example.invalid', 'super_admin_editor');
     RAISE EXCEPTION 'CHECK allowed super_admin_editor with university_id';
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
+
+  BEGIN
+    INSERT INTO users (university_id, email, role)
+    VALUES (test_university_id, 'invalid-lector-' || gen_random_uuid()::text || '@example.invalid', 'super_admin_lector');
+    RAISE EXCEPTION 'CHECK allowed super_admin_lector with university_id';
   EXCEPTION WHEN check_violation THEN
     NULL;
   END;

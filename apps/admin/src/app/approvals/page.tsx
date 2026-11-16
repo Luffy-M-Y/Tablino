@@ -1,6 +1,6 @@
 import { listPendingUniversitiesForApproval } from "@tablino/db";
 import AdminPage from "@/components/admin-page";
-import { requireSuperAdminAccess } from "@/lib/authorization";
+import { requireAdminPermission } from "@/lib/authorization";
 import { parseApprovalNotice } from "@/lib/approval-messages.mjs";
 import { ApprovalForm } from "./approval-form";
 
@@ -9,7 +9,7 @@ export default async function ApprovalsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireSuperAdminAccess();
+  await requireAdminPermission("approvals");
 
   const [pendingUniversities, rawParams] = await Promise.all([
     listPendingUniversitiesForApproval(),

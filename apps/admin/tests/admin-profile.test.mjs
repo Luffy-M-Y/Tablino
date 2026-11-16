@@ -12,6 +12,7 @@ test("uses the uppercase first character of name, then email, then question mark
 test("maps known roles and falls back to the administrator label", () => {
   assert.equal(getRoleLabel("super_admin"), "Super administrateur");
   assert.equal(getRoleLabel("super_admin_editor"), "Éditeur super administrateur");
+  assert.equal(getRoleLabel("super_admin_lector"), "Lecteur super administrateur");
   assert.equal(getRoleLabel("university_admin"), "Administrateur d'université");
   assert.equal(getRoleLabel("student"), "Administrateur");
   assert.equal(getRoleLabel("unknown"), "Administrateur");

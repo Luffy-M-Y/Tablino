@@ -1,10 +1,10 @@
 import AdminPage from "@/components/admin-page";
-import { requireSuperAdminAccess } from "@/lib/authorization";
+import { requireAdminPermission } from "@/lib/authorization";
 import { getSuperAdminRevenue } from "@/lib/dashboard-queries";
 import { formatAmount } from "@/lib/format-amount.mjs";
 
 export default async function RevenuesPage() {
-  await requireSuperAdminAccess();
+  await requireAdminPermission("revenues");
 
   const { totals, rows } = await getSuperAdminRevenue();
 

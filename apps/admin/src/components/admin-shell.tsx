@@ -192,7 +192,7 @@ export function AdminShell({
           </button>
         </div>
 
-        {profile.role !== "super_admin_editor" && <AdminSearchBox />}
+        {profile.role !== "super_admin_lector" && <AdminSearchBox />}
         {accountLabel === null ? (
           <button
             type="button"

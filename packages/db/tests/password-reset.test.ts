@@ -322,8 +322,13 @@ test("issuePasswordResetCode replaces an existing code", async () => {
   assert.deepEqual(fake.inserts, []);
 });
 
-test("issueAdminPasswordResetCode accepts university and super admins", async () => {
-  for (const role of ["university_admin", "super_admin"]) {
+test("issueAdminPasswordResetCode accepts university admins and all super-admin roles", async () => {
+  for (const role of [
+    "university_admin",
+    "super_admin",
+    "super_admin_editor",
+    "super_admin_lector",
+  ]) {
     const fake = createMemoryDatabase({
       selectedRows: [[{ emailVerified: now, passwordHash: "stored-hash", role }], []],
     });

@@ -55,7 +55,12 @@ export type AdminPasswordResetResendResult =
         | "rate_limited";
     };
 
-const ADMIN_PASSWORD_RESET_ROLES = ["super_admin", "university_admin"] as const;
+const ADMIN_PASSWORD_RESET_ROLES = [
+  "super_admin",
+  "super_admin_editor",
+  "super_admin_lector",
+  "university_admin",
+] as const;
 
 export function generatePasswordResetCode(): string {
   return randomInt(0, 1000000).toString().padStart(6, "0");
@@ -67,7 +72,13 @@ export function hashPasswordResetCode(userId: string, code: string): string {
 
 async function issuePasswordResetCodeForRoles(
   userId: string,
-  allowedRoles: readonly ("student" | "super_admin" | "university_admin")[],
+  allowedRoles: readonly (
+    | "student"
+    | "super_admin"
+    | "super_admin_editor"
+    | "super_admin_lector"
+    | "university_admin"
+  )[],
   roleFailureReason: "not_student" | "not_admin",
   now = new Date(),
   database?: PasswordResetDatabase,
@@ -306,7 +317,7 @@ export async function requestAdminPasswordReset(
   if (!(users.length > 0)) {
     return { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID };
   }
-  if (users[0].role !== "super_admin" && users[0].role !== "university_admin") {
+  if (!ADMIN_PASSWORD_RESET_ROLES.some((role) => role === users[0].role)) {
     return { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID };
   }
 

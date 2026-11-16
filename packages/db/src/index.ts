@@ -6,13 +6,13 @@ export type {
   SuperAdminDashboardData,
 } from "./dashboard";
 export {
-  getSuperAdminEditorDashboardData,
-  projectSuperAdminEditorDashboard,
-} from "./super-admin-editor-dashboard";
+  getSuperAdminLectorDashboardData,
+  projectSuperAdminLectorDashboard,
+} from "./super-admin-lector-dashboard";
 export type {
-  SuperAdminEditorDashboardData,
-  SuperAdminEditorDashboardProjectionInput,
-} from "./super-admin-editor-dashboard";
+  SuperAdminLectorDashboardData,
+  SuperAdminLectorDashboardProjectionInput,
+} from "./super-admin-lector-dashboard";
 export { getSuperAdminRevenue } from "./revenue";
 export type {
   SuperAdminRevenueRow,
@@ -227,25 +227,27 @@ export type {
   ResendPasswordResetResult,
 } from "./password-reset";
 export {
-  consumeSuperAdminEditorInvitation,
-  createSuperAdminEditorInvitation,
-  createSuperAdminEditorInvitationService,
-  hashSuperAdminEditorInvitationToken,
-  normalizeSuperAdminEditorInvitationEmail,
-  revokeSuperAdminEditorInvitation,
-  SUPER_ADMIN_EDITOR_INVITATION_TTL_MS,
-} from "./super-admin-editor-invitation";
+  consumeAdminInvitation,
+  createAdminInvitation,
+  createAdminInvitationService,
+  hashAdminInvitationToken,
+  isAdminInvitationRole,
+  normalizeAdminInvitationEmail,
+  revokeAdminInvitation,
+  ADMIN_INVITATION_TTL_MS,
+} from "./admin-invitation";
 export type {
-  ConsumeSuperAdminEditorInvitationResult,
-  CreateSuperAdminEditorInvitationResult,
-  SuperAdminEditorInvitationDependencies,
-  SuperAdminEditorInvitationRepository,
-} from "./super-admin-editor-invitation";
+  AdminInvitationRole,
+  ConsumeAdminInvitationResult,
+  CreateAdminInvitationResult,
+  AdminInvitationDependencies,
+  AdminInvitationRepository,
+} from "./admin-invitation";
 export {
-  checkSuperAdminEditorInvitationToken,
+  checkAdminInvitationToken,
   createInvitationCheckService,
-} from "./super-admin-editor-invitation-check";
-export type { InvitationCheckDependencies } from "./super-admin-editor-invitation-check";
+} from "./admin-invitation-check";
+export type { InvitationCheckDependencies } from "./admin-invitation-check";
 export {
   listPendingUniversitiesForApproval,
   approveUniversity,

@@ -21,7 +21,7 @@ export function normalizeAdminRootDomain(value) {
   }
 }
 
-export function buildSuperAdminEditorInvitationUrl(rootDomain, token, secure) {
+export function buildAdminInvitationUrl(rootDomain, token, secure) {
   const domain = normalizeAdminRootDomain(rootDomain);
   if (
     domain === null
