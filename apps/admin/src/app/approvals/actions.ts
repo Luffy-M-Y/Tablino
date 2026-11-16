@@ -4,7 +4,7 @@ import { approveUniversity } from "@tablino/db";
 import { sendUniversityApprovedEmail } from "@tablino/email";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireSuperAdminAccess } from "@/lib/authorization";
+import { requireAdminPermission } from "@/lib/authorization";
 import { resolveApprovalEmailStatus } from "@/lib/approval-messages.mjs";
 
 export type ApprovalActionState = {
@@ -31,7 +31,7 @@ export async function approveUniversityAction(
   _previousState: ApprovalActionState,
   formData: FormData,
 ): Promise<ApprovalActionState> {
-  await requireSuperAdminAccess();
+  await requireAdminPermission("approvals");
 
   const universityId = readStringField(formData, "universityId").trim();
   const rawPercentage = readStringField(formData, "percentage").trim();

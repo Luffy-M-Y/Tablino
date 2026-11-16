@@ -3,7 +3,7 @@ import {
   eq,
   getDashboardCounts,
   getSuperAdminDashboardData,
-  getSuperAdminEditorDashboardData,
+  getSuperAdminLectorDashboardData,
   getSuperAdminRevenue as fetchSuperAdminRevenue,
   schema,
 } from "@tablino/db";
@@ -17,8 +17,8 @@ import {
 import { getServerSession } from "next-auth/next";
 import { forbidden, redirect } from "next/navigation";
 import { getAdminHostContext } from "@/lib/admin-host-context";
-import { requireRoleOnHost } from "@/lib/authorization";
-import { isSuperAdminEditorDashboardAllowed } from "@/lib/editor-dashboard-access.mjs";
+import { requireAdminPermission } from "@/lib/authorization";
+import { isSuperAdminLectorDashboardAllowed } from "@/lib/lector-dashboard-access.mjs";
 
 function handleGuardError(error: unknown): never {
   if (error instanceof SessionRequiredError) redirect("/api/auth/signin");
@@ -28,7 +28,7 @@ function handleGuardError(error: unknown): never {
 
 export async function getDashboardCountsForUniversity(universityId: string) {
   try {
-    await requireRoleOnHost(["super_admin", "university_admin"]);
+    await requireAdminPermission("structure");
     await requireUniversityAccess("admin", universityId);
   } catch (error) {
     return handleGuardError(error);
@@ -39,7 +39,7 @@ export async function getDashboardCountsForUniversity(universityId: string) {
 
 export async function getSuperAdminDashboard() {
   try {
-    await requireRoleOnHost(["super_admin"]);
+    await requireAdminPermission("globalDashboard");
   } catch (error) {
     return handleGuardError(error);
   }
@@ -49,7 +49,7 @@ export async function getSuperAdminDashboard() {
 
 export async function getSuperAdminRevenue() {
   try {
-    await requireRoleOnHost(["super_admin"]);
+    await requireAdminPermission("revenues");
   } catch (error) {
     return handleGuardError(error);
   }
@@ -57,7 +57,7 @@ export async function getSuperAdminRevenue() {
   return fetchSuperAdminRevenue();
 }
 
-export async function getSuperAdminEditorDashboard() {
+export async function getSuperAdminLectorDashboard() {
   const session = await getServerSession(createAuthOptions({
     surface: "admin",
     getCurrentUniversityId,
@@ -74,7 +74,7 @@ export async function getSuperAdminEditorDashboard() {
     .where(eq(schema.users.id, session.user.id))
     .limit(1);
   const hostContext = await getAdminHostContext();
-  if (!user || !isSuperAdminEditorDashboardAllowed(user, hostContext)) forbidden();
+  if (!user || !isSuperAdminLectorDashboardAllowed(user, hostContext)) forbidden();
 
-  return getSuperAdminEditorDashboardData();
+  return getSuperAdminLectorDashboardData();
 }

@@ -194,6 +194,25 @@ test("authenticateAdminPassword accepts a super admin editor with null universit
   );
 });
 
+test("authenticateAdminPassword accepts a super admin lector with null university scope", async () => {
+  const fake = createMemoryDatabase([[
+    universityAdminRow({
+      id: "lector-id",
+      role: "super_admin_lector",
+      universityId: null,
+      passwordHash: hashPassword(validPassword),
+    }),
+  ]]);
+
+  assert.deepEqual(
+    await authenticateAdminPassword(
+      { email: "reader@example.com", password: validPassword },
+      fake.database,
+    ),
+    { ok: true, userId: "lector-id", role: "super_admin_lector" },
+  );
+});
+
 test("authenticateAdminPassword refuses a super admin editor with a university scope", async () => {
   const fake = createMemoryDatabase([[
     universityAdminRow({

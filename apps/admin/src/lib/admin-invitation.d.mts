@@ -1,29 +1,33 @@
-export const SUPER_ADMIN_EDITOR_INVITATION_COOKIE: "tablino-admin-invitation-token";
-export const SUPER_ADMIN_EDITOR_INVITATION_PATH: "/admin-invitation/accept";
-export const SUPER_ADMIN_EDITOR_INVITATION_TTL_SECONDS: number;
-export const SUPER_ADMIN_EDITOR_INVITATION_COOKIE_TTL_SECONDS: 540;
+export type AdminInvitationRole = "super_admin_editor" | "super_admin_lector";
 
-export function getSuperAdminEditorInvitationMessage(reason: string): string;
+export const ADMIN_INVITATION_COOKIE: "tablino-admin-invitation-token";
+export const ADMIN_INVITATION_PATH: "/admin-invitation/accept";
+export const ADMIN_INVITATION_TTL_SECONDS: number;
+export const ADMIN_INVITATION_COOKIE_TTL_SECONDS: 540;
+
+export function getAdminInvitationMessage(reason: string, role?: unknown): string;
+export function getAdminInvitationRoleLabel(role: unknown): string | null;
 export function normalizeAdminRootDomain(value: unknown): string | null;
-export function buildSuperAdminEditorInvitationUrl(
+export function buildAdminInvitationUrl(
   rootDomain: unknown,
   token: unknown,
   secure: boolean,
 ): string | null;
-export function getSuperAdminEditorInvitationCookieOptions(secure: boolean): {
+export function getAdminInvitationCookieOptions(secure: boolean): {
   httpOnly: true;
   secure: boolean;
   sameSite: "lax";
   path: "/admin-invitation/accept";
   maxAge: number;
 };
-export function shouldClearSuperAdminEditorInvitationCookie(result: unknown): boolean;
+export function shouldClearAdminInvitationCookie(result: unknown): boolean;
 
 export type InvitationCreationResult =
   | {
       ok: true;
       invitationId: string;
       email: string;
+      role: AdminInvitationRole;
       token: string;
       expiresAt: Date;
     }
@@ -32,7 +36,7 @@ export type InvitationCreationResult =
       reason: "invalid_email" | "account_exists" | "inviter_not_allowed";
     };
 
-export function runSuperAdminEditorInvitationFlow(input: {
+export function runAdminInvitationFlow(input: {
   email: unknown;
   invitedByUserId: string;
   rootDomain: string;
@@ -41,7 +45,12 @@ export function runSuperAdminEditorInvitationFlow(input: {
     email: unknown,
     invitedByUserId: string,
   ) => Promise<InvitationCreationResult>;
-  sendEmail: (to: string, url: string, expiresAt: Date) => Promise<void>;
+  sendEmail: (
+    to: string,
+    url: string,
+    expiresAt: Date,
+    role: AdminInvitationRole,
+  ) => Promise<void>;
   revokeInvitation: (invitationId: string) => Promise<boolean>;
 }): Promise<
   | { ok: true }
@@ -57,7 +66,7 @@ export function runSuperAdminEditorInvitationFlow(input: {
     }
 >;
 
-export function runSuperAdminEditorInvitationAcceptance(input: {
+export function runAdminInvitationAcceptance(input: {
   token: unknown;
   password: unknown;
   passwordConfirmation: unknown;
@@ -72,7 +81,7 @@ export function runSuperAdminEditorInvitationAcceptance(input: {
     token: unknown,
     password: unknown,
   ) => Promise<
-    | { ok: true }
+    | { ok: true; role: AdminInvitationRole }
     | { ok: false; reason: "invalid_password" | "invitation_unavailable" }
   >;
 }): Promise<{

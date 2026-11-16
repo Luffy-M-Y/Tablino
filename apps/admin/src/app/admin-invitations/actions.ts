@@ -1,16 +1,16 @@
 "use server";
 
 import {
-  createSuperAdminEditorInvitation,
-  revokeSuperAdminEditorInvitation,
+  createAdminInvitation,
+  revokeAdminInvitation,
 } from "@tablino/db";
-import { sendSuperAdminEditorInvitationEmail } from "@tablino/email";
-import { requireSuperAdminAccess } from "@/lib/authorization";
+import { sendAdminInvitationEmail } from "@tablino/email";
+import { requireAdminPermission } from "@/lib/authorization";
 import {
-  getSuperAdminEditorInvitationMessage,
+  getAdminInvitationMessage,
   normalizeAdminRootDomain,
-  runSuperAdminEditorInvitationFlow,
-} from "@/lib/super-admin-editor-invitation.mjs";
+  runAdminInvitationFlow,
+} from "@/lib/admin-invitation.mjs";
 
 export type InviteAdminActionState = {
   status: "idle" | "success" | "error";
@@ -26,39 +26,39 @@ export async function inviteAdminAction(
   _previousState: InviteAdminActionState,
   formData: FormData,
 ): Promise<InviteAdminActionState> {
-  const inviter = await requireSuperAdminAccess();
+  const inviter = await requireAdminPermission("inviteLector");
 
   const rootDomain = process.env.ADMIN_ROOT_DOMAIN?.trim() ?? "";
   if (!rootDomain) {
     return {
       status: "error",
-      message: getSuperAdminEditorInvitationMessage("missing_root_domain"),
+      message: getAdminInvitationMessage("missing_root_domain"),
     };
   }
   if (normalizeAdminRootDomain(rootDomain) === null) {
     return {
       status: "error",
-      message: getSuperAdminEditorInvitationMessage("invalid_root_domain"),
+      message: getAdminInvitationMessage("invalid_root_domain"),
     };
   }
 
-  const result = await runSuperAdminEditorInvitationFlow({
+  const result = await runAdminInvitationFlow({
     email: readEmail(formData),
     invitedByUserId: inviter.id,
     rootDomain,
     secure: process.env.NODE_ENV === "production",
-    createInvitation: createSuperAdminEditorInvitation,
-    sendEmail: sendSuperAdminEditorInvitationEmail,
-    revokeInvitation: revokeSuperAdminEditorInvitation,
+    createInvitation: createAdminInvitation,
+    sendEmail: sendAdminInvitationEmail,
+    revokeInvitation: revokeAdminInvitation,
   });
 
   return result.ok
     ? {
         status: "success",
-        message: getSuperAdminEditorInvitationMessage("invitation_sent"),
+        message: getAdminInvitationMessage("invitation_sent"),
       }
     : {
         status: "error",
-        message: getSuperAdminEditorInvitationMessage(result.reason),
+        message: getAdminInvitationMessage(result.reason),
       };
 }

@@ -9,8 +9,12 @@ import {
 } from "@tablino/auth";
 import { forbidden, redirect } from "next/navigation";
 import { getAdminHostContext } from "./admin-host-context";
-import { getHostDenialReason, isHostAllowedForUser } from "./host-access.mjs";
+import { getHostDenialReason } from "./host-access.mjs";
 import { resolvePartnershipRoute } from "./partnership-routing.mjs";
+import {
+  getAdminPermissionRoles,
+  type AdminPermission,
+} from "./admin-permissions.mjs";
 
 /**
  * Vérifie le rôle ET l'hôte. Lance AuthorizationDeniedError si l'hôte
@@ -18,7 +22,12 @@ import { resolvePartnershipRoute } from "./partnership-routing.mjs";
  * N'appelle ni redirect() ni forbidden() : destiné aux actions et route handlers.
  */
 export async function requireRoleOnHost(
-  allowedRoles: readonly ("super_admin" | "university_admin")[],
+  allowedRoles: readonly (
+    | "super_admin"
+    | "super_admin_editor"
+    | "super_admin_lector"
+    | "university_admin"
+  )[],
 ): Promise<GuardUser> {
   const user = await requireRole("admin", allowedRoles);
   const hostContext = await getAdminHostContext();
@@ -31,8 +40,15 @@ export async function requireRoleOnHost(
 }
 
 export async function requireAdminAccess() {
-  const user = await requireRoleWithHostCheck(["super_admin", "university_admin"]);
-  return user;
+  return requireAdminPermission("adminWorkspace");
+}
+
+export async function requireGlobalAdminAccess() {
+  return requireAdminPermission("globalDashboard");
+}
+
+export async function requireAdminPermission(permission: AdminPermission) {
+  return requireRoleWithHostCheck(getAdminPermissionRoles(permission));
 }
 
 export async function requireSuperAdminAccess() {
@@ -40,7 +56,14 @@ export async function requireSuperAdminAccess() {
   return user;
 }
 
-async function requireRoleWithHostCheck(allowedRoles: readonly ("super_admin" | "university_admin")[]) {
+async function requireRoleWithHostCheck(
+  allowedRoles: readonly (
+    | "super_admin"
+    | "super_admin_editor"
+    | "super_admin_lector"
+    | "university_admin"
+  )[],
+) {
   let user: GuardUser;
   try {
     user = await requireRoleOnHost(allowedRoles);

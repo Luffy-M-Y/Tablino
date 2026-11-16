@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  buildSuperAdminEditorInvitationUrl,
+  buildAdminInvitationUrl,
   normalizeAdminRootDomain,
-} from "../src/lib/super-admin-editor-invitation.mjs";
+} from "../src/lib/admin-invitation.mjs";
 
 const TOKEN = Buffer.alloc(32, 7).toString("base64url");
 
 test("trims the root domain and builds an HTTPS invitation URL", () => {
-  const result = buildSuperAdminEditorInvitationUrl(`  example.com  `, TOKEN, true);
+  const result = buildAdminInvitationUrl(`  example.com  `, TOKEN, true);
   const url = new URL(result);
 
   assert.equal(url.origin, "https://sup-admin.example.com");
@@ -18,7 +18,7 @@ test("trims the root domain and builds an HTTPS invitation URL", () => {
 
 test("uses HTTP for a local root domain", () => {
   assert.equal(
-    new URL(buildSuperAdminEditorInvitationUrl("localhost:3001", TOKEN, false)).origin,
+    new URL(buildAdminInvitationUrl("localhost:3001", TOKEN, false)).origin,
     "http://sup-admin.localhost:3001",
   );
 });
@@ -35,11 +35,11 @@ test("accepts hostnames and ports but rejects schemes, paths, spaces, and empty 
 
 test("rejects a missing root domain", () => {
   assert.equal(normalizeAdminRootDomain("   "), null);
-  assert.equal(buildSuperAdminEditorInvitationUrl("", TOKEN, true), null);
+  assert.equal(buildAdminInvitationUrl("", TOKEN, true), null);
 });
 
 test("rejects root-domain values that can alter the destination host", () => {
   assert.equal(normalizeAdminRootDomain("example.com/attacker"), null);
   assert.equal(normalizeAdminRootDomain("example.com@evil.test"), null);
-  assert.equal(buildSuperAdminEditorInvitationUrl("example.com", "bad-token", true), null);
+  assert.equal(buildAdminInvitationUrl("example.com", "bad-token", true), null);
 });

@@ -16,7 +16,11 @@ export type AuthenticateUniversityAdminResult =
   | { ok: false; reason: "invalid_credentials" }
   | { ok: false; reason: "email_not_verified"; userId: string };
 
-export type AdminPasswordRole = "super_admin" | "super_admin_editor" | "university_admin";
+export type AdminPasswordRole =
+  | "super_admin"
+  | "super_admin_editor"
+  | "super_admin_lector"
+  | "university_admin";
 
 export type AuthenticateAdminPasswordResult =
   | { ok: true; userId: string; role: AdminPasswordRole }
@@ -84,6 +88,7 @@ export async function authenticateAdminPassword(
       user.role === "university_admin"
       || user.role === "super_admin"
       || (user.role === "super_admin_editor" && user.universityId === null)
+      || (user.role === "super_admin_lector" && user.universityId === null)
     )
     || user.passwordHash === null
     || user.revokedAt !== null

@@ -16,7 +16,7 @@ export function decideAdminGoogleSignIn(options: {
 }): boolean | string | null {
   const { isAuthAdminCentral, user, googleUniversityId } = options;
 
-  if (user?.role === "super_admin_editor") {
+  if (user?.role === "super_admin_lector") {
     return isAuthAdminCentral ? AUTH_ADMIN_GOOGLE_ERROR_PATH : false;
   }
 

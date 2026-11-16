@@ -12,7 +12,7 @@ export type CurrentUniversity = {
 export async function getCurrentUniversity(): Promise<CurrentUniversity | null> {
   const user = await requireAdminAccess();
 
-  if (user.role === "super_admin") {
+  if (user.role === "super_admin" || user.role === "super_admin_editor") {
     return null;
   }
 

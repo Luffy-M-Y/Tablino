@@ -1,5 +1,10 @@
 export type AuthSurface = "web" | "admin";
-export type GuardRole = "super_admin" | "super_admin_editor" | "university_admin" | "student";
+export type GuardRole =
+  | "super_admin"
+  | "super_admin_editor"
+  | "super_admin_lector"
+  | "university_admin"
+  | "student";
 
 export type GuardUser = {
   id: string;
@@ -37,7 +42,7 @@ type GuardDependencies = {
 
 const surfaceRoles: Record<AuthSurface, readonly GuardRole[]> = {
   web: ["student"],
-  admin: ["super_admin", "university_admin"],
+  admin: ["super_admin", "super_admin_editor", "super_admin_lector", "university_admin"],
 };
 
 export function createAuthGuards(dependencies: GuardDependencies) {
@@ -82,7 +87,7 @@ export function createAuthGuards(dependencies: GuardDependencies) {
     ) {
       throw new AuthorizationDeniedError();
     }
-    if (user.role === "super_admin") return user;
+    if (user.role === "super_admin" || user.role === "super_admin_editor") return user;
 
     if (user.role === "university_admin" && user.universityId === universityId) return user;
     if (surface === "web" && user.role === "student" && user.universityId === universityId) return user;

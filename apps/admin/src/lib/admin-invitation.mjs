@@ -1,23 +1,24 @@
-import { shouldClearSuperAdminEditorInvitationCookie } from "./super-admin-editor-invitation-cookie.mjs";
+import { shouldClearAdminInvitationCookie } from "./admin-invitation-cookie.mjs";
 
 export {
-  getSuperAdminEditorInvitationMessage,
-} from "./super-admin-editor-invitation-messages.mjs";
+  getAdminInvitationMessage,
+  getAdminInvitationRoleLabel,
+} from "./admin-invitation-messages.mjs";
 export {
-  buildSuperAdminEditorInvitationUrl,
+  buildAdminInvitationUrl,
   normalizeAdminRootDomain,
-} from "./super-admin-editor-invitation-url.mjs";
+} from "./admin-invitation-url.mjs";
 export {
-  getSuperAdminEditorInvitationCookieOptions,
-  SUPER_ADMIN_EDITOR_INVITATION_COOKIE,
-  SUPER_ADMIN_EDITOR_INVITATION_COOKIE_TTL_SECONDS,
-  SUPER_ADMIN_EDITOR_INVITATION_PATH,
-  SUPER_ADMIN_EDITOR_INVITATION_TTL_SECONDS,
-  shouldClearSuperAdminEditorInvitationCookie,
-} from "./super-admin-editor-invitation-cookie.mjs";
-export { runSuperAdminEditorInvitationFlow } from "./super-admin-editor-invitation-flow.mjs";
+  getAdminInvitationCookieOptions,
+  ADMIN_INVITATION_COOKIE,
+  ADMIN_INVITATION_COOKIE_TTL_SECONDS,
+  ADMIN_INVITATION_PATH,
+  ADMIN_INVITATION_TTL_SECONDS,
+  shouldClearAdminInvitationCookie,
+} from "./admin-invitation-cookie.mjs";
+export { runAdminInvitationFlow } from "./admin-invitation-flow.mjs";
 
-export async function runSuperAdminEditorInvitationAcceptance({
+export async function runAdminInvitationAcceptance({
   token,
   password,
   passwordConfirmation,
@@ -64,6 +65,6 @@ export async function runSuperAdminEditorInvitationAcceptance({
 
   return {
     reason: result.ok ? "accepted" : result.reason,
-    clearCookie: shouldClearSuperAdminEditorInvitationCookie(result),
+    clearCookie: shouldClearAdminInvitationCookie(result),
   };
 }

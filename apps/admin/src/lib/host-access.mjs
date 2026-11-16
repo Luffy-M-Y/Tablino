@@ -12,9 +12,9 @@ export function getHostDenialReason(user, hostContext) {
     return hostContext.kind === "super" ? null : "super_admin_not_on_super_host";
   }
 
-  if (user.role === "super_admin_editor") {
-    if (hostContext.kind !== "super") return "editor_not_on_super_host";
-    if (user.universityId !== null) return "editor_with_university";
+  if (user.role === "super_admin_editor" || user.role === "super_admin_lector") {
+    if (hostContext.kind !== "super") return "global_admin_not_on_super_host";
+    if (user.universityId !== null) return "global_admin_with_university";
     return null;
   }
 

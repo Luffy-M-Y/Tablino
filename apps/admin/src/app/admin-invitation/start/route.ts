@@ -1,15 +1,15 @@
 import { getCloudflareClientIp } from "@tablino/auth";
 import {
   checkRateLimit,
-  checkSuperAdminEditorInvitationToken,
+  checkAdminInvitationToken,
   recordFailure,
 } from "@tablino/db";
 import { getAdminHostContext } from "@/lib/admin-host-context";
 import {
-  getSuperAdminEditorInvitationCookieOptions,
-  SUPER_ADMIN_EDITOR_INVITATION_COOKIE,
-  SUPER_ADMIN_EDITOR_INVITATION_PATH,
-} from "@/lib/super-admin-editor-invitation.mjs";
+  getAdminInvitationCookieOptions,
+  ADMIN_INVITATION_COOKIE,
+  ADMIN_INVITATION_PATH,
+} from "@/lib/admin-invitation.mjs";
 import { NextRequest, NextResponse } from "next/server";
 
 const NO_STORE_HEADERS = {
@@ -25,22 +25,22 @@ function redirectToAcceptance(
   const response = new NextResponse(null, {
     status: 303,
     headers: {
-      Location: SUPER_ADMIN_EDITOR_INVITATION_PATH,
+      Location: ADMIN_INVITATION_PATH,
       ...NO_STORE_HEADERS,
     },
   });
   if (token) {
     response.cookies.set(
-      SUPER_ADMIN_EDITOR_INVITATION_COOKIE,
+      ADMIN_INVITATION_COOKIE,
       token,
-      getSuperAdminEditorInvitationCookieOptions(secure),
+      getAdminInvitationCookieOptions(secure),
     );
   } else if (clearInvitationCookie) {
     response.cookies.set(
-      SUPER_ADMIN_EDITOR_INVITATION_COOKIE,
+      ADMIN_INVITATION_COOKIE,
       "",
       {
-        ...getSuperAdminEditorInvitationCookieOptions(secure),
+        ...getAdminInvitationCookieOptions(secure),
         maxAge: 0,
       },
     );
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
     return redirectToAcceptance(secure);
   }
 
-  const available = await checkSuperAdminEditorInvitationToken(token);
-  if (!available) {
+  const role = await checkAdminInvitationToken(token);
+  if (role === null) {
     if (clientIp !== null) {
       await recordFailure("login_ip", clientIp);
     }

@@ -9,7 +9,7 @@ async function resolveDatabase(database?: DashboardDatabase): Promise<DashboardD
   return database ?? (await import("./client")).db;
 }
 
-export type SuperAdminEditorDashboardData = {
+export type SuperAdminLectorDashboardData = {
   statusTotals: {
     pending: number;
     approved: number;
@@ -24,7 +24,7 @@ export type SuperAdminEditorDashboardData = {
   totalPaid: number;
 };
 
-export type SuperAdminEditorDashboardProjectionInput = {
+export type SuperAdminLectorDashboardProjectionInput = {
   statusRows: Array<{ status: UniversityStatus; total: number | string | null }>;
   universities: Array<{
     name: string;
@@ -40,9 +40,9 @@ function toCount(value: number | string | null): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function projectSuperAdminEditorDashboard(
-  input: SuperAdminEditorDashboardProjectionInput,
-): SuperAdminEditorDashboardData {
+export function projectSuperAdminLectorDashboard(
+  input: SuperAdminLectorDashboardProjectionInput,
+): SuperAdminLectorDashboardData {
   const statusTotals = { pending: 0, approved: 0, active: 0 };
   for (const row of input.statusRows) {
     statusTotals[row.status] = toCount(row.total);
@@ -60,9 +60,9 @@ export function projectSuperAdminEditorDashboard(
   };
 }
 
-export async function getSuperAdminEditorDashboardData(
+export async function getSuperAdminLectorDashboardData(
   database?: DashboardDatabase,
-): Promise<SuperAdminEditorDashboardData> {
+): Promise<SuperAdminLectorDashboardData> {
   const dbInstance = await resolveDatabase(database);
   const [
     statusRows,
@@ -105,7 +105,7 @@ export async function getSuperAdminEditorDashboardData(
       )),
   ]);
 
-  return projectSuperAdminEditorDashboard({
+  return projectSuperAdminLectorDashboard({
     statusRows: statusRows.map(({ status, total }) => ({ status, total })),
     universities,
     totalStudents: studentTotal?.total ?? 0,

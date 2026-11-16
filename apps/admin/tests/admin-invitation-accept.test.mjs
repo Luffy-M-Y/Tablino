@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runSuperAdminEditorInvitationAcceptance } from "../src/lib/super-admin-editor-invitation.mjs";
+import { runAdminInvitationAcceptance } from "../src/lib/admin-invitation.mjs";
 
 const VALID = {
   token: "invitation-token",
@@ -14,7 +14,10 @@ function dependencies(overrides = {}) {
   const calls = [];
   const checkRateLimit = overrides.checkRateLimit ?? (async () => ({ allowed: true }));
   const recordFailure = overrides.recordFailure ?? (async () => {});
-  const consumeInvitation = overrides.consumeInvitation ?? (async () => ({ ok: true }));
+  const consumeInvitation = overrides.consumeInvitation ?? (async () => ({
+    ok: true,
+    role: "super_admin_lector",
+  }));
   return {
     calls,
     input: {
@@ -39,7 +42,7 @@ function dependencies(overrides = {}) {
 test("validation errors do not consume or clear the invitation", async () => {
   const fake = dependencies({ passwordConfirmation: "different" });
 
-  assert.deepEqual(await runSuperAdminEditorInvitationAcceptance(fake.input), {
+  assert.deepEqual(await runAdminInvitationAcceptance(fake.input), {
     reason: "password_mismatch",
     clearCookie: false,
   });
@@ -49,7 +52,7 @@ test("validation errors do not consume or clear the invitation", async () => {
 test("production refuses a missing client IP without reaching rate-limit storage", async () => {
   const fake = dependencies({ clientIp: null });
 
-  assert.deepEqual(await runSuperAdminEditorInvitationAcceptance(fake.input), {
+  assert.deepEqual(await runAdminInvitationAcceptance(fake.input), {
     reason: "ip_unavailable",
     clearCookie: false,
   });
@@ -61,7 +64,7 @@ test("an IP rate-limit block leaves the cookie and invitation untouched", async 
     checkRateLimit: async () => ({ allowed: false }),
   });
 
-  assert.deepEqual(await runSuperAdminEditorInvitationAcceptance(fake.input), {
+  assert.deepEqual(await runAdminInvitationAcceptance(fake.input), {
     reason: "rate_limited",
     clearCookie: false,
   });
@@ -73,7 +76,7 @@ test("a service invalid-password result does not record an IP failure or clear t
     consumeInvitation: async () => ({ ok: false, reason: "invalid_password" }),
   });
 
-  assert.deepEqual(await runSuperAdminEditorInvitationAcceptance(fake.input), {
+  assert.deepEqual(await runAdminInvitationAcceptance(fake.input), {
     reason: "invalid_password",
     clearCookie: false,
   });
@@ -88,7 +91,7 @@ test("an unavailable invitation records the IP failure and clears the cookie", a
     }),
   });
 
-  assert.deepEqual(await runSuperAdminEditorInvitationAcceptance(fake.input), {
+  assert.deepEqual(await runAdminInvitationAcceptance(fake.input), {
     reason: "invitation_unavailable",
     clearCookie: true,
   });
@@ -106,10 +109,10 @@ test("only successful or unavailable consumption results clear the cookie", asyn
   });
 
   assert.equal(
-    (await runSuperAdminEditorInvitationAcceptance(success.input)).clearCookie,
+    (await runAdminInvitationAcceptance(success.input)).clearCookie,
     true,
   );
-  assert.deepEqual(await runSuperAdminEditorInvitationAcceptance(unavailable.input), {
+  assert.deepEqual(await runAdminInvitationAcceptance(unavailable.input), {
     reason: "invitation_unavailable",
     clearCookie: true,
   });

@@ -18,6 +18,7 @@ export function getAvatarInitial(name, email) {
 export function getRoleLabel(role) {
   if (role === "super_admin") return "Super administrateur";
   if (role === "super_admin_editor") return "Éditeur super administrateur";
+  if (role === "super_admin_lector") return "Lecteur super administrateur";
   if (role === "university_admin") return "Administrateur d'université";
   return "Administrateur";
 }
