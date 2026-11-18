@@ -196,3 +196,71 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Dans `feat/admin-structure`, passer une filière en `draft` est autorisé même si elle contient des ressources ou devoirs publiés. Toute future suppression doit être refusée si des dépendants existent, sans cascade depuis l'interface.
 - En attente : domaine `tablino.com`, compte Cloudflare R2, accord de l'ISCOM pour le pilote, rotation des mots de passe Supabase.
 - En cours sur `feat/web-turnstile` : le widget Cloudflare Turnstile et la validation Siteverify fail-closed protègent dans `apps/web` la connexion, les inscriptions e-mail/Google, la vérification/renvoi d'e-mail et toutes les étapes de réinitialisation du mot de passe. Validation locale auth/web réussie ; configuration des clés et test visuel restent à faire. OAuth Google avant/après les Server Actions et `apps/admin` restent hors périmètre de cette étape.
+
+## Rôles super-admin et invitations (`feat/admin-invitations-roles`)
+
+### Rôles super
+- Trois rôles super : `super_admin` (chef, unique, intouchable, provisionné par script `db:create-super-admin`), `super_admin_editor`, `super_admin_lector`.
+- Table `admin_invitations` : stocke les invitations en attente et acceptées. Matrice de permissions dans `apps/admin/src/lib/admin-permissions.ts`.
+- Trigger de protection du chef (`users_protect_super_admin_identity`) : empêche la suppression, la révocation et le changement de rôle du `super_admin` chef en base.
+
+### Invitation
+- Step-up mot de passe : l'inviteur doit reconfirmer son mot de passe seulement pour inviter un `super_admin_editor`.
+- Quota : 10 invitations par heure par inviteur.
+- Audit : 12 mois de rétention, lisible par le chef (`super_admin`) seul. Table `admin_invitation_audit`.
+- Un seul lien d'invitation en attente par adresse e-mail.
+- Jeton : 32 octets aléatoires, haché SHA-256, 48 h de validité, usage unique. Renvoi = invalidation du précédent.
+- L'invitation reste conservée dans la table `admin_invitations` même en cas d'échec d'envoi d'e-mail ; la table `admin_invitation_alert_outbox` ne contient que les alertes e-mail.
+
+### Acceptation d'une invitation
+- Formulaire : mot de passe saisi deux fois.
+- Puis OTP 6 chiffres : 10 min de validité, 5 essais max, renvoi après 60 s, Turnstile sur chaque étape.
+- Le compte n'est créé qu'après validation de l'OTP.
+- Google OAuth pour les invitations : PR 3, hors périmètre de la PR 2.
+
+### Navbar par rôle
+- Navbar calculée depuis la matrice `admin-permissions` : chaque entrée est filtrée par rôle.
+- Chaque rôle voit son rôle écrit.
+- Chef (`super_admin`) et editor (`super_admin_editor`) : un lien par section autorisée.
+- Lector (`super_admin_lector`) : son rôle et le lien Accueil.
+
+### Outbox d'alertes (migration 0022)
+- Table persistante `admin_invitation_alert_outbox`.
+- Tentatives d'envoi : immédiate, +20 min, +60 min, puis échec définitif.
+- Purge : 90 jours. Bail de traitement : 10 min.
+- Route interne `POST` protégée par `ADMIN_INVITATION_OUTBOX_SECRET`. Aucun planificateur automatique pour l'instant.
+- Tables créées par la migration 0022 : `admin_invitation_alert_outbox`, `admin_invitation_audit`, `admin_invitation_codes`.
+
+### Réinitialisation de mot de passe admin par hôte (PR #85 / `fix/admin-password-reset-host-scope`)
+- Fonction `isUserEligibleForAdminPasswordReset(user: AdminPasswordResetCandidate | null | undefined, host: AdminPasswordResetHost): boolean` dans `packages/db/src/password-reset.ts`.
+- Éligibilité par hôte :
+  - Hôte super (`sup-admin`) : seuls `super_admin`, `super_admin_editor`, `super_admin_lector` avec `universityId IS NULL`.
+  - Hôte université (`{slug}-admin`) : seul `university_admin` dont `universityId` correspond à l'université de l'hôte.
+  - Hôte central (`auth-admin`) : personne n'est éligible.
+- Critères de compte : rôle et université conformes à l'hôte, `revokedAt` nul, `emailVerified` non nul, `passwordHash` non nul.
+- Relecture de la ligne `users` à chaque étape (demande, renvoi, vérification du code, changement de mot de passe, page `/nouveau`).
+- Un code émis sur un hôte ne vaut rien sur un autre hôte.
+- Un compte révoqué, non vérifié ou sans mot de passe après la demande ne peut pas terminer le flux.
+- Réponse identique à un e-mail inconnu (anti-énumération) : cookie `tablino-admin.password-reset` avec identifiant sentinelle `PASSWORD_RESET_UNKNOWN_USER_ID`, même redirection.
+- Type `AdminHostContext` (`apps/admin/src/lib/admin-host-context.ts`) est un sous-type strict de `AdminPasswordResetHost` (`packages/db/src/password-reset.ts`) : compatible sans cast.
+
+### Scripts
+- `db:diagnose-super-admin` : script de diagnostic du `super_admin` en lecture seule.
+- `db:set-super-admin-password` : mise à jour du mot de passe du chef via script gardé.
+- `_hidden-password.ts` : saisie masquée réutilisable pour les scripts interactifs.
+- `diagnose-admin-google-account.ts` : garde `argv` pour l'adresse e-mail en argument.
+- `db:test-admin-invitations` : lecture seule par défaut ; `--apply` écrit des lignes temporaires dans la base de test et exige « OK écriture base ».
+
+### Règles de migration
+- `db:migrate` exécute toutes les migrations en attente dans une seule transaction.
+- Une valeur d'enum ajoutée par une migration ne peut pas être utilisée dans la même transaction (limitation PostgreSQL) ; RENAME VALUE permis pour un enum.
+- `db:generate` crée toujours une NOUVELLE migration ; `drizzle-kit 0.31.11` ne reconnaît pas le renommage de valeurs d'enum : générer, puis corriger seulement le SQL.
+- Une migration non appliquée se retire avec `drizzle-kit drop` ; jamais d'édition manuelle de `meta/_journal.json` ni de snapshot.
+- Base de test uniquement : aucune migration sur la base de production sans accord explicite.
+
+### Variables d'environnement ajoutées
+Noms seulement, aucune valeur :
+- `BREVO_API_KEY` — clé d'API Brevo pour l'envoi d'e-mails.
+- `BREVO_SENDER_EMAIL` — adresse expéditeur Brevo.
+- `ADMIN_HOST_SLUG_MAP` — correspondance slug-hôte pour le routage admin multi-tenant.
+- `ADMIN_INVITATION_OUTBOX_SECRET` — secret de la route interne de l'outbox d'alertes.
