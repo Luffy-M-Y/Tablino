@@ -9,11 +9,12 @@ import {
   recordFailure,
   resendAdminPasswordResetCode,
   resetAttempts,
-  verifyPasswordResetCode,
+  verifyAdminPasswordResetCode,
 } from "@tablino/db";
 import { sendPasswordResetEmail } from "@tablino/email";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAdminHostContext } from "@/lib/admin-host-context";
 import { readAdminResetUserId } from "@/lib/password-reset-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
@@ -40,7 +41,12 @@ export async function verifyResetCodeAction(
   const limit = await checkRateLimit("password_reset_verify", userId);
   if (!limit.allowed) return { message: "Trop de tentatives. Réessayez plus tard." };
 
-  const result = await verifyPasswordResetCode(userId, readStringField(formData, "code"));
+  const hostContext = await getAdminHostContext();
+  const result = await verifyAdminPasswordResetCode(
+    userId,
+    readStringField(formData, "code"),
+    hostContext,
+  );
   if (!result.ok) {
     switch (result.reason) {
       case "invalid_input":
@@ -82,7 +88,8 @@ export async function resendResetCodeAction(
     return { message: "Si le compte est admissible, un nouveau code a été envoyé." };
   }
 
-  const result = await resendAdminPasswordResetCode(userId);
+  const hostContext = await getAdminHostContext();
+  const result = await resendAdminPasswordResetCode(userId, hostContext);
   if (result.ok) {
     try {
       await sendPasswordResetEmail(result.email, result.code);

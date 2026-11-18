@@ -3,8 +3,10 @@ import {
   getPasswordResetConfirmedCookieConfig,
   verifyAdminPasswordResetConfirmedToken,
 } from "@tablino/auth";
+import { db, eq, schema, isUserEligibleForAdminPasswordReset } from "@tablino/db";
 import { cookies } from "next/headers";
 import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/auth-ui";
+import { getAdminHostContext } from "@/lib/admin-host-context";
 import { NewPasswordForm } from "./new-password-form";
 
 export default async function NewPasswordPage() {
@@ -15,6 +17,24 @@ export default async function NewPasswordPage() {
     userId = raw ? verifyAdminPasswordResetConfirmedToken(raw) : null;
   } catch {
     userId = null;
+  }
+
+  if (userId !== null) {
+    const hostContext = await getAdminHostContext();
+    const [user] = await db
+      .select({
+        role: schema.users.role,
+        universityId: schema.users.universityId,
+        revokedAt: schema.users.revokedAt,
+        emailVerified: schema.users.emailVerified,
+        passwordHash: schema.users.passwordHash,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+    if (!user || !isUserEligibleForAdminPasswordReset(user, hostContext)) {
+      userId = null;
+    }
   }
 
   return (

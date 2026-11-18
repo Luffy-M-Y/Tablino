@@ -207,9 +207,11 @@ export {
   PASSWORD_RESET_UNKNOWN_USER_ID,
   generatePasswordResetCode,
   hashPasswordResetCode,
+  isUserEligibleForAdminPasswordReset,
   issuePasswordResetCode,
   issueAdminPasswordResetCode,
   verifyPasswordResetCode,
+  verifyAdminPasswordResetCode,
   setStudentPassword,
   setAdminPassword,
   requestPasswordReset,
@@ -218,6 +220,8 @@ export {
   resendAdminPasswordResetCode,
 } from "./password-reset";
 export type {
+  AdminPasswordResetCandidate,
+  AdminPasswordResetHost,
   IssuePasswordResetResult,
   VerifyPasswordResetCodeResult,
   SetPasswordResult,

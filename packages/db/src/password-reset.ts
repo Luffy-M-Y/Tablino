@@ -8,6 +8,53 @@ import { getStudentEmailById } from "./login";
 
 type PasswordResetDatabase = typeof sharedDb;
 
+function isDatabase(value: unknown): value is PasswordResetDatabase {
+  return typeof value === "object" && value !== null && ("select" in value || "transaction" in value);
+}
+
+export type AdminPasswordResetCandidate = {
+  role: string | null | undefined;
+  universityId: string | null | undefined;
+  revokedAt: Date | null | undefined;
+  emailVerified: Date | null | undefined;
+  passwordHash: string | null | undefined;
+};
+
+export type AdminPasswordResetHost =
+  | { kind: "super" }
+  | { kind: "university"; universityId: string }
+  | { kind: "central" }
+  | null
+  | undefined;
+
+export function isUserEligibleForAdminPasswordReset(
+  user: AdminPasswordResetCandidate | null | undefined,
+  host: AdminPasswordResetHost,
+): boolean {
+  if (!user || !host) return false;
+  if (user.revokedAt !== null && user.revokedAt !== undefined) return false;
+  if (user.emailVerified === null || user.emailVerified === undefined) return false;
+  if (user.passwordHash === null || user.passwordHash === undefined || user.passwordHash.length === 0) return false;
+
+  if (host.kind === "super") {
+    return (
+      (user.role === "super_admin" || user.role === "super_admin_editor" || user.role === "super_admin_lector")
+      && user.universityId === null
+    );
+  }
+
+  if (host.kind === "university") {
+    return (
+      user.role === "university_admin"
+      && typeof host.universityId === "string"
+      && host.universityId.length > 0
+      && user.universityId === host.universityId
+    );
+  }
+
+  return false;
+}
+
 async function resolveDatabase(database?: PasswordResetDatabase): Promise<PasswordResetDatabase> {
   return database ?? (await import("./client")).db;
 }
@@ -158,16 +205,81 @@ export async function issuePasswordResetCode(
 
 export async function issueAdminPasswordResetCode(
   userId: string,
-  now = new Date(),
+  hostOrNow?: AdminPasswordResetHost | Date,
+  nowOrDatabase?: Date | PasswordResetDatabase,
   database?: PasswordResetDatabase,
 ): Promise<IssuePasswordResetResult> {
-  return issuePasswordResetCodeForRoles(
-    userId,
-    ADMIN_PASSWORD_RESET_ROLES,
-    "not_admin",
-    now,
-    database,
-  );
+  const host = hostOrNow instanceof Date ? undefined : hostOrNow;
+  const now = hostOrNow instanceof Date
+    ? hostOrNow
+    : (nowOrDatabase instanceof Date ? nowOrDatabase : new Date());
+  const db = hostOrNow instanceof Date
+    ? (isDatabase(nowOrDatabase) ? nowOrDatabase : database)
+    : (isDatabase(database) ? database : (isDatabase(nowOrDatabase) ? nowOrDatabase : undefined));
+
+  try {
+    return await (await resolveDatabase(db)).transaction(async (tx) => {
+      const users = await tx
+        .select({
+          emailVerified: schema.users.emailVerified,
+          passwordHash: schema.users.passwordHash,
+          role: schema.users.role,
+          universityId: schema.users.universityId,
+          revokedAt: schema.users.revokedAt,
+        })
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
+      if (!(users.length > 0)) return { ok: false, reason: "not_found" };
+      if (!isUserEligibleForAdminPasswordReset(users[0], host)) {
+        return { ok: false, reason: "not_admin" };
+      }
+
+      const existingCodes = await tx
+        .select({
+          id: schema.passwordResetCodes.id,
+          sentAt: schema.passwordResetCodes.sentAt,
+        })
+        .from(schema.passwordResetCodes)
+        .where(eq(schema.passwordResetCodes.userId, userId))
+        .limit(1);
+      if (
+        existingCodes.length > 0
+        && existingCodes[0].sentAt.getTime() + PASSWORD_RESET_CODE_RESEND_DELAY_MS > now.getTime()
+      ) {
+        return { ok: false, reason: "too_soon" };
+      }
+
+      const code = generatePasswordResetCode();
+      const values = {
+        codeHash: hashPasswordResetCode(userId, code),
+        expiresAt: new Date(now.getTime() + PASSWORD_RESET_CODE_TTL_MS),
+        attempts: 0,
+        sentAt: now,
+        consumedAt: null,
+      };
+      if (existingCodes.length > 0) {
+        await tx
+          .update(schema.passwordResetCodes)
+          .set(values)
+          .where(eq(schema.passwordResetCodes.userId, userId));
+      } else {
+        await tx.insert(schema.passwordResetCodes).values({ userId, ...values });
+      }
+
+      return { ok: true, code };
+    });
+  } catch (error) {
+    if (
+      typeof error === "object"
+      && error !== null
+      && "code" in error
+      && error.code === "23505"
+    ) {
+      return { ok: false, reason: "too_soon" };
+    }
+    throw error;
+  }
 }
 
 export async function verifyPasswordResetCode(
@@ -184,6 +296,71 @@ export async function verifyPasswordResetCode(
   }
 
   return (await resolveDatabase(database)).transaction(async (tx) => {
+    const resetCodes = await tx
+      .update(schema.passwordResetCodes)
+      .set({ attempts: sql.raw("attempts + 1") })
+      .where(and(
+        eq(schema.passwordResetCodes.userId, userId),
+        isNull(schema.passwordResetCodes.consumedAt),
+        gt(schema.passwordResetCodes.expiresAt, now),
+        lt(schema.passwordResetCodes.attempts, PASSWORD_RESET_CODE_MAX_ATTEMPTS),
+      ))
+      .returning({ codeHash: schema.passwordResetCodes.codeHash });
+    if (!(resetCodes.length > 0)) return { ok: false, reason: "code_unavailable" };
+
+    const storedHashHex = resetCodes[0].codeHash;
+    const storedHash = Buffer.from(storedHashHex, "hex");
+    const suppliedHash = Buffer.from(hashPasswordResetCode(userId, normalizedCode), "hex");
+    if (
+      storedHash.toString("hex") !== storedHashHex
+      || storedHash.length !== suppliedHash.length
+      || !timingSafeEqual(storedHash, suppliedHash)
+    ) {
+      return { ok: false, reason: "invalid_code" };
+    }
+
+    await tx
+      .update(schema.passwordResetCodes)
+      .set({ consumedAt: now })
+      .where(eq(schema.passwordResetCodes.userId, userId));
+
+    return { ok: true };
+  });
+}
+
+export async function verifyAdminPasswordResetCode(
+  userId: string,
+  code: string,
+  host: AdminPasswordResetHost,
+  now = new Date(),
+  database?: PasswordResetDatabase,
+): Promise<VerifyPasswordResetCodeResult> {
+  const normalizedCode = typeof code === "string" ? code.trim() : "";
+  if (normalizedCode.length !== 6) return { ok: false, reason: "invalid_input" };
+  for (const character of normalizedCode) {
+    const digit = character.charCodeAt(0);
+    if (digit < 48 || digit > 57) return { ok: false, reason: "invalid_input" };
+  }
+
+  return (await resolveDatabase(database)).transaction(async (tx) => {
+    const users = await tx
+      .select({
+        id: schema.users.id,
+        role: schema.users.role,
+        universityId: schema.users.universityId,
+        revokedAt: schema.users.revokedAt,
+        emailVerified: schema.users.emailVerified,
+        passwordHash: schema.users.passwordHash,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
+    if (!(users.length > 0)) return { ok: false, reason: "code_unavailable" };
+    if (!isUserEligibleForAdminPasswordReset(users[0], host)) {
+      return { ok: false, reason: "code_unavailable" };
+    }
+
     const resetCodes = await tx
       .update(schema.passwordResetCodes)
       .set({ attempts: sql.raw("attempts + 1") })
@@ -239,18 +416,37 @@ export async function setStudentPassword(
 export async function setAdminPassword(
   userId: string,
   password: string,
+  hostOrDatabase?: AdminPasswordResetHost | PasswordResetDatabase,
   database?: PasswordResetDatabase,
 ): Promise<SetPasswordResult> {
+  const host = isDatabase(hostOrDatabase) ? undefined : hostOrDatabase;
+  const db = isDatabase(hostOrDatabase) ? hostOrDatabase : database;
+
   if (!isPasswordValid(password)) return { ok: false, reason: "invalid_input" };
 
-  return (await resolveDatabase(database)).transaction(async (tx) => {
+  return (await resolveDatabase(db)).transaction(async (tx) => {
+    const users = await tx
+      .select({
+        id: schema.users.id,
+        role: schema.users.role,
+        universityId: schema.users.universityId,
+        revokedAt: schema.users.revokedAt,
+        emailVerified: schema.users.emailVerified,
+        passwordHash: schema.users.passwordHash,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
+    if (!(users.length > 0)) return { ok: false, reason: "not_found" };
+    if (!isUserEligibleForAdminPasswordReset(users[0], host)) {
+      return { ok: false, reason: "not_found" };
+    }
+
     const updated = await tx
       .update(schema.users)
       .set({ passwordHash: hashPassword(password) })
-      .where(and(
-        eq(schema.users.id, userId),
-        inArray(schema.users.role, ADMIN_PASSWORD_RESET_ROLES),
-      ))
+      .where(eq(schema.users.id, userId))
       .returning({ id: schema.users.id });
     if (!(updated.length > 0)) return { ok: false, reason: "not_found" };
 
@@ -305,19 +501,35 @@ export async function requestPasswordReset(
 
 export async function requestAdminPasswordReset(
   email: string,
-  database?: PasswordResetDatabase,
-  now = new Date(),
+  hostOrDatabase?: AdminPasswordResetHost | PasswordResetDatabase,
+  databaseOrNow?: PasswordResetDatabase | Date,
+  nowOrUndefined?: Date,
 ): Promise<AdminPasswordResetRequestResult> {
+  const host = isDatabase(hostOrDatabase) ? undefined : hostOrDatabase;
+  const database = isDatabase(hostOrDatabase)
+    ? hostOrDatabase
+    : (isDatabase(databaseOrNow) ? databaseOrNow : undefined);
+  const now = databaseOrNow instanceof Date
+    ? databaseOrNow
+    : (nowOrUndefined instanceof Date ? nowOrUndefined : new Date());
+
   const normalizedEmail = email.trim().toLowerCase();
   const users = await (await resolveDatabase(database))
-    .select({ id: schema.users.id, role: schema.users.role })
+    .select({
+      id: schema.users.id,
+      role: schema.users.role,
+      universityId: schema.users.universityId,
+      revokedAt: schema.users.revokedAt,
+      emailVerified: schema.users.emailVerified,
+      passwordHash: schema.users.passwordHash,
+    })
     .from(schema.users)
     .where(eq(schema.users.email, normalizedEmail))
     .limit(1);
   if (!(users.length > 0)) {
     return { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID };
   }
-  if (!ADMIN_PASSWORD_RESET_ROLES.some((role) => role === users[0].role)) {
+  if (!isUserEligibleForAdminPasswordReset(users[0], host)) {
     return { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID };
   }
 
@@ -325,7 +537,7 @@ export async function requestAdminPasswordReset(
   const limit = await checkRateLimit("password_reset", normalizedEmail, now, database);
   if (!limit.allowed) return { kind: "existing", userId };
 
-  const issued = await issueAdminPasswordResetCode(userId, now, database);
+  const issued = await issueAdminPasswordResetCode(userId, host, now, database);
   if (!issued.ok) return { kind: "existing", userId };
 
   await recordFailure("password_reset", normalizedEmail, now, database);
@@ -384,13 +596,22 @@ export async function resendPasswordResetCode(
 
 export async function resendAdminPasswordResetCode(
   userId: string,
-  database?: PasswordResetDatabase,
-  now = new Date(),
+  hostOrDatabase?: AdminPasswordResetHost | PasswordResetDatabase,
+  databaseOrNow?: PasswordResetDatabase | Date,
+  nowOrUndefined?: Date,
 ): Promise<AdminPasswordResetResendResult> {
+  const host = isDatabase(hostOrDatabase) ? undefined : hostOrDatabase;
+  const database = isDatabase(hostOrDatabase)
+    ? hostOrDatabase
+    : (isDatabase(databaseOrNow) ? databaseOrNow : undefined);
+  const now = databaseOrNow instanceof Date
+    ? databaseOrNow
+    : (nowOrUndefined instanceof Date ? nowOrUndefined : new Date());
+
   const limit = await checkRateLimit("password_reset", userId, now, database);
   if (!limit.allowed) return { ok: false, reason: "rate_limited" };
 
-  const issued = await issueAdminPasswordResetCode(userId, now, database);
+  const issued = await issueAdminPasswordResetCode(userId, host, now, database);
   if (!issued.ok) {
     switch (issued.reason) {
       case "too_soon":
@@ -410,15 +631,24 @@ export async function resendAdminPasswordResetCode(
 
   await recordFailure("password_reset", userId, now, database);
   const users = await (await resolveDatabase(database))
-    .select({ email: schema.users.email })
+    .select({
+      email: schema.users.email,
+      role: schema.users.role,
+      universityId: schema.users.universityId,
+      revokedAt: schema.users.revokedAt,
+      emailVerified: schema.users.emailVerified,
+      passwordHash: schema.users.passwordHash,
+    })
     .from(schema.users)
-    .where(and(
-      eq(schema.users.id, userId),
-      inArray(schema.users.role, ADMIN_PASSWORD_RESET_ROLES),
-    ))
+    .where(eq(schema.users.id, userId))
     .limit(1);
+
   if (!(users.length > 0) || users[0].email === null) {
     return { ok: false, reason: "not_found" };
   }
+  if (!isUserEligibleForAdminPasswordReset(users[0], host)) {
+    return { ok: false, reason: "not_admin" };
+  }
+
   return { ok: true, email: users[0].email, code: issued.code };
 }

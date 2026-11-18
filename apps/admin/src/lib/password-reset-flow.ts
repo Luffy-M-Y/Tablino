@@ -8,10 +8,15 @@ import {
 import { requestAdminPasswordReset } from "@tablino/db";
 import { cookies } from "next/headers";
 import { sendPasswordResetEmail } from "@tablino/email";
+import { getAdminHostContext, type AdminHostContext } from "./admin-host-context";
 
-export async function startAdminPasswordReset(email: string): Promise<void> {
+export async function startAdminPasswordReset(
+  email: string,
+  hostContext?: AdminHostContext,
+): Promise<void> {
+  const host = hostContext !== undefined ? hostContext : await getAdminHostContext();
   const normalizedEmail = email.trim().toLowerCase();
-  const result = await requestAdminPasswordReset(normalizedEmail);
+  const result = await requestAdminPasswordReset(normalizedEmail, host);
 
   if (result.kind === "issued") {
     try {

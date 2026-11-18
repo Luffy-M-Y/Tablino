@@ -8,6 +8,7 @@ import {
 import { setAdminPassword } from "@tablino/db";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAdminHostContext } from "@/lib/admin-host-context";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type NewPasswordActionState = { message: string | null };
@@ -47,7 +48,8 @@ export async function setNewPasswordAction(
     return { message: "Les mots de passe ne correspondent pas." };
   }
 
-  const result = await setAdminPassword(userId, password);
+  const hostContext = await getAdminHostContext();
+  const result = await setAdminPassword(userId, password, hostContext);
   if (!result.ok) {
     switch (result.reason) {
       case "invalid_input":

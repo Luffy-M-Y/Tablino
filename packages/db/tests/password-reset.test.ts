@@ -5,6 +5,7 @@ import {
   PASSWORD_RESET_UNKNOWN_USER_ID,
   generatePasswordResetCode,
   hashPasswordResetCode,
+  isUserEligibleForAdminPasswordReset,
   issueAdminPasswordResetCode,
   issuePasswordResetCode,
   requestAdminPasswordReset,
@@ -14,6 +15,8 @@ import {
   setAdminPassword,
   setStudentPassword,
   verifyPasswordResetCode,
+  verifyAdminPasswordResetCode,
+  type AdminPasswordResetHost,
 } from "../src/password-reset";
 import { hashPassword } from "../src/password";
 import * as schema from "../src/schema";
@@ -329,11 +332,21 @@ test("issueAdminPasswordResetCode accepts university admins and all super-admin 
     "super_admin_editor",
     "super_admin_lector",
   ]) {
+    const isUniv = role === "university_admin";
+    const host: AdminPasswordResetHost = isUniv
+      ? { kind: "university", universityId: "univ-1" }
+      : { kind: "super" };
     const fake = createMemoryDatabase({
-      selectedRows: [[{ emailVerified: now, passwordHash: "stored-hash", role }], []],
+      selectedRows: [[{
+        emailVerified: now,
+        passwordHash: "stored-hash",
+        role,
+        universityId: isUniv ? "univ-1" : null,
+        revokedAt: null,
+      }], []],
     });
 
-    const result = await issueAdminPasswordResetCode(userId, now, fake.database);
+    const result = await issueAdminPasswordResetCode(userId, host, now, fake.database);
 
     assert.equal(result.ok, true, role);
     assert.equal(fake.transactionCount, 1, role);
@@ -441,9 +454,20 @@ test("setStudentPassword updates the hash and deletes every session for the user
 });
 
 test("setAdminPassword updates an admin password and deletes every session", async () => {
-  const fake = createMemoryDatabase({ updateResults: [[{ id: userId }]] });
+  const host: AdminPasswordResetHost = { kind: "super" };
+  const fake = createMemoryDatabase({
+    selectedRows: [[{
+      id: userId,
+      role: "super_admin",
+      universityId: null,
+      revokedAt: null,
+      emailVerified: now,
+      passwordHash: "stored-hash",
+    }]],
+    updateResults: [[{ id: userId }]],
+  });
 
-  const result = await setAdminPassword(userId, "secure password", fake.database);
+  const result = await setAdminPassword(userId, "secure password", host, fake.database);
 
   assert.deepEqual(result, { ok: true });
   assert.equal(fake.updates.length, 1);
@@ -554,17 +578,31 @@ test("requestAdminPasswordReset treats non-admin accounts as unknown", async () 
 });
 
 test("requestAdminPasswordReset issues a code for a verified admin", async () => {
+  const host: AdminPasswordResetHost = { kind: "university", universityId: "univ-1" };
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: userId, role: "university_admin" }],
+      [{
+        id: userId,
+        role: "university_admin",
+        universityId: "univ-1",
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "stored-hash",
+      }],
       [],
-      [{ emailVerified: now, passwordHash: "stored-hash", role: "university_admin" }],
+      [{
+        emailVerified: now,
+        passwordHash: "stored-hash",
+        role: "university_admin",
+        universityId: "univ-1",
+        revokedAt: null,
+      }],
       [],
     ],
     executeRows: [[{ attempts: "1", blocked_until: null }]],
   });
 
-  const result = await requestAdminPasswordReset(" ADMIN@example.com ", fake.database, now);
+  const result = await requestAdminPasswordReset(" ADMIN@example.com ", host, fake.database, now);
 
   assert.equal(result.kind, "issued");
   if (result.kind !== "issued") return;
@@ -644,21 +682,427 @@ test("resendPasswordResetCode issues a code and returns the email", async () => 
 });
 
 test("resendAdminPasswordResetCode issues a code only for an admin", async () => {
+  const host: AdminPasswordResetHost = { kind: "super" };
   const fake = createMemoryDatabase({
     selectedRows: [
       [],
-      [{ emailVerified: now, passwordHash: "stored-hash", role: "super_admin" }],
+      [{
+        emailVerified: now,
+        passwordHash: "stored-hash",
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+      }],
       [],
-      [{ email: "admin@example.com" }],
+      [{
+        email: "admin@example.com",
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "stored-hash",
+      }],
     ],
     executeRows: [[{ attempts: "1", blocked_until: null }]],
   });
 
-  const result = await resendAdminPasswordResetCode(userId, fake.database, now);
+  const result = await resendAdminPasswordResetCode(userId, host, fake.database, now);
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.email, "admin@example.com");
   assert.equal(result.code.length, 6);
   assert.equal(fake.executeCalls, 1);
+});
+
+test("isUserEligibleForAdminPasswordReset evaluates eligibility correctly across hosts and account statuses", () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const univHost: AdminPasswordResetHost = { kind: "university", universityId: "univ-1" };
+  const otherUnivHost: AdminPasswordResetHost = { kind: "university", universityId: "univ-2" };
+  const centralHost: AdminPasswordResetHost = { kind: "central" };
+
+  const validSuper = {
+    role: "super_admin",
+    universityId: null,
+    revokedAt: null,
+    emailVerified: now,
+    passwordHash: "hash",
+  };
+
+  const validSuperEditor = {
+    role: "super_admin_editor",
+    universityId: null,
+    revokedAt: null,
+    emailVerified: now,
+    passwordHash: "hash",
+  };
+
+  const validSuperLector = {
+    role: "super_admin_lector",
+    universityId: null,
+    revokedAt: null,
+    emailVerified: now,
+    passwordHash: "hash",
+  };
+
+  const validUnivAdmin = {
+    role: "university_admin",
+    universityId: "univ-1",
+    revokedAt: null,
+    emailVerified: now,
+    passwordHash: "hash",
+  };
+
+  // Super host acceptance
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuper, superHost), true);
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuperEditor, superHost), true);
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuperLector, superHost), true);
+  assert.equal(isUserEligibleForAdminPasswordReset(validUnivAdmin, superHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validSuper, universityId: "univ-1" }, superHost), false);
+
+  // University host acceptance
+  assert.equal(isUserEligibleForAdminPasswordReset(validUnivAdmin, univHost), true);
+  assert.equal(isUserEligibleForAdminPasswordReset(validUnivAdmin, otherUnivHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuper, univHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validUnivAdmin, universityId: null }, univHost), false);
+
+  // Central host rejection
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuper, centralHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset(validUnivAdmin, centralHost), false);
+
+  // Missing or invalid host
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuper, null), false);
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuper, undefined), false);
+
+  // Student rejection
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validUnivAdmin, role: "student" }, univHost), false);
+
+  // Account state rejection
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validSuper, revokedAt: now }, superHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validUnivAdmin, revokedAt: now }, univHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validSuper, emailVerified: null }, superHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validSuper, passwordHash: null }, superHost), false);
+  assert.equal(isUserEligibleForAdminPasswordReset({ ...validSuper, passwordHash: "" }, superHost), false);
+});
+
+test("requestAdminPasswordReset enforces host context and account eligibility", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const univHost: AdminPasswordResetHost = { kind: "university", universityId: "univ-1" };
+  const centralHost: AdminPasswordResetHost = { kind: "central" };
+
+  // Super admin on super host -> issued
+  const fakeSuper = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "stored-hash",
+      }],
+      [],
+      [{
+        emailVerified: now,
+        passwordHash: "stored-hash",
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+      }],
+      [],
+    ],
+    executeRows: [[{ attempts: "1", blocked_until: null }]],
+  });
+  const superResult = await requestAdminPasswordReset("admin@example.com", superHost, fakeSuper.database, now);
+  assert.equal(superResult.kind, "issued");
+
+  // University admin on super host -> unknown
+  const fakeWrongHost = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "university_admin",
+        universityId: "univ-1",
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "stored-hash",
+      }],
+    ],
+  });
+  const wrongHostResult = await requestAdminPasswordReset("admin@example.com", superHost, fakeWrongHost.database, now);
+  assert.deepEqual(wrongHostResult, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.deepEqual(fakeWrongHost.inserts, []);
+  assert.deepEqual(fakeWrongHost.updates, []);
+
+  // Central host -> always unknown
+  const fakeCentral = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "stored-hash",
+      }],
+    ],
+  });
+  const centralResult = await requestAdminPasswordReset("admin@example.com", centralHost, fakeCentral.database, now);
+  assert.deepEqual(centralResult, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.deepEqual(fakeCentral.inserts, []);
+  assert.deepEqual(fakeCentral.updates, []);
+
+  // Revoked account -> unknown
+  const fakeRevoked = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "university_admin",
+        universityId: "univ-1",
+        revokedAt: now,
+        emailVerified: now,
+        passwordHash: "stored-hash",
+      }],
+    ],
+  });
+  const revokedResult = await requestAdminPasswordReset("admin@example.com", univHost, fakeRevoked.database, now);
+  assert.deepEqual(revokedResult, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.deepEqual(fakeRevoked.inserts, []);
+  assert.deepEqual(fakeRevoked.updates, []);
+});
+
+test("verifyAdminPasswordResetCode rejects cross-host verification and revoked accounts", async () => {
+  const code = "123456";
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const univHost: AdminPasswordResetHost = { kind: "university", universityId: "univ-1" };
+  const centralHost: AdminPasswordResetHost = { kind: "central" };
+
+  // Correct verification on super host
+  const fakeSuper = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "hash",
+      }],
+    ],
+    updateResults: [[{ codeHash: hashPasswordResetCode(userId, code) }]],
+  });
+  const okResult = await verifyAdminPasswordResetCode(userId, code, superHost, now, fakeSuper.database);
+  assert.deepEqual(okResult, { ok: true });
+
+  // Cross-host verification (super admin verified on university host)
+  const fakeCrossHost = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "hash",
+      }],
+    ],
+    updateResults: [[{ codeHash: hashPasswordResetCode(userId, code) }]],
+  });
+  const crossHostResult = await verifyAdminPasswordResetCode(userId, code, univHost, now, fakeCrossHost.database);
+  assert.deepEqual(crossHostResult, { ok: false, reason: "code_unavailable" });
+  assert.deepEqual(fakeCrossHost.updates, []);
+
+  // Central host verification
+  const fakeCentral = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "hash",
+      }],
+    ],
+    updateResults: [[{ codeHash: hashPasswordResetCode(userId, code) }]],
+  });
+  const centralResult = await verifyAdminPasswordResetCode(userId, code, centralHost, now, fakeCentral.database);
+  assert.deepEqual(centralResult, { ok: false, reason: "code_unavailable" });
+  assert.deepEqual(fakeCentral.updates, []);
+
+  // Revoked account
+  const fakeRevoked = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: now,
+        emailVerified: now,
+        passwordHash: "hash",
+      }],
+    ],
+    updateResults: [[{ codeHash: hashPasswordResetCode(userId, code) }]],
+  });
+  const revokedResult = await verifyAdminPasswordResetCode(userId, code, superHost, now, fakeRevoked.database);
+  assert.deepEqual(revokedResult, { ok: false, reason: "code_unavailable" });
+  assert.deepEqual(fakeRevoked.updates, []);
+});
+
+test("setAdminPassword enforces host context and account status before updating", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const univHost: AdminPasswordResetHost = { kind: "university", universityId: "univ-1" };
+
+  // Matching host -> success
+  const fakeOk = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "old-hash",
+      }],
+    ],
+    updateResults: [[{ id: userId }]],
+  });
+  const okResult = await setAdminPassword(userId, "new-password-123", superHost, fakeOk.database);
+  assert.deepEqual(okResult, { ok: true });
+
+  // Cross-host attempt -> not_found
+  const fakeCross = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: now,
+        passwordHash: "old-hash",
+      }],
+    ],
+    updateResults: [[{ id: userId }]],
+  });
+  const crossResult = await setAdminPassword(userId, "new-password-123", univHost, fakeCross.database);
+  assert.deepEqual(crossResult, { ok: false, reason: "not_found" });
+  assert.deepEqual(fakeCross.updates, []);
+
+  // Revoked account -> not_found
+  const fakeRevoked = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: now,
+        emailVerified: now,
+        passwordHash: "old-hash",
+      }],
+    ],
+    updateResults: [[{ id: userId }]],
+  });
+  const revokedResult = await setAdminPassword(userId, "new-password-123", superHost, fakeRevoked.database);
+  assert.deepEqual(revokedResult, { ok: false, reason: "not_found" });
+  assert.deepEqual(fakeRevoked.updates, []);
+});
+
+test("requestAdminPasswordReset rejects students on both super and university hosts", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const univHost: AdminPasswordResetHost = { kind: "university", universityId: "univ-1" };
+
+  const studentRow = {
+    id: userId,
+    role: "student",
+    universityId: "univ-1",
+    revokedAt: null,
+    emailVerified: now,
+    passwordHash: "stored-hash",
+  };
+
+  const fakeSuper = createMemoryDatabase({
+    selectedRows: [[studentRow]],
+  });
+  const superResult = await requestAdminPasswordReset("student@example.com", superHost, fakeSuper.database, now);
+  assert.deepEqual(superResult, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.equal(fakeSuper.transactionCount, 0);
+
+  const fakeUniv = createMemoryDatabase({
+    selectedRows: [[studentRow]],
+  });
+  const univResult = await requestAdminPasswordReset("student@example.com", univHost, fakeUniv.database, now);
+  assert.deepEqual(univResult, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.equal(fakeUniv.transactionCount, 0);
+});
+
+test("requestAdminPasswordReset for non-existent email returns unknown with sentinel and creates no code", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const fake = createMemoryDatabase({
+    selectedRows: [[]],
+  });
+
+  const result = await requestAdminPasswordReset("unknown@example.com", superHost, fake.database, now);
+  assert.deepEqual(result, { kind: "unknown", userId: PASSWORD_RESET_UNKNOWN_USER_ID });
+  assert.deepEqual(fake.inserts, []);
+  assert.equal(fake.transactionCount, 0);
+});
+
+test("resendAdminPasswordResetCode rejects revoked accounts", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [],
+      [{
+        emailVerified: now,
+        passwordHash: "stored-hash",
+        role: "super_admin",
+        universityId: null,
+        revokedAt: now,
+      }],
+    ],
+  });
+
+  const result = await resendAdminPasswordResetCode(userId, superHost, fake.database, now);
+  assert.deepEqual(result, { ok: false, reason: "not_admin" });
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("setAdminPassword rejects account with null emailVerified", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{
+        id: userId,
+        role: "super_admin",
+        universityId: null,
+        revokedAt: null,
+        emailVerified: null,
+        passwordHash: "old-hash",
+      }],
+    ],
+  });
+
+  const result = await setAdminPassword(userId, "new-password-123", superHost, fake.database);
+  assert.deepEqual(result, { ok: false, reason: "not_found" });
+  assert.deepEqual(fake.updates, []);
+});
+
+test("issueAdminPasswordResetCode rejects revoked account", async () => {
+  const superHost: AdminPasswordResetHost = { kind: "super" };
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{
+        emailVerified: now,
+        passwordHash: "stored-hash",
+        role: "super_admin",
+        universityId: null,
+        revokedAt: now,
+      }],
+    ],
+  });
+
+  const result = await issueAdminPasswordResetCode(userId, superHost, now, fake.database);
+  assert.deepEqual(result, { ok: false, reason: "not_admin" });
+  assert.deepEqual(fake.inserts, []);
+  assert.deepEqual(fake.updates, []);
 });
