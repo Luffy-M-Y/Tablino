@@ -8,7 +8,7 @@ import {
   getSuperAdminRevenue,
 } from "@/lib/dashboard-queries";
 import { formatAmount } from "@/lib/format-amount.mjs";
-import { requireAdminAccess } from "@/lib/authorization";
+import { requireAdminAccess, requireRoleOnHost } from "@/lib/authorization";
 import { getAvatarInitial, getRoleLabel } from "@/lib/admin-profile.mjs";
 import Link from "next/link";
 import {
@@ -54,6 +54,7 @@ export default async function HomePage() {
     getCurrentUniversityId,
   }));
   if (session?.user?.role === "super_admin_lector") {
+    const authorizedLector = await requireRoleOnHost(["super_admin_lector"]);
     const { statusTotals, universities, totalStudents, totalPaid } =
       await getSuperAdminLectorDashboard();
     const name = session.user.name ?? null;
@@ -61,9 +62,9 @@ export default async function HomePage() {
     const profile: AdminProfile = {
       email,
       name,
-      roleLabel: getRoleLabel("super_admin_lector"),
+      roleLabel: getRoleLabel(authorizedLector.role),
       initial: getAvatarInitial(name, email),
-      role: "super_admin_lector",
+      role: authorizedLector.role,
       universityName: null,
       universityAcronym: null,
     };

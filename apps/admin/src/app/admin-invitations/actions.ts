@@ -1,15 +1,25 @@
 "use server";
 
+import { getCloudflareClientIp } from "@tablino/auth";
 import {
   createAdminInvitation,
-  revokeAdminInvitation,
+  enqueueAdminInvitationAlerts,
+  processAdminInvitationAlertOutbox,
+  verifyAdminInvitationStepUp,
 } from "@tablino/db";
-import { sendAdminInvitationEmail } from "@tablino/email";
+import {
+  sendAdminInvitationAlertEmail,
+  sendAdminInvitationEmail,
+} from "@tablino/email";
+import { headers } from "next/headers";
 import { requireAdminPermission } from "@/lib/authorization";
+import {
+  runAdminInvitationAction,
+  type AdminInvitationActionResult,
+} from "@/lib/admin-invitation-action.mjs";
 import {
   getAdminInvitationMessage,
   normalizeAdminRootDomain,
-  runAdminInvitationFlow,
 } from "@/lib/admin-invitation.mjs";
 
 export type InviteAdminActionState = {
@@ -17,48 +27,56 @@ export type InviteAdminActionState = {
   message: string | null;
 };
 
-function readEmail(formData: FormData): string {
-  const value = formData.get("email");
+function readStringField(formData: FormData, name: string): string {
+  const value = formData.get(name);
   return typeof value === "string" ? value : "";
+}
+
+function getInvitationActionMessage(result: AdminInvitationActionResult): string {
+  if (!result.ok) return getAdminInvitationMessage(result.reason);
+  return getAdminInvitationMessage(
+    result.emailSent ? "invitation_sent" : "invitation_created_email_failed",
+  );
 }
 
 export async function inviteAdminAction(
   _previousState: InviteAdminActionState,
   formData: FormData,
 ): Promise<InviteAdminActionState> {
-  const inviter = await requireAdminPermission("inviteLector");
-
-  const rootDomain = process.env.ADMIN_ROOT_DOMAIN?.trim() ?? "";
-  if (!rootDomain) {
-    return {
-      status: "error",
-      message: getAdminInvitationMessage("missing_root_domain"),
-    };
-  }
-  if (normalizeAdminRootDomain(rootDomain) === null) {
+  const inviter = await requireAdminPermission("invitations");
+  const rootDomain = normalizeAdminRootDomain(process.env.ADMIN_ROOT_DOMAIN);
+  if (rootDomain === null) {
     return {
       status: "error",
       message: getAdminInvitationMessage("invalid_root_domain"),
     };
   }
 
-  const result = await runAdminInvitationFlow({
-    email: readEmail(formData),
-    invitedByUserId: inviter.id,
+  const requestHeaders = await headers();
+  const clientIp = getCloudflareClientIp(requestHeaders);
+  const result = await runAdminInvitationAction({
+    actor: inviter,
+    email: readStringField(formData, "email"),
+    role: readStringField(formData, "role"),
+    password: readStringField(formData, "password"),
+    clientIp,
     rootDomain,
     secure: process.env.NODE_ENV === "production",
+    verifyStepUp: verifyAdminInvitationStepUp,
     createInvitation: createAdminInvitation,
     sendEmail: sendAdminInvitationEmail,
-    revokeInvitation: revokeAdminInvitation,
+    enqueueAlerts: enqueueAdminInvitationAlerts,
+    processAlerts: async () => processAdminInvitationAlertOutbox(
+      (alert) => sendAdminInvitationAlertEmail(alert.recipientEmail, {
+        inviterEmail: alert.inviterEmail,
+        invitedEmail: alert.invitedEmail,
+        role: alert.role,
+        invitedAt: alert.invitedAt,
+      }),
+    ),
   });
 
   return result.ok
-    ? {
-        status: "success",
-        message: getAdminInvitationMessage("invitation_sent"),
-      }
-    : {
-        status: "error",
-        message: getAdminInvitationMessage(result.reason),
-      };
+    ? { status: "success", message: getInvitationActionMessage(result) }
+    : { status: "error", message: getAdminInvitationMessage(result.reason) };
 }

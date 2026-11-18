@@ -8,6 +8,10 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts"
   }
 }

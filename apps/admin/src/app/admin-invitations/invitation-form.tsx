@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   adminFieldClass,
   adminLabelClass,
@@ -16,11 +16,40 @@ const initialState: InviteAdminActionState = {
   message: null,
 };
 
-export function InvitationForm() {
+type InvitationRoleOption = {
+  value: "super_admin_editor" | "super_admin_lector";
+  label: string;
+};
+
+export function InvitationForm({ roles }: { roles: InvitationRoleOption[] }) {
   const [state, formAction, pending] = useActionState(inviteAdminAction, initialState);
+  const [role, setRole] = useState(roles[roles.length - 1]?.value ?? "");
+  const canInviteEditor = role === "super_admin_editor";
 
   return (
     <form action={formAction} className="space-y-5">
+      <div>
+        <label htmlFor="invited-admin-role" className={adminLabelClass}>
+          Rôle
+        </label>
+        <select
+          id="invited-admin-role"
+          name="role"
+          value={role}
+          onChange={(event) => {
+            const selectedRole = roles.find((option) => option.value === event.target.value);
+            if (selectedRole) setRole(selectedRole.value);
+          }}
+          required
+          className={adminFieldClass}
+        >
+          {roles.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <div>
         <label htmlFor="invited-admin-email" className={adminLabelClass}>
           Adresse e-mail
@@ -35,6 +64,21 @@ export function InvitationForm() {
           className={adminFieldClass}
         />
       </div>
+      {canInviteEditor ? (
+        <div>
+          <label htmlFor="inviter-password" className={adminLabelClass}>
+            Mot de passe de votre compte
+          </label>
+          <input
+            id="inviter-password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className={adminFieldClass}
+          />
+        </div>
+      ) : null}
       {state.message ? (
         <p
           role={state.status === "success" ? "status" : "alert"}

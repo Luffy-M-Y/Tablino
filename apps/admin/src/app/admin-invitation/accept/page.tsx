@@ -33,7 +33,8 @@ export default async function AcceptAdminInvitationPage() {
         </h1>
         {available ? (
           <p className="mb-5 mt-1 text-center text-sm text-[color:var(--color-muted-foreground)]">
-            Choisissez un mot de passe pour créer votre compte {roleLabel}.
+            Créez un mot de passe pour votre compte {roleLabel} et confirmez
+            votre adresse e-mail avec le code envoyé.
           </p>
         ) : null}
         <section className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6">

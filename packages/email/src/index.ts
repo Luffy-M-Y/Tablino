@@ -143,3 +143,48 @@ export async function sendAdminInvitationEmail(
     textContent: `Vous avez été invité à rejoindre l'administration Tablino comme ${roleLabel}.\n\nAccepter l'invitation : ${invitationUrl}\n\nCe lien ne peut être utilisé qu'une seule fois.\n\nCe lien expire le ${expiry} (UTC). Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`,
   });
 }
+
+export async function sendAdminInvitationCodeEmail(
+  to: string,
+  code: string,
+): Promise<void> {
+  return sendBrevoEmail({
+    to,
+    subject: "Code de confirmation de votre invitation Tablino",
+    htmlContent: `<p>Votre code de confirmation est : <strong>${escapeHtml(code)}</strong>.</p><p>Ce code est valable 10 minutes.</p>`,
+    textContent: `Votre code de confirmation est : ${code}. Ce code est valable 10 minutes.`,
+  });
+}
+
+export async function sendAdminInvitationAlertEmail(
+  to: string,
+  invitation: {
+    inviterEmail: string;
+    invitedEmail: string;
+    role: "super_admin_editor" | "super_admin_lector";
+    invitedAt: Date;
+  },
+): Promise<void> {
+  const roleLabels = {
+    super_admin_editor: "Éditeur super administrateur",
+    super_admin_lector: "Lecteur super administrateur",
+  } as const;
+  if (invitation.role !== "super_admin_editor" && invitation.role !== "super_admin_lector") {
+    throw new Error("Rôle d’invitation invalide.");
+  }
+  const roleLabel = roleLabels[invitation.role];
+  const inviterEmail = escapeHtml(invitation.inviterEmail);
+  const invitedEmail = escapeHtml(invitation.invitedEmail);
+  const createdAt = new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(invitation.invitedAt);
+
+  return sendBrevoEmail({
+    to,
+    subject: "Nouvelle invitation d’administration Tablino",
+    htmlContent: `<p>${inviterEmail} a invité ${invitedEmail} comme ${roleLabel} le ${escapeHtml(createdAt)} (UTC).</p>`,
+    textContent: `${invitation.inviterEmail} a invité ${invitation.invitedEmail} comme ${roleLabel} le ${createdAt} (UTC).`,
+  });
+}

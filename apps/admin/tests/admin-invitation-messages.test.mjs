@@ -30,10 +30,18 @@ test("explains a denied inviter", () => {
   );
 });
 
+test("explains a blocked editor step-up attempt", () => {
+  assert.equal(
+    getAdminInvitationMessage("step_up_rate_limited"),
+    "Trop d'essais. Réessayez plus tard.",
+  );
+});
+
 test("explains delivery failure without exposing the invitation URL", () => {
   const message = getAdminInvitationMessage("email_failed");
 
-  assert.match(message, /révoquée/);
+  assert.match(message, /créée/);
+  assert.match(message, /renvoyer/);
   assert.doesNotMatch(message, /https?:|token=/i);
 });
 

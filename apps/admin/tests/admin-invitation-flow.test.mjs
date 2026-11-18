@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runAdminInvitationFlow } from "../src/lib/admin-invitation.mjs";
+import { runAdminInvitationFlow } from "../src/lib/admin-invitation-flow.mjs";
 
 const CREATED = {
   ok: true,
   invitationId: "invitation-id",
+  auditId: "audit-id",
   email: "reader@example.test",
   role: "super_admin_lector",
   token: Buffer.alloc(32, 5).toString("base64url"),
@@ -15,12 +16,15 @@ function dependencies(overrides = {}) {
   const calls = [];
   const createInvitation = overrides.createInvitation ?? (async () => CREATED);
   const sendEmail = overrides.sendEmail ?? (async () => {});
-  const revokeInvitation = overrides.revokeInvitation ?? (async () => true);
+  const enqueueAlerts = overrides.enqueueAlerts ?? (async () => {});
+  const processAlerts = overrides.processAlerts ?? (async () => {});
   return {
     calls,
     input: {
       email: "reader@example.test",
       invitedByUserId: "admin-id",
+      role: "super_admin_lector",
+      clientIp: "192.0.2.4",
       rootDomain: "example.test",
       secure: true,
       ...overrides,
@@ -32,9 +36,13 @@ function dependencies(overrides = {}) {
         calls.push(["send", ...args]);
         return sendEmail(...args);
       },
-      revokeInvitation: async (...args) => {
-        calls.push(["revoke", ...args]);
-        return revokeInvitation(...args);
+      enqueueAlerts: async (...args) => {
+        calls.push(["enqueue", ...args]);
+        return enqueueAlerts(...args);
+      },
+      processAlerts: async (...args) => {
+        calls.push(["process", ...args]);
+        return processAlerts(...args);
       },
     },
   };
@@ -50,97 +58,102 @@ test("rejects an invalid root domain before creating an invitation", async () =>
   assert.deepEqual(fake.calls, []);
 });
 
-test("returns invalid email without sending mail", async () => {
-  const fake = dependencies({
-    createInvitation: async () => ({ ok: false, reason: "invalid_email" }),
-  });
+test("returns service failures without sending mail or alerting", async () => {
+  for (const reason of ["invalid_email", "account_exists", "inviter_not_allowed", "quota_exceeded"]) {
+    const fake = dependencies({
+      createInvitation: async () => ({ ok: false, reason }),
+    });
 
-  assert.deepEqual(await runAdminInvitationFlow(fake.input), {
-    ok: false,
-    reason: "invalid_email",
-  });
-  assert.equal(fake.calls.length, 1);
+    assert.deepEqual(await runAdminInvitationFlow(fake.input), {
+      ok: false,
+      reason,
+    });
+    assert.deepEqual(fake.calls.map(([name]) => name), ["create"]);
+  }
 });
 
-test("returns account-exists without sending mail", async () => {
-  const fake = dependencies({
-    createInvitation: async () => ({ ok: false, reason: "account_exists" }),
-  });
-
-  assert.deepEqual(await runAdminInvitationFlow(fake.input), {
-    ok: false,
-    reason: "account_exists",
-  });
-  assert.equal(fake.calls.length, 1);
-});
-
-test("returns inviter-not-allowed without sending mail", async () => {
-  const fake = dependencies({
-    createInvitation: async () => ({ ok: false, reason: "inviter_not_allowed" }),
-  });
-
-  assert.deepEqual(await runAdminInvitationFlow(fake.input), {
-    ok: false,
-    reason: "inviter_not_allowed",
-  });
-  assert.equal(fake.calls.length, 1);
-});
-
-test("sends a link for the created invitation without returning its URL or token", async () => {
+test("sends a role-specific link and enqueues alerts without returning its URL or token", async () => {
   const fake = dependencies();
 
   const result = await runAdminInvitationFlow(fake.input);
 
-  assert.deepEqual(result, { ok: true });
-  assert.deepEqual(fake.calls.map(([name]) => name), ["create", "send"]);
+  assert.deepEqual(result, {
+    ok: true,
+    emailSent: true,
+    invitationId: "invitation-id",
+    sendError: null,
+  });
+  assert.deepEqual(fake.calls.map(([name]) => name), [
+    "create",
+    "send",
+    "enqueue",
+    "process",
+  ]);
+  assert.deepEqual(fake.calls[0], [
+    "create",
+    "reader@example.test",
+    "admin-id",
+    "super_admin_lector",
+    "192.0.2.4",
+  ]);
   assert.equal(fake.calls[1][1], "reader@example.test");
   assert.match(fake.calls[1][2], /^https:\/\/sup-admin\.example\.test\//);
   assert.equal(fake.calls[1][3], CREATED.expiresAt);
   assert.equal(fake.calls[1][4], "super_admin_lector");
+  assert.deepEqual(fake.calls[2], ["enqueue", "audit-id"]);
   assert.equal(JSON.stringify(result).includes(CREATED.token), false);
+  assert.equal(JSON.stringify(result).includes("invitationUrl"), false);
 });
 
-test("revokes immediately when delivery fails", async () => {
+test("keeps the invitation when link delivery fails", async () => {
   const fake = dependencies({
     sendEmail: async () => {
       throw new Error("transport failure");
     },
   });
 
-  assert.deepEqual(await runAdminInvitationFlow(fake.input), {
-    ok: false,
-    reason: "email_failed",
+  const result = await runAdminInvitationFlow(fake.input);
+  assert.deepEqual(result, {
+    ok: true,
+    emailSent: false,
+    invitationId: "invitation-id",
+    sendError: "email_failed",
   });
-  assert.deepEqual(fake.calls.map(([name]) => name), ["create", "send", "revoke"]);
+  assert.deepEqual(fake.calls.map(([name]) => name), [
+    "create",
+    "send",
+    "enqueue",
+    "process",
+  ]);
 });
 
-test("reports when revocation throws after delivery fails", async () => {
+test("alert enqueue and processing failures never block invitation creation", async () => {
   const fake = dependencies({
-    sendEmail: async () => {
-      throw new Error("transport failure");
-    },
-    revokeInvitation: async () => {
-      throw new Error("revocation failure");
+    enqueueAlerts: async () => {
+      throw new Error("outbox unavailable");
     },
   });
 
-  assert.deepEqual(await runAdminInvitationFlow(fake.input), {
-    ok: false,
-    reason: "email_revoke_failed",
-  });
-  assert.deepEqual(fake.calls.map(([name]) => name), ["create", "send", "revoke"]);
+  const result = await runAdminInvitationFlow(fake.input);
+  assert.equal(result.ok, true);
+  assert.equal(fake.calls[0][0], "create");
+  assert.deepEqual(fake.calls.map(([name]) => name), ["create", "send", "enqueue"]);
 });
 
-test("reports when revocation after delivery failure cannot be confirmed", async () => {
+test("alert processing failure after enqueue never blocks invitation creation", async () => {
   const fake = dependencies({
-    sendEmail: async () => {
-      throw new Error("transport failure");
+    processAlerts: async () => {
+      throw new Error("alert delivery failed");
     },
-    revokeInvitation: async () => false,
   });
 
-  assert.deepEqual(await runAdminInvitationFlow(fake.input), {
-    ok: false,
-    reason: "email_revoke_failed",
-  });
+  const result = await runAdminInvitationFlow(fake.input);
+  assert.equal(result.ok, true);
+  assert.deepEqual(fake.calls.map(([name]) => name), [
+    "create",
+    "send",
+    "enqueue",
+    "process",
+  ]);
 });
+

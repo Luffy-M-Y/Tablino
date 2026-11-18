@@ -11,6 +11,9 @@ export const TURNSTILE_ACTIONS = [
   "password_reset_verify",
   "password_reset_resend",
   "password_reset_set",
+  "admin_invitation_start",
+  "admin_invitation_verify",
+  "admin_invitation_resend",
 ] as const;
 
 export type TurnstileAction = (typeof TURNSTILE_ACTIONS)[number];

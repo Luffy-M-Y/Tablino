@@ -4,12 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
-import { getAdminMenuItems, type AdminMenuEntry } from "@/lib/admin-menu.mjs";
+import {
+  getAdminMenuItems,
+  shouldShowAdminHeaderNavigation,
+  type AdminMenuEntry,
+} from "@/lib/admin-menu.mjs";
 import { getAdminSidebarPinPolicy } from "@/lib/admin-sidebar-pinning.mjs";
 import AdminSearchBox from "@/components/admin-search-box";
 import {
   BookOpen,
   ClipboardList,
+  DollarSign,
   FilePen,
   KeyRound,
   Layers,
@@ -47,6 +52,7 @@ const MENU_ICONS = {
   BookOpen,
   ClipboardList,
   KeyRound,
+  DollarSign,
 };
 
 type AdminProfile = {
@@ -76,6 +82,7 @@ export function AdminShell({
   const accountButtonRef = useRef<HTMLButtonElement | null>(null);
   const accountPanelRef = useRef<HTMLDivElement | null>(null);
   const menuItems = getAdminMenuItems(profile.role);
+  const showHeaderNavigation = shouldShowAdminHeaderNavigation(profile.role);
   const pinPolicy = getAdminSidebarPinPolicy(profile.role);
   const isDesktopMenuExpanded = isSidebarPinned || isSidebarHoverOpen || isSidebarFocusWithin;
   const name = profile.name?.trim() || null;
@@ -173,7 +180,9 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-[color:var(--admin-page-background)] text-[color:var(--color-text)]">
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between bg-[color:var(--color-admin-header)] text-white px-4 shadow-[var(--shadow-subtle)] sm:px-6">
+      <header className={`sticky top-0 z-40 justify-between bg-[color:var(--color-admin-header)] text-white shadow-[var(--shadow-subtle)] ${showHeaderNavigation
+        ? "flex min-h-16 flex-wrap items-center gap-y-2 px-4 py-2 sm:px-6"
+        : "flex h-16 items-center px-4 sm:px-6"}`}>
         <div className="flex items-center gap-4">
           <Link
             href="/"
@@ -196,7 +205,7 @@ export function AdminShell({
         {accountLabel === null ? (
           <button
             type="button"
-            onClick={() => { void signOut({ callbackUrl: "/" }); }}
+            onClick={() => { void signOut({ callbackUrl: "/login" }); }}
             className={"rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-on-band)] hover:bg-white/10 " + headerFocusStyle}
           >
             Déconnexion
@@ -255,7 +264,7 @@ export function AdminShell({
                     type="button"
                     onClick={() => {
                       setIsAccountMenuOpen(false);
-                      void signOut({ callbackUrl: "/" });
+                      void signOut({ callbackUrl: "/login" });
                     }}
                     className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
                   >
@@ -267,9 +276,37 @@ export function AdminShell({
             ) : null}
           </div>
         )}
+        {showHeaderNavigation ? (
+          <nav
+            aria-label="Navigation super-administrateur"
+            className="order-last flex w-full items-center gap-4 overflow-x-auto border-t border-white/20 pt-2 text-sm sm:gap-5"
+          >
+            <span className="shrink-0 font-semibold">{profile.roleLabel}</span>
+            <ul className="flex shrink-0 items-center gap-2">
+              {menuItems.map((item) => {
+                if (item.disabled || !("href" in item)) return null;
+                const isActive = pathname === item.href
+                  || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+                return (
+                  <li key={item.id}>
+                    <Link
+                      href={item.href}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`block whitespace-nowrap rounded-[var(--radius-rounded)] px-3 py-2 ${headerFocusStyle} ${isActive ? "bg-white/20 font-semibold" : "hover:bg-white/10"}`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        ) : null}
       </header>
 
-      <div className="flex min-h-[calc(100vh-4rem)]">
+      <div className={`flex ${showHeaderNavigation
+        ? "min-h-[calc(100vh-7rem)]"
+        : "min-h-[calc(100vh-4rem)]"}`}>
         <div
           className={`hidden shrink-0 md:block md:transition-[width] md:duration-200 md:motion-reduce:transition-none ${isDesktopMenuExpanded ? "md:w-52" : "md:w-16"}`}
           aria-hidden="true"
@@ -284,7 +321,9 @@ export function AdminShell({
               setIsSidebarFocusWithin(false);
             }
           }}
-          className={`${isSidebarOpen ? "fixed" : "hidden"} group/sidebar inset-y-16 left-0 z-30 flex w-72 flex-col overflow-x-hidden border-r border-[color:var(--color-band)] bg-[color:var(--color-band)] p-5 shadow-[var(--shadow-subtle)] md:fixed md:inset-y-16 md:left-0 md:z-50 md:block md:h-[calc(100vh-4rem)] md:overflow-y-auto md:p-2 md:transition-[width] md:duration-200 md:motion-reduce:transition-none ${isDesktopMenuExpanded ? "md:w-52" : "md:w-16"}`}
+          className={`${isSidebarOpen ? "fixed" : "hidden"} group/sidebar left-0 z-30 flex w-72 flex-col overflow-x-hidden border-r border-[color:var(--color-band)] bg-[color:var(--color-band)] p-5 shadow-[var(--shadow-subtle)] ${showHeaderNavigation
+            ? "top-28 bottom-0 md:inset-y-28 md:h-[calc(100vh-7rem)]"
+            : "inset-y-16 md:h-[calc(100vh-4rem)]"} md:fixed md:left-0 md:z-50 md:block md:overflow-y-auto md:p-2 md:transition-[width] md:duration-200 md:motion-reduce:transition-none ${isDesktopMenuExpanded ? "md:w-52" : "md:w-16"}`}
         >
           <nav aria-label="Navigation principale">
             <ul className="space-y-2">

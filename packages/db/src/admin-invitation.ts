@@ -1,15 +1,28 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "./client";
 import * as schema from "./schema";
-import { hashPassword as hashUserPassword, isPasswordValid } from "./password";
+import { checkRateLimit, recordFailure } from "./auth-attempts";
+import { verifyPassword as verifyStoredPassword } from "./password";
 
 export const ADMIN_INVITATION_TTL_MS = 48 * 60 * 60 * 1000;
+export const ADMIN_INVITATION_QUOTA = 10;
+export const ADMIN_INVITATION_QUOTA_WINDOW_MS = 60 * 60 * 1000;
+export const ADMIN_INVITATION_AUDIT_RETENTION_MONTHS = 12;
+
+export function getAdminInvitationQuotaWindowStart(now: Date): Date {
+  return new Date(now.getTime() - ADMIN_INVITATION_QUOTA_WINDOW_MS);
+}
+
+export function hasReachedAdminInvitationQuota(count: number): boolean {
+  return count >= ADMIN_INVITATION_QUOTA;
+}
 
 export type AdminInvitationRole = "super_admin_editor" | "super_admin_lector";
 
 type CreatedInvitation = {
   invitationId: string;
+  auditId: string;
   role: AdminInvitationRole;
 };
 
@@ -19,29 +32,30 @@ export type AdminInvitationRepository = {
     invitedByUserId: string;
     tokenHash: string;
     role: AdminInvitationRole;
+    clientIp: string | null;
     createdAt: Date;
     expiresAt: Date;
-  }) => Promise<CreatedInvitation | "account_exists" | "inviter_not_allowed">;
+    auditExpiresAt: Date;
+  }) => Promise<
+    | CreatedInvitation
+    | "account_exists"
+    | "inviter_not_allowed"
+    | "quota_exceeded"
+  >;
   revoke: (invitationId: string, revokedAt: Date) => Promise<boolean>;
-  consume: (input: {
-    tokenHash: string;
-    passwordHash: string;
-    now: Date;
-  }) => Promise<AdminInvitationRole | null>;
 };
 
 export type AdminInvitationDependencies = {
   repository: AdminInvitationRepository;
   now?: () => Date;
   randomBytes?: (size: number) => Buffer;
-  hashPassword?: (password: string) => string;
-  isPasswordValid?: (password: unknown) => password is string;
 };
 
 export type CreateAdminInvitationResult =
   | {
       ok: true;
       invitationId: string;
+      auditId: string;
       email: string;
       role: AdminInvitationRole;
       token: string;
@@ -49,12 +63,13 @@ export type CreateAdminInvitationResult =
     }
   | {
       ok: false;
-      reason: "invalid_email" | "account_exists" | "inviter_not_allowed";
+      reason:
+        | "invalid_email"
+        | "invalid_role"
+        | "account_exists"
+        | "inviter_not_allowed"
+        | "quota_exceeded";
     };
-
-export type ConsumeAdminInvitationResult =
-  | { ok: true; role: AdminInvitationRole }
-  | { ok: false; reason: "invalid_password" | "invitation_unavailable" };
 
 export function isAdminInvitationRole(value: unknown): value is AdminInvitationRole {
   return value === "super_admin_editor" || value === "super_admin_lector";
@@ -77,7 +92,7 @@ export function hashAdminInvitationToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function isValidInvitationToken(token: unknown): token is string {
+export function isValidInvitationToken(token: unknown): token is string {
   if (typeof token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(token)) return false;
   const bytes = Buffer.from(token, "base64url");
   return bytes.length === 32 && bytes.toString("base64url") === token;
@@ -87,16 +102,19 @@ export function createAdminInvitationService({
   repository,
   now = () => new Date(),
   randomBytes: createRandomBytes = randomBytes,
-  hashPassword = hashUserPassword,
-  isPasswordValid: validatePassword = isPasswordValid,
 }: AdminInvitationDependencies) {
   return {
     async createAdminInvitation(
       emailInput: unknown,
       invitedByUserId: string,
+      roleInput: unknown,
+      clientIp: string | null,
     ): Promise<CreateAdminInvitationResult> {
       const email = normalizeAdminInvitationEmail(emailInput);
       if (email === null) return { ok: false, reason: "invalid_email" };
+      if (!isAdminInvitationRole(roleInput)) {
+        return { ok: false, reason: "invalid_role" };
+      }
 
       const createdAt = now();
       const tokenBytes = createRandomBytes(32);
@@ -109,16 +127,20 @@ export function createAdminInvitationService({
         email,
         invitedByUserId,
         tokenHash: hashAdminInvitationToken(token),
-        role: "super_admin_lector",
+        role: roleInput,
+        clientIp,
         createdAt,
         expiresAt: new Date(createdAt.getTime() + ADMIN_INVITATION_TTL_MS),
+        auditExpiresAt: addUtcMonths(createdAt, ADMIN_INVITATION_AUDIT_RETENTION_MONTHS),
       });
       if (result === "account_exists") return { ok: false, reason: "account_exists" };
       if (result === "inviter_not_allowed") return { ok: false, reason: "inviter_not_allowed" };
+      if (result === "quota_exceeded") return { ok: false, reason: "quota_exceeded" };
 
       return {
         ok: true,
         invitationId: result.invitationId,
+        auditId: result.auditId,
         email,
         role: result.role,
         token,
@@ -129,47 +151,60 @@ export function createAdminInvitationService({
     async revokeAdminInvitation(invitationId: string): Promise<boolean> {
       return repository.revoke(invitationId, now());
     },
-
-    async consumeAdminInvitation(
-      token: unknown,
-      password: unknown,
-    ): Promise<ConsumeAdminInvitationResult> {
-      if (!validatePassword(password)) return { ok: false, reason: "invalid_password" };
-      if (!isValidInvitationToken(token)) {
-        return { ok: false, reason: "invitation_unavailable" };
-      }
-
-      const role = await repository.consume({
-        tokenHash: hashAdminInvitationToken(token),
-        passwordHash: hashPassword(password),
-        now: now(),
-      });
-      return role === null
-        ? { ok: false, reason: "invitation_unavailable" }
-        : { ok: true, role };
-    },
   };
+}
+
+function addUtcMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(
+    result.getUTCFullYear(),
+    result.getUTCMonth() + 1,
+    0,
+  )).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
 }
 
 const service = createAdminInvitationService({
   repository: {
-    async create({ email, invitedByUserId, tokenHash, role, createdAt, expiresAt }) {
+    async create({
+      email,
+      invitedByUserId,
+      tokenHash,
+      role,
+      clientIp,
+      createdAt,
+      expiresAt,
+      auditExpiresAt,
+    }) {
       return db.transaction(async (tx) => {
         await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${email}))`);
 
-        const [inviter] = await tx
-          .select({ id: schema.users.id, role: schema.users.role })
+        const inviters = await tx
+          .select({
+            id: schema.users.id,
+            email: schema.users.email,
+            role: schema.users.role,
+          })
           .from(schema.users)
           .where(and(
             eq(schema.users.id, invitedByUserId),
-            inArray(schema.users.role, ["super_admin", "super_admin_editor"]),
             isNull(schema.users.revokedAt),
           ))
-          .for("share")
+          .for("update")
           .limit(1);
+        if (!(inviters.length > 0)) return "inviter_not_allowed";
+        const inviter = inviters[0];
         if (
-          !inviter
-          || (role === "super_admin_editor" && inviter.role !== "super_admin")
+          (role === "super_admin_editor" && inviter.role !== "super_admin")
+          || (
+            role === "super_admin_lector"
+            && inviter.role !== "super_admin"
+            && inviter.role !== "super_admin_editor"
+          )
         ) {
           return "inviter_not_allowed";
         }
@@ -181,6 +216,18 @@ const service = createAdminInvitationService({
           .limit(1);
         if (existingUser) return "account_exists";
 
+        const quotaStart = getAdminInvitationQuotaWindowStart(createdAt);
+        const quotaRows = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(schema.adminInvitationAudit)
+          .where(and(
+            eq(schema.adminInvitationAudit.invitedByUserId, invitedByUserId),
+            gt(schema.adminInvitationAudit.createdAt, quotaStart),
+          ));
+        if (hasReachedAdminInvitationQuota(quotaRows[0]?.count ?? 0)) {
+          return "quota_exceeded";
+        }
+
         await tx
           .update(schema.adminInvitations)
           .set({ revokedAt: createdAt })
@@ -190,17 +237,43 @@ const service = createAdminInvitationService({
             isNull(schema.adminInvitations.revokedAt),
           ));
 
-        const [invitation] = await tx
+        const invitations = await tx
           .insert(schema.adminInvitations)
           .values({ email, invitedByUserId, tokenHash, role, createdAt, expiresAt })
           .returning({
             id: schema.adminInvitations.id,
             role: schema.adminInvitations.role,
           });
+        if (!(invitations.length > 0)) {
+          throw new Error("Échec de création de l’invitation.");
+        }
+        const invitation = invitations[0];
         if (!invitation || !isAdminInvitationRole(invitation.role)) {
           throw new Error("Échec de création de l’invitation.");
         }
-        return { invitationId: invitation.id, role: invitation.role };
+
+        const audits = await tx
+          .insert(schema.adminInvitationAudit)
+          .values({
+            invitationId: invitation.id,
+            invitedByUserId,
+            inviterEmail: inviter.email,
+            invitedEmail: email,
+            role: invitation.role,
+            clientIp,
+            createdAt,
+            expiresAt: auditExpiresAt,
+          })
+          .returning({ id: schema.adminInvitationAudit.id });
+        if (!(audits.length > 0)) {
+          throw new Error("Échec d’écriture du journal d’invitation.");
+        }
+
+        return {
+          invitationId: invitation.id,
+          auditId: audits[0].id,
+          role: invitation.role,
+        };
       });
     },
 
@@ -216,62 +289,75 @@ const service = createAdminInvitationService({
         .returning({ id: schema.adminInvitations.id });
       return Boolean(revoked);
     },
-
-    async consume({ tokenHash, passwordHash, now }) {
-      const userNotCreated = new Error("Échec de création du compte invité.");
-      try {
-        return await db.transaction(async (tx) => {
-          const [invitation] = await tx
-            .update(schema.adminInvitations)
-            .set({ consumedAt: now })
-            .where(and(
-              eq(schema.adminInvitations.tokenHash, tokenHash),
-              isNull(schema.adminInvitations.consumedAt),
-              isNull(schema.adminInvitations.revokedAt),
-              gt(schema.adminInvitations.expiresAt, now),
-            ))
-            .returning({
-              id: schema.adminInvitations.id,
-              email: schema.adminInvitations.email,
-              role: schema.adminInvitations.role,
-            });
-          if (!invitation) return null;
-          if (!isAdminInvitationRole(invitation.role)) {
-            throw new Error("Rôle d’invitation invalide.");
-          }
-
-          const [user] = await tx
-            .insert(schema.users)
-            .values({
-              email: invitation.email,
-              emailVerified: now,
-              passwordHash,
-              role: invitation.role,
-              universityId: null,
-            })
-            .onConflictDoNothing()
-            .returning({ id: schema.users.id });
-          if (!user) throw userNotCreated;
-
-          const [accepted] = await tx
-            .update(schema.adminInvitations)
-            .set({ acceptedUserId: user.id })
-            .where(and(
-              eq(schema.adminInvitations.id, invitation.id),
-              eq(schema.adminInvitations.consumedAt, now),
-            ))
-            .returning({ id: schema.adminInvitations.id });
-          if (!accepted) throw new Error("Échec de consommation de l’invitation.");
-          return invitation.role;
-        });
-      } catch (error) {
-        if (error === userNotCreated) return null;
-        throw error;
-      }
-    },
   },
 });
 
 export const createAdminInvitation = service.createAdminInvitation;
 export const revokeAdminInvitation = service.revokeAdminInvitation;
-export const consumeAdminInvitation = service.consumeAdminInvitation;
+
+export type AdminInvitationStepUpResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "not_allowed" | "no_password" | "invalid_password" | "rate_limited";
+    };
+
+export type AdminInvitationStepUpVerifierDependencies = {
+  checkRateLimit: (
+    action: "login",
+    identifier: string,
+  ) => Promise<{ allowed: boolean }>;
+  recordFailure: (action: "login", identifier: string) => Promise<unknown>;
+  verifyPassword: (password: string, passwordHash: string) => boolean;
+};
+
+export function createAdminInvitationStepUpVerifier({
+  checkRateLimit: checkLimit,
+  recordFailure: storeFailure,
+  verifyPassword,
+}: AdminInvitationStepUpVerifierDependencies) {
+  return async (
+    userId: string,
+    password: unknown,
+    passwordHash: string,
+  ): Promise<AdminInvitationStepUpResult> => {
+    const identifier = `admin-invitation-editor:${userId}`;
+    const limit = await checkLimit("login", identifier);
+    if (!limit.allowed) return { ok: false, reason: "rate_limited" };
+    if (typeof password !== "string" || !verifyPassword(password, passwordHash)) {
+      await storeFailure("login", identifier);
+      return { ok: false, reason: "invalid_password" };
+    }
+    return { ok: true };
+  };
+}
+
+const verifyInvitationEditorPassword = createAdminInvitationStepUpVerifier({
+  checkRateLimit,
+  recordFailure,
+  verifyPassword: verifyStoredPassword,
+});
+
+export async function verifyAdminInvitationStepUp(
+  userId: string,
+  password: unknown,
+): Promise<AdminInvitationStepUpResult> {
+  const users = await db
+    .select({
+      role: schema.users.role,
+      passwordHash: schema.users.passwordHash,
+    })
+    .from(schema.users)
+    .where(and(
+      eq(schema.users.id, userId),
+      isNull(schema.users.revokedAt),
+    ))
+    .limit(1);
+  if (!(users.length > 0) || users[0].role !== "super_admin") {
+    return { ok: false, reason: "not_allowed" };
+  }
+  if (users[0].passwordHash === null) {
+    return { ok: false, reason: "no_password" };
+  }
+  return verifyInvitationEditorPassword(userId, password, users[0].passwordHash);
+}
