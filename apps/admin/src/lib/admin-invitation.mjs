@@ -1,5 +1,3 @@
-import { shouldClearAdminInvitationCookie } from "./admin-invitation-cookie.mjs";
-
 export {
   getAdminInvitationMessage,
   getAdminInvitationRoleLabel,
@@ -19,42 +17,77 @@ export {
 export { runAdminInvitationFlow } from "./admin-invitation-flow.mjs";
 
 export async function runAdminInvitationAcceptance({
+  stage,
   token,
   password,
   passwordConfirmation,
+  code,
   clientIp,
   isProduction,
   checkRateLimit,
   recordFailure,
-  consumeInvitation,
+  startAcceptance,
+  resendCode,
+  consumeCode,
 }) {
+  if (stage !== "start" && stage !== "verify" && stage !== "resend") {
+    return { reason: "invitation_unavailable", clearCookie: false, step: "password" };
+  }
+
   if (clientIp === null && isProduction) {
-    return { reason: "ip_unavailable", clearCookie: false };
+    return { reason: "ip_unavailable", clearCookie: false, step: stage === "start" ? "password" : "code" };
   }
 
   if (clientIp !== null) {
     const ipLimit = await checkRateLimit("login_ip", clientIp);
     if (!ipLimit.allowed) {
-      return { reason: "rate_limited", clearCookie: false };
+      return { reason: "rate_limited", clearCookie: false, step: stage === "start" ? "password" : "code" };
     }
   }
 
-  if (
-    typeof password !== "string"
-    || typeof passwordConfirmation !== "string"
-    || password.length === 0
-    || passwordConfirmation.length === 0
-  ) {
-    return { reason: "invalid_password", clearCookie: false };
-  }
-  if (password !== passwordConfirmation) {
-    return { reason: "password_mismatch", clearCookie: false };
-  }
-  if (typeof token !== "string" || token.length === 0) {
-    return { reason: "unavailable", clearCookie: false };
+  if (stage === "start") {
+    const result = await startAcceptance(token, password, passwordConfirmation);
+    if (!result.ok) {
+      if (result.reason === "invitation_unavailable" && clientIp !== null) {
+        await recordFailure("login_ip", clientIp);
+      }
+      return {
+        reason: result.reason,
+        clearCookie: result.reason === "invitation_unavailable",
+        step: result.reason === "too_soon" ? "code" : "password",
+      };
+    }
+    return {
+      reason: "code_sent",
+      clearCookie: false,
+      step: "code",
+      email: result.email,
+      code: result.code,
+    };
   }
 
-  const result = await consumeInvitation(token, password);
+  if (stage === "resend") {
+    const result = await resendCode(token);
+    if (!result.ok) {
+      if (result.reason === "invitation_unavailable" && clientIp !== null) {
+        await recordFailure("login_ip", clientIp);
+      }
+      return {
+        reason: result.reason,
+        clearCookie: result.reason === "invitation_unavailable",
+        step: "code",
+      };
+    }
+    return {
+      reason: "code_resent",
+      clearCookie: false,
+      step: "code",
+      email: result.email,
+      code: result.code,
+    };
+  }
+
+  const result = await consumeCode(token, code);
   if (
     result.ok === false
     && result.reason === "invitation_unavailable"
@@ -62,9 +95,10 @@ export async function runAdminInvitationAcceptance({
   ) {
     await recordFailure("login_ip", clientIp);
   }
-
   return {
     reason: result.ok ? "accepted" : result.reason,
-    clearCookie: shouldClearAdminInvitationCookie(result),
+    clearCookie: result.ok || result.reason === "invitation_unavailable",
+    step: "code",
+    role: result.ok ? result.role : undefined,
   };
 }

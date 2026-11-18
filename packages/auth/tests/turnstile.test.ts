@@ -26,6 +26,23 @@ test("Turnstile accepts a valid token with the expected action and hostname", as
   assert.deepEqual(result, { ok: true });
 });
 
+test("Turnstile accepts the invitation OTP action", async () => {
+  const result = await verifyTurnstileToken(
+    "valid-token",
+    "admin_invitation_verify",
+    {
+      ...options,
+      fetcher: async () => new Response(JSON.stringify({
+        success: true,
+        action: "admin_invitation_verify",
+        hostname: "example.com",
+      }), { status: 200 }),
+    },
+  );
+
+  assert.deepEqual(result, { ok: true });
+});
+
 test("Turnstile accepts the request hostname when explicitly provided", async () => {
   const result = await verifyTurnstileToken("valid-token", expectedAction, {
     secret: options.secret,

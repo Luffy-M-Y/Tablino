@@ -360,6 +360,76 @@ export const adminInvitations = pgTable("admin_invitations", {
   index("admin_invitations_expires_at_idx").on(t.expiresAt),
 ]).enableRLS();
 
+export const adminInvitationAudit = pgTable("admin_invitation_audit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invitationId: uuid("invitation_id")
+    .references(() => adminInvitations.id, { onDelete: "set null" }),
+  invitedByUserId: uuid("invited_by_user_id")
+    .references(() => users.id, { onDelete: "restrict" })
+    .notNull(),
+  inviterEmail: varchar("inviter_email", { length: 255 }).notNull(),
+  invitedEmail: varchar("invited_email", { length: 255 }).notNull(),
+  role: roleEnum("role").notNull(),
+  clientIp: varchar("client_ip", { length: 64 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => [
+  uniqueIndex("admin_invitation_audit_invitation_uq").on(t.invitationId),
+  index("admin_invitation_audit_inviter_created_idx").on(t.invitedByUserId, t.createdAt),
+  index("admin_invitation_audit_expires_at_idx").on(t.expiresAt),
+  check(
+    "admin_invitation_audit_role_check",
+    sql`${t.role}::text IN ('super_admin_editor', 'super_admin_lector')`,
+  ),
+]).enableRLS();
+
+export const adminInvitationCodes = pgTable("admin_invitation_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invitationId: uuid("invitation_id")
+    .references(() => adminInvitations.id, { onDelete: "cascade" })
+    .notNull(),
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("admin_invitation_codes_invitation_uq").on(t.invitationId),
+  check(
+    "admin_invitation_codes_attempts_check",
+    sql.raw("attempts >= 0 AND attempts <= 5"),
+  ),
+]).enableRLS();
+
+export const adminInvitationAlertOutbox = pgTable("admin_invitation_alert_outbox", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  auditId: uuid("audit_id")
+    .references(() => adminInvitationAudit.id, { onDelete: "cascade" })
+    .notNull(),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  status: varchar("status", { length: 16 }).default("pending").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => [
+  uniqueIndex("admin_invitation_alert_outbox_audit_recipient_uq")
+    .on(t.auditId, t.recipientEmail),
+  index("admin_invitation_alert_outbox_due_idx").on(t.status, t.nextAttemptAt),
+  index("admin_invitation_alert_outbox_expires_at_idx").on(t.expiresAt),
+  check(
+    "admin_invitation_alert_outbox_status_check",
+    sql.raw("status IN ('pending', 'processing', 'sent', 'failed')"),
+  ),
+  check(
+    "admin_invitation_alert_outbox_attempts_check",
+    sql.raw("attempts >= 0 AND attempts <= 3"),
+  ),
+]).enableRLS();
+
 export const emailVerificationCodes = pgTable("email_verification_codes", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")

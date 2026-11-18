@@ -227,22 +227,64 @@ export type {
   ResendPasswordResetResult,
 } from "./password-reset";
 export {
-  consumeAdminInvitation,
   createAdminInvitation,
   createAdminInvitationService,
   hashAdminInvitationToken,
+  isValidInvitationToken,
   isAdminInvitationRole,
   normalizeAdminInvitationEmail,
   revokeAdminInvitation,
   ADMIN_INVITATION_TTL_MS,
+  ADMIN_INVITATION_QUOTA,
+  ADMIN_INVITATION_QUOTA_WINDOW_MS,
+  ADMIN_INVITATION_AUDIT_RETENTION_MONTHS,
+  verifyAdminInvitationStepUp,
 } from "./admin-invitation";
 export type {
   AdminInvitationRole,
-  ConsumeAdminInvitationResult,
   CreateAdminInvitationResult,
   AdminInvitationDependencies,
   AdminInvitationRepository,
+  AdminInvitationStepUpResult,
 } from "./admin-invitation";
+export {
+  ADMIN_INVITATION_CODE_TTL_MS,
+  ADMIN_INVITATION_CODE_MAX_ATTEMPTS,
+  ADMIN_INVITATION_CODE_RESEND_DELAY_MS,
+  generateAdminInvitationCode,
+  hashAdminInvitationCode,
+  startAdminInvitationAcceptance,
+  resendAdminInvitationCode,
+  consumeAdminInvitationCode,
+} from "./admin-invitation-otp";
+export type {
+  StartAdminInvitationAcceptanceResult,
+  ResendAdminInvitationCodeResult,
+  ConsumeAdminInvitationCodeResult,
+} from "./admin-invitation-otp";
+export {
+  createAdminInvitationAuditService,
+  listAdminInvitationAudit,
+} from "./admin-invitation-audit";
+export type {
+  AdminInvitationAuditRepository,
+  AdminInvitationAuditResult,
+  AdminInvitationAuditRow,
+} from "./admin-invitation-audit";
+export {
+  enqueueAdminInvitationAlerts,
+  processAdminInvitationAlertOutbox,
+} from "./admin-invitation-outbox";
+export type {
+  AdminInvitationAlert,
+  AdminInvitationAlertSender,
+  ProcessAdminInvitationAlertOutboxResult,
+} from "./admin-invitation-outbox";
+export {
+  ADMIN_INVITATION_ALERT_RETENTION_MS,
+  ADMIN_INVITATION_ALERT_RETRY_DELAYS_MS,
+  getAdminInvitationAlertFailureState,
+} from "./admin-invitation-outbox-state.mjs";
 export {
   checkAdminInvitationToken,
   createInvitationCheckService,

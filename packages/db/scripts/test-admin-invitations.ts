@@ -25,7 +25,8 @@ type ScenarioContext = {
     invitationId: string;
     token: string;
   }>;
-  consumeInvitation: (token: string, password: string) => Promise<boolean>;
+  startAcceptance: (token: string, password: string) => Promise<string>;
+  consumeInvitation: (token: string, code: string) => Promise<boolean>;
 };
 
 function isApplyMode(): boolean {
@@ -519,18 +520,33 @@ async function runApplyScenarios(pool: Pool, runId: string): Promise<boolean> {
   const { pool: servicePool } = await import("../src/client");
   try {
     const invitationService = await import("../src/admin-invitation");
+    const invitationOtpService = await import("../src/admin-invitation-otp");
     const emailFor = (label: string) =>
       `integration-reader-${runId}-${label}@example.invalid`;
     const context: ScenarioContext = {
       async createInvitation(email) {
-        const result = await invitationService.createAdminInvitation(email, inviterId);
+        const result = await invitationService.createAdminInvitation(
+          email,
+          inviterId,
+          "super_admin_lector",
+          null,
+        );
         if (!result.ok) throw new Error("INVITATION_CREATE_FAILED");
         return { invitationId: result.invitationId, token: result.token };
       },
-      async consumeInvitation(token, candidatePassword) {
-        const result = await invitationService.consumeAdminInvitation(
+      async startAcceptance(token, candidatePassword) {
+        const result = await invitationOtpService.startAdminInvitationAcceptance(
           token,
           candidatePassword,
+          candidatePassword,
+        );
+        if (!result.ok) throw new Error("INVITATION_OTP_START_FAILED");
+        return result.code;
+      },
+      async consumeInvitation(token, code) {
+        const result = await invitationOtpService.consumeAdminInvitationCode(
+          token,
+          code,
         );
         return result.ok;
       },
@@ -556,12 +572,15 @@ async function runApplyScenarios(pool: Pool, runId: string): Promise<boolean> {
     ) && passed;
 
     let successfulToken: string | undefined;
+    let successfulCode: string | undefined;
     const concurrentPassed = await runScenario("concurrent_consumption_once_only", async () => {
       const invitation = await context.createInvitation(emailFor("concurrent"));
       successfulToken = invitation.token;
+      const code = await context.startAcceptance(invitation.token, password);
+      successfulCode = code;
       const results = await Promise.all([
-        context.consumeInvitation(invitation.token, password),
-        context.consumeInvitation(invitation.token, password),
+        context.consumeInvitation(invitation.token, code),
+        context.consumeInvitation(invitation.token, code),
       ]);
       const userCount = await countRows(pool, "users", emailFor("concurrent"));
       const acceptedResult = await pool.query<{ accepted_user_id: string | null; role: string }>(
@@ -586,19 +605,20 @@ async function runApplyScenarios(pool: Pool, runId: string): Promise<boolean> {
     passed = concurrentPassed && passed;
 
     passed = await runScenario("replay_refused", async () => {
-      if (!successfulToken) return false;
-      return !(await context.consumeInvitation(successfulToken, password));
+      if (!successfulToken || !successfulCode) return false;
+      return !(await context.consumeInvitation(successfulToken, successfulCode));
     }) && passed;
 
     passed = await runScenario("expired_invitation_refused", async () => {
       const invitation = await context.createInvitation(emailFor("expired"));
+      const code = await context.startAcceptance(invitation.token, password);
       await pool.query(
         `UPDATE public.admin_invitations
          SET expires_at = now() - interval '1 minute'
          WHERE id = $1`,
         [invitation.invitationId],
       );
-      return !(await context.consumeInvitation(invitation.token, password));
+      return !(await context.consumeInvitation(invitation.token, code));
     }) && passed;
 
     passed = await runScenario("reissue_invalidates_old_token", async () => {
@@ -613,7 +633,7 @@ async function runApplyScenarios(pool: Pool, runId: string): Promise<boolean> {
       );
       return oldInvitation.rows[0]?.revoked_at !== null
         && oldInvitation.rows[0]?.revoked_at !== undefined
-        && !(await context.consumeInvitation(first.token, password))
+        && !(await context.consumeInvitation(first.token, "000000"))
         && (await countRows(pool, "admin_invitations", email)) === 2
         && second.token !== first.token;
     }) && passed;
@@ -621,14 +641,15 @@ async function runApplyScenarios(pool: Pool, runId: string): Promise<boolean> {
     passed = await runScenario("existing_account_rolls_back_consumption", async () => {
       const email = emailFor("existing");
       const invitation = await context.createInvitation(email);
+      const code = await context.startAcceptance(invitation.token, password);
       await pool.query(
         `INSERT INTO public.users (email, role, university_id)
          VALUES ($1, 'super_admin_lector', NULL)`,
         [email],
       );
-      const consumed = await invitationService.consumeAdminInvitation(
+      const consumed = await invitationOtpService.consumeAdminInvitationCode(
         invitation.token,
-        password,
+        code,
       );
       const invitationState = await pool.query<{ consumed_at: Date | null }>(
         `SELECT consumed_at
@@ -646,7 +667,7 @@ async function runApplyScenarios(pool: Pool, runId: string): Promise<boolean> {
       const revoked = await invitationService.revokeAdminInvitation(
         invitation.invitationId,
       );
-      return revoked && !(await context.consumeInvitation(invitation.token, password));
+      return revoked && !(await context.consumeInvitation(invitation.token, "000000"));
     }) && passed;
 
     return passed;
