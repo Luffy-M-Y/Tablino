@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getAdminHostContext } from "@/lib/admin-host-context";
 import { startAdminPasswordReset } from "@/lib/password-reset-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
@@ -19,6 +20,7 @@ export async function requestResetAction(
     return { message: TURNSTILE_ERROR_MESSAGE };
   }
 
-  await startAdminPasswordReset(readStringField(formData, "email"));
+  const hostContext = await getAdminHostContext();
+  await startAdminPasswordReset(readStringField(formData, "email"), hostContext);
   redirect("/mot-de-passe-oublie/verification");
 }
