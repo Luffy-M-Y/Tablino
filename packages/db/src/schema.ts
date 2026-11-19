@@ -430,6 +430,98 @@ export const adminInvitationAlertOutbox = pgTable("admin_invitation_alert_outbox
   ),
 ]).enableRLS();
 
+export const adminInvitationOauthTransactions = pgTable("admin_invitation_oauth_transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invitationId: uuid("invitation_id")
+    .references(() => adminInvitations.id, { onDelete: "cascade" })
+    .notNull(),
+  startTicketHash: varchar("start_ticket_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  startConsumedAt: timestamp("start_consumed_at", { withTimezone: true }),
+  pendingUserId: uuid("pending_user_id")
+    .references(() => users.id, { onDelete: "cascade" }),
+  transferCodeHash: varchar("transfer_code_hash", { length: 64 }),
+  transferExpiresAt: timestamp("transfer_expires_at", { withTimezone: true }),
+  transferConsumedAt: timestamp("transfer_consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("admin_invitation_oauth_start_ticket_hash_uq").on(t.startTicketHash),
+  uniqueIndex("admin_invitation_oauth_transfer_code_hash_uq")
+    .on(t.transferCodeHash)
+    .where(sql`${t.transferCodeHash} IS NOT NULL`),
+  index("admin_invitation_oauth_invitation_expires_idx").on(t.invitationId, t.expiresAt),
+  check(
+    "admin_invitation_oauth_start_ticket_hash_check",
+    sql`${t.startTicketHash} ~ '^[0-9a-f]{64}$'`,
+  ),
+  check(
+    "admin_invitation_oauth_transfer_code_hash_check",
+    sql`${t.transferCodeHash} IS NULL OR ${t.transferCodeHash} ~ '^[0-9a-f]{64}$'`,
+  ),
+  check(
+    "admin_invitation_oauth_transfer_state_check",
+    sql`(${t.transferCodeHash} IS NULL AND ${t.transferExpiresAt} IS NULL AND ${t.transferConsumedAt} IS NULL) OR (${t.transferCodeHash} IS NOT NULL AND ${t.transferExpiresAt} IS NOT NULL AND ${t.pendingUserId} IS NOT NULL)`,
+  ),
+  check(
+    "admin_invitation_oauth_pending_user_state_check",
+    sql`${t.pendingUserId} IS NULL OR ${t.startConsumedAt} IS NOT NULL`,
+  ),
+]).enableRLS();
+
+export const adminSuperLoginOauthTransactions = pgTable("admin_super_login_oauth_transactions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  startTicketHash: varchar("start_ticket_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  startConsumedAt: timestamp("start_consumed_at", { withTimezone: true }),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" }),
+  transferCodeHash: varchar("transfer_code_hash", { length: 64 }),
+  transferExpiresAt: timestamp("transfer_expires_at", { withTimezone: true }),
+  transferConsumedAt: timestamp("transfer_consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("admin_super_login_oauth_start_ticket_hash_uq").on(t.startTicketHash),
+  uniqueIndex("admin_super_login_oauth_transfer_code_hash_uq")
+    .on(t.transferCodeHash)
+    .where(sql`${t.transferCodeHash} IS NOT NULL`),
+  index("admin_super_login_oauth_expires_at_idx").on(t.expiresAt),
+  check(
+    "admin_super_login_oauth_start_ticket_hash_check",
+    sql`${t.startTicketHash} ~ '^[0-9a-f]{64}$'`,
+  ),
+  check(
+    "admin_super_login_oauth_transfer_code_hash_check",
+    sql`${t.transferCodeHash} IS NULL OR ${t.transferCodeHash} ~ '^[0-9a-f]{64}$'`,
+  ),
+  check(
+    "admin_super_login_oauth_transfer_state_check",
+    sql`(${t.transferCodeHash} IS NULL AND ${t.transferExpiresAt} IS NULL AND ${t.transferConsumedAt} IS NULL) OR (${t.transferCodeHash} IS NOT NULL AND ${t.transferExpiresAt} IS NOT NULL AND ${t.userId} IS NOT NULL)`,
+  ),
+  check(
+    "admin_super_login_oauth_user_state_check",
+    sql`${t.userId} IS NULL OR ${t.startConsumedAt} IS NOT NULL`,
+  ),
+]).enableRLS();
+
+export const adminGoogleAuthContexts = pgTable("admin_google_auth_contexts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
+  surface: varchar("surface", { length: 16 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  universityId: uuid("university_id")
+    .references(() => universities.id, { onDelete: "cascade" }),
+  at: timestamp("at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("admin_google_auth_contexts_account_surface_uq").on(t.providerAccountId, t.surface),
+  index("admin_google_auth_contexts_expires_at_idx").on(t.expiresAt),
+  check(
+    "admin_google_auth_contexts_surface_check",
+    sql.raw("surface IN ('admin', 'web')"),
+  ),
+]).enableRLS();
+
 export const emailVerificationCodes = pgTable("email_verification_codes", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
