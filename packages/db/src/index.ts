@@ -331,6 +331,19 @@ export type {
   AdminSuperLoginOauthDependencies,
 } from "./admin-super-login-oauth";
 export {
+  createAdminGoogleAuthContextDrizzleRepository,
+  createAdminGoogleAuthContextService,
+  recordGoogleAuthContext,
+  consumeGoogleAuthContext,
+  deleteGoogleAuthContext,
+  pruneExpiredGoogleAuthContexts,
+} from "./admin-google-auth-context";
+export type {
+  AdminGoogleAuthContextRecord,
+  AdminGoogleAuthContextRepository,
+  AdminGoogleAuthContextDependencies,
+} from "./admin-google-auth-context";
+export {
   listPendingUniversitiesForApproval,
   approveUniversity,
 } from "./university-approval";
