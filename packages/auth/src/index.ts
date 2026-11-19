@@ -147,7 +147,7 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
     },
 
     async linkAccount(account: AdapterAccount) {
-      const googleContext = consumeGoogleAuthContext(
+      const googleContext = await consumeGoogleAuthContext(
         googleAuthContexts,
         account.providerAccountId,
         Date.now(),
@@ -424,7 +424,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             if (accounts.length > 0) existingAccount = accounts[0];
           } catch {
             if (context.surface === "admin" && context.isAuthAdminCentral) {
-              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
             throw new Error("Impossible de vérifier le compte Google lié.");
@@ -432,7 +432,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           // Utilisateur trouvé par e-mail avec un compte Google déjà lié : refus.
           if (existingAccount) {
             if (context.surface === "admin" && context.isAuthAdminCentral) {
-              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
             return false;
@@ -445,13 +445,13 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
               hasGoogleAccountLinked: false,
             });
             if (decision !== AUTH_ADMIN_GOOGLE_EXISTING_ACCOUNT) {
-              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
             const universityId = emailUser.universityId;
             if (!universityId) {
-              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
             try {
@@ -467,7 +467,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
                 || users[0].passwordHash === null
                 || users[0].revokedAt !== null
               ) {
-                deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+                await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
                 return AUTH_ADMIN_GOOGLE_ERROR_PATH;
               }
               const existingToken = createGoogleExistingAccountToken({
@@ -480,16 +480,18 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
                 universityId,
                 existingToken,
               );
-              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
               return redirectUrl ?? AUTH_ADMIN_GOOGLE_ERROR_PATH;
             } catch {
-              deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              try {
+                await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              } catch {}
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
           }
           // Surface web, emailUser sans compte lié : refus de liaison + redirection informative.
           if (context.surface === "web") {
-            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
             if (
               emailUser.role === "student"
               && googleContext.universityId !== null
@@ -515,7 +517,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
 
         if (!storedUser) {
           if (context.surface === "admin" && context.isAuthAdminCentral) {
-            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
             return decideAdminGoogleSignIn({
               isAuthAdminCentral: true,
               user: null,
@@ -531,7 +533,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           };
           if (context.surface === "web") {
             const signupToken = createGoogleSignupToken(payload);
-            deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
             if (context.resolveGoogleSignupUrl) {
               if (!googleContext.universityId) return false;
               const signupUrl = await context.resolveGoogleSignupUrl(googleContext.universityId, signupToken);
@@ -540,7 +542,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             }
             return "/inscription/google?token=" + encodeURIComponent(signupToken);
           }
-          deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+          await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
           return "/university-signup?token=" + encodeURIComponent(createUniversitySignupToken(payload));
         }
 
@@ -556,7 +558,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           hasGoogleAccountLinked: linkedUser !== null,
         });
         if (decision === AUTH_ADMIN_GOOGLE_ERROR_PATH) {
-          deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+          await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
         }
         return decision ?? false;
       },
