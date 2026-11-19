@@ -40,5 +40,14 @@ export function runAuthAdminTransfer(options: {
     universityId: string;
     userId: string;
   }) => Promise<string>;
+  createInvitationTransferCode?: (input: {
+    invitationId: string;
+    transactionId: string;
+    userId: string;
+  }) => Promise<string | null>;
+  createSuperLoginTransferCode?: (input: {
+    transactionId: string;
+    userId: string;
+  }) => Promise<string | null>;
   deleteSession: (sessionToken: string) => Promise<{ deleted: boolean }>;
 }): Promise<{ ok: true; redirectUrl: string } | { ok: false }>;

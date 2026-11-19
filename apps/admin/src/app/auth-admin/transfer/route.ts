@@ -1,6 +1,14 @@
 import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
-import { db, deleteStudentSession, eq, schema, createOauthTransferCode } from "@tablino/db";
+import {
+  db,
+  deleteStudentSession,
+  eq,
+  schema,
+  createOauthTransferCode,
+  createAdminInvitationOauthTransferCode,
+  createAdminSuperLoginOauthTransferCode,
+} from "@tablino/db";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { getAdminAuthOptions } from "@/lib/auth";
 import { AUTH_ADMIN_TRANSACTION_COOKIE_NAME } from "@/lib/auth-admin-transaction.mjs";
@@ -63,6 +71,8 @@ export async function GET(request: NextRequest) {
         return rows.length > 0 ? rows[0].slug : null;
       },
       createTransferCode: createOauthTransferCode,
+      createInvitationTransferCode: createAdminInvitationOauthTransferCode,
+      createSuperLoginTransferCode: createAdminSuperLoginOauthTransferCode,
       deleteSession: deleteStudentSession,
     });
   } catch {

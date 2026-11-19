@@ -23,7 +23,7 @@ export function buildAdminRequestUrl(options: {
   slugMapJson?: string;
   authAdminCentralHost?: string;
   secure: boolean;
-  expectedKind: "central" | "university";
+  expectedKind: "central" | "university" | "super";
 }): string | null;
 
 export function isAdminProxyPathAllowed(

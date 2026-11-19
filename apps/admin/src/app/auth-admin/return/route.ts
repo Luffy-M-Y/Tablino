@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   consumeOauthTransferCode,
+  consumeAdminInvitationOauthTransferCode,
+  consumeAdminSuperLoginOauthTransferCode,
   createStudentSession,
   db,
   eq,
@@ -20,16 +22,31 @@ const NO_STORE_HEADERS = {
   "Referrer-Policy": "no-referrer",
 };
 
-function cleanRedirect(request: NextRequest, path: string) {
-  const url = buildAdminRequestUrl({
+function cleanRedirect(
+  request: NextRequest,
+  path: string,
+  expectedKind: "university" | "super" = "university",
+) {
+  let url = buildAdminRequestUrl({
     host: request.headers.get("host"),
     pathname: path,
     adminRootDomain: process.env.ADMIN_ROOT_DOMAIN,
     slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
     authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
     secure: process.env.NODE_ENV === "production",
-    expectedKind: "university",
+    expectedKind,
   });
+  if (url === null && expectedKind !== "super") {
+    url = buildAdminRequestUrl({
+      host: request.headers.get("host"),
+      pathname: path,
+      adminRootDomain: process.env.ADMIN_ROOT_DOMAIN,
+      slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
+      authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
+      secure: process.env.NODE_ENV === "production",
+      expectedKind: "super",
+    });
+  }
   if (url === null) return new NextResponse(null, { status: 404, headers: NO_STORE_HEADERS });
 
   return NextResponse.redirect(new URL(url), {
@@ -40,6 +57,7 @@ function cleanRedirect(request: NextRequest, path: string) {
 
 export async function GET(request: NextRequest) {
   const code = getAuthAdminReturnCode(request.nextUrl.searchParams);
+  const flowParam = request.nextUrl.searchParams.get("flow");
 
   let hostContext: Awaited<ReturnType<typeof getAdminHostContext>> = null;
   try {
@@ -47,21 +65,46 @@ export async function GET(request: NextRequest) {
   } catch {
     return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
   }
-  if (hostContext?.kind !== "university" || code === null) {
+
+  if (hostContext === null || code === null) {
     return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
   }
 
+  const expectedKind = hostContext.kind;
+
   let consumeResult: { userId: string } | null = null;
-  try {
-    consumeResult = await consumeOauthTransferCode({
-      code,
-      universityId: hostContext.universityId,
-    });
-  } catch {
+  if (hostContext.kind === "university") {
+    const flow = flowParam ?? "university";
+    if (flow !== "university") {
+      return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
+    }
+    try {
+      consumeResult = await consumeOauthTransferCode({
+        code,
+        universityId: hostContext.universityId,
+      });
+    } catch {
+      return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
+    }
+  } else if (hostContext.kind === "super") {
+    if (flowParam !== "invitation" && flowParam !== "super_login") {
+      return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
+    }
+    try {
+      if (flowParam === "invitation") {
+        consumeResult = await consumeAdminInvitationOauthTransferCode(code);
+      } else {
+        consumeResult = await consumeAdminSuperLoginOauthTransferCode(code);
+      }
+    } catch {
+      return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
+    }
+  } else {
     return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
   }
+
   if (consumeResult === null) {
-    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
+    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
   }
 
   let user: {
@@ -83,24 +126,25 @@ export async function GET(request: NextRequest) {
       .limit(1);
     if (rows.length > 0) user = rows[0];
   } catch {
-    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
+    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
   }
 
   const decision = resolveAuthAdminReturnDecision({
     code,
+    flow: flowParam ?? (hostContext.kind === "university" ? "university" : null),
     hostContext,
     consumeResult,
     user,
   });
   if (decision.action === "redirect") {
-    return cleanRedirect(request, decision.path);
+    return cleanRedirect(request, decision.path, expectedKind);
   }
 
   let session: Awaited<ReturnType<typeof createStudentSession>>;
   try {
     session = await createStudentSession(decision.userId);
   } catch {
-    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
+    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
   }
 
   try {
@@ -111,7 +155,7 @@ export async function GET(request: NextRequest) {
       slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
       authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
       secure: process.env.NODE_ENV === "production",
-      expectedKind: "university",
+      expectedKind,
     });
     if (redirectUrl === null) {
       return new NextResponse(null, { status: 404, headers: NO_STORE_HEADERS });
@@ -127,6 +171,6 @@ export async function GET(request: NextRequest) {
     });
     return response;
   } catch {
-    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
+    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
   }
 }

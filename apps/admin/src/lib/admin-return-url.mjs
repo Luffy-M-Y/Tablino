@@ -34,7 +34,7 @@ function normalizeAdminRootDomain(value) {
 }
 
 /**
- * Construit l'URL de retour admin : https://{slug}-admin.{ADMIN_ROOT_DOMAIN}/auth-admin/return
+ * Construit l'URL de retour admin université : https://{slug}-admin.{ADMIN_ROOT_DOMAIN}/auth-admin/return
  *
  * @param {{ slug: string, adminRootDomain: string, secure: boolean }} options
  * @returns {string | null}
@@ -46,6 +46,20 @@ export function buildAdminReturnUrl({ slug, adminRootDomain, secure }) {
 
   const scheme = secure ? "https" : "http";
   return `${scheme}://${slug}-admin.${normalizedRootDomain}/auth-admin/return`;
+}
+
+/**
+ * Construit l'URL de retour super admin : https://sup-admin.{ADMIN_ROOT_DOMAIN}/auth-admin/return
+ *
+ * @param {{ adminRootDomain: string, secure: boolean }} options
+ * @returns {string | null}
+ */
+export function buildSuperAdminReturnUrl({ adminRootDomain, secure }) {
+  const normalizedRootDomain = normalizeAdminRootDomain(adminRootDomain);
+  if (normalizedRootDomain === null) return null;
+
+  const scheme = secure ? "https" : "http";
+  return `${scheme}://sup-admin.${normalizedRootDomain}/auth-admin/return`;
 }
 
 /**
@@ -71,7 +85,7 @@ export function buildAdminGoogleExistingAccountUrl({
 }
 
 /**
- * Construit l'URL de transfert avec le code.
+ * Construit l'URL de transfert université avec le code.
  *
  * @param {{ slug: string, adminRootDomain: string, secure: boolean, code: string }} options
  * @returns {string | null}
@@ -81,4 +95,22 @@ export function buildAdminTransferRedirectUrl({ slug, adminRootDomain, secure, c
   const baseUrl = buildAdminReturnUrl({ slug, adminRootDomain, secure });
   if (baseUrl === null) return null;
   return `${baseUrl}?code=${encodeURIComponent(code)}`;
+}
+
+/**
+ * Construit l'URL de transfert super admin avec le code et optionnellement le flow.
+ *
+ * @param {{ adminRootDomain: string, secure: boolean, code: string, flow?: string }} options
+ * @returns {string | null}
+ */
+export function buildSuperAdminTransferRedirectUrl({ adminRootDomain, secure, code, flow }) {
+  if (typeof code !== "string" || code.length === 0) return null;
+  const baseUrl = buildSuperAdminReturnUrl({ adminRootDomain, secure });
+  if (baseUrl === null) return null;
+
+  const params = new URLSearchParams({ code });
+  if (typeof flow === "string" && flow.length > 0) {
+    params.set("flow", flow);
+  }
+  return `${baseUrl}?${params.toString()}`;
 }

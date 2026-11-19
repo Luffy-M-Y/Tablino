@@ -4,6 +4,11 @@ export function buildAdminReturnUrl(options: {
   secure: boolean;
 }): string | null;
 
+export function buildSuperAdminReturnUrl(options: {
+  adminRootDomain: string;
+  secure: boolean;
+}): string | null;
+
 export function buildAdminGoogleExistingAccountUrl(options: {
   slug: string;
   adminRootDomain: string;
@@ -16,4 +21,11 @@ export function buildAdminTransferRedirectUrl(options: {
   adminRootDomain: string;
   secure: boolean;
   code: string;
+}): string | null;
+
+export function buildSuperAdminTransferRedirectUrl(options: {
+  adminRootDomain: string;
+  secure: boolean;
+  code: string;
+  flow?: string;
 }): string | null;

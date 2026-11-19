@@ -180,6 +180,8 @@ async function tryDirectGoogleRedirect({
 
 export function createAuthAdminStartHandler({
   consumeOauthStartTicket,
+  consumeAdminInvitationOauthStartTicket,
+  consumeAdminSuperLoginOauthStartTicket,
   getSecret,
   secure,
   baseUrl,
@@ -202,16 +204,49 @@ export function createAuthAdminStartHandler({
     } catch {
       return textResponse(400);
     }
+
+    const kind = form.get("kind");
+    if (kind !== "university" && kind !== "invitation" && kind !== "super_login") {
+      return textResponse(400);
+    }
+
     const ticket = form.get("ticket");
     if (typeof ticket !== "string" || ticket.length === 0) return textResponse(400);
 
-    const universityId = await consumeOauthStartTicket(ticket, AUTH_ADMIN_OAUTH_SURFACE);
-    if (!universityId) return textResponse(400);
+    let txCookieValue;
+    if (kind === "university") {
+      const universityId = await consumeOauthStartTicket(ticket, AUTH_ADMIN_OAUTH_SURFACE);
+      if (!universityId) return textResponse(400);
+      txCookieValue = createAuthAdminTransaction({
+        flow: "university",
+        universityId,
+        now: now(),
+        secret,
+      });
+    } else if (kind === "invitation") {
+      if (typeof consumeAdminInvitationOauthStartTicket !== "function") return textResponse(500);
+      const result = await consumeAdminInvitationOauthStartTicket(ticket);
+      if (!result?.invitationId || !result?.transactionId) return textResponse(400);
+      txCookieValue = createAuthAdminTransaction({
+        flow: "invitation",
+        invitationId: result.invitationId,
+        transactionId: result.transactionId,
+        now: now(),
+        secret,
+      });
+    } else if (kind === "super_login") {
+      if (typeof consumeAdminSuperLoginOauthStartTicket !== "function") return textResponse(500);
+      const result = await consumeAdminSuperLoginOauthStartTicket(ticket);
+      if (!result?.transactionId) return textResponse(400);
+      txCookieValue = createAuthAdminTransaction({
+        flow: "super_login",
+        transactionId: result.transactionId,
+        now: now(),
+        secret,
+      });
+    }
 
-    const txCookie = transactionCookie(
-      createAuthAdminTransaction({ universityId, now: now(), secret }),
-      secure,
-    );
+    const txCookie = transactionCookie(txCookieValue, secure);
     const directResponse = baseUrl && authAdminCentralHost
       ? await tryDirectGoogleRedirect({
         baseUrl,
