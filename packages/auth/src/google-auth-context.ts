@@ -74,6 +74,7 @@ export async function recordGoogleAuthContext(options: {
   email: string;
   surface: GoogleAuthSurface;
   resolveGoogleUniversityId?: () => Promise<string | null>;
+  resolveAdminInvitationOauthContext?: () => Promise<{ invitationId: string; transactionId: string } | null>;
   getCurrentUniversityId: () => Promise<string>;
   now: number;
   store: GoogleAuthContextService;
@@ -84,6 +85,7 @@ export async function recordGoogleAuthContext(options: {
     email,
     surface,
     resolveGoogleUniversityId,
+    resolveAdminInvitationOauthContext,
     getCurrentUniversityId,
     now,
     store,
@@ -92,12 +94,32 @@ export async function recordGoogleAuthContext(options: {
   if (provider !== "google") return { accepted: false, universityId: null };
 
   let universityId: string | null = null;
-  if (resolveGoogleUniversityId) {
-    universityId = await resolveGoogleUniversityId();
-    if (!universityId) {
+  let isInvitation = false;
+
+  if (resolveAdminInvitationOauthContext) {
+    const inv = await resolveAdminInvitationOauthContext();
+    if (inv && typeof inv.invitationId === "string" && typeof inv.transactionId === "string") {
+      isInvitation = true;
+      universityId = null;
+    }
+  }
+
+  if (!isInvitation && resolveGoogleUniversityId) {
+    const resolved = await (resolveGoogleUniversityId as () => Promise<unknown>)();
+    if (
+      resolved !== null
+      && typeof resolved === "object"
+      && "invitationId" in resolved
+      && "transactionId" in resolved
+    ) {
+      isInvitation = true;
+      universityId = null;
+    } else if (typeof resolved === "string" && resolved.trim().length > 0) {
+      universityId = resolved;
+    } else {
       return { accepted: false, universityId: null };
     }
-  } else if (surface === "web") {
+  } else if (!isInvitation && surface === "web") {
     universityId = await getCurrentUniversityId();
   }
 

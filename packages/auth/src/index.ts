@@ -9,7 +9,15 @@ import type {
 import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth/next";
-import { db, googleEmailMatchesUser, markGoogleEmailVerified, schema } from "@tablino/db";
+import {
+  db,
+  googleEmailMatchesUser,
+  markGoogleEmailVerified,
+  schema,
+  checkAdminInvitationGoogleEligibility,
+  createPendingAdminInvitationGoogleUser,
+  completeAdminInvitationGoogleAccount,
+} from "@tablino/db";
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
 import { createUniversitySignupToken } from "./university-signup-token";
@@ -42,15 +50,56 @@ export {
   type GuardUser,
 } from "./guards";
 
+export type AdminInvitationOauthContext = {
+  invitationId: string;
+  transactionId: string;
+};
+
 type AuthOptionsContext = {
   surface: AuthSurface;
   getCurrentUniversityId: () => Promise<string>;
   resolveGoogleUniversityId?: () => Promise<string | null>;
+  resolveAdminInvitationOauthContext?: () => Promise<{ invitationId: string; transactionId: string } | null>;
   resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
   isAuthAdminCentral?: boolean;
   errorPage?: string;
+  checkAdminInvitationGoogleEligibility?: typeof checkAdminInvitationGoogleEligibility;
+  createPendingAdminInvitationGoogleUser?: typeof createPendingAdminInvitationGoogleUser;
+  completeAdminInvitationGoogleAccount?: typeof completeAdminInvitationGoogleAccount;
+  getUserById?: (id: string) => Promise<AuthAdapterUser | null>;
+  getUserByEmail?: (email: string) => Promise<AuthAdapterUser | null>;
+  getUserByAccount?: (provider: string, providerAccountId: string) => Promise<AuthAdapterUser | null>;
 };
+
+async function getAdminInvitationContext(
+  context: AuthOptionsContext,
+): Promise<AdminInvitationOauthContext | null> {
+  if (context.resolveAdminInvitationOauthContext) {
+    const ctx = await context.resolveAdminInvitationOauthContext();
+    if (ctx && typeof ctx.invitationId === "string" && typeof ctx.transactionId === "string") {
+      return ctx;
+    }
+  }
+  if (context.resolveGoogleUniversityId) {
+    try {
+      const res = await (context.resolveGoogleUniversityId as () => Promise<unknown>)();
+      if (
+        res !== null
+        && typeof res === "object"
+        && "invitationId" in res
+        && "transactionId" in res
+        && typeof (res as any).invitationId === "string"
+        && typeof (res as any).transactionId === "string"
+      ) {
+        return res as AdminInvitationOauthContext;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 function toAuthUser(user: StoredUser): AuthAdapterUser {
   return {
@@ -108,21 +157,49 @@ function toAdapterAccount(account: typeof schema.accounts.$inferSelect): Adapter
 }
 
 function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
+  const findUserById = context.getUserById ?? getUserById;
+  const findUserByEmail = context.getUserByEmail ?? getUserByEmail;
+  const findUserByAccount = context.getUserByAccount ?? getUserByAccount;
+
   return {
     async createUser(user: Omit<AdapterUser, "id">) {
+      const invitationContext = await getAdminInvitationContext(context);
+      if (invitationContext !== null) {
+        if (!user.email) {
+          throw new Error("L'e-mail est requis pour créer un compte invité.");
+        }
+        const createPending =
+          context.createPendingAdminInvitationGoogleUser ?? createPendingAdminInvitationGoogleUser;
+        const pendingUserId = await createPending({
+          invitationId: invitationContext.invitationId,
+          transactionId: invitationContext.transactionId,
+          email: user.email,
+          name: user.name ?? null,
+          image: user.image ?? null,
+        });
+        if (!pendingUserId) {
+          throw new Error("Impossible de créer le compte invité Google.");
+        }
+        const created = await findUserById(pendingUserId);
+        if (!created) {
+          throw new Error("Utilisateur invité introuvable.");
+        }
+        return created;
+      }
+
       throw new Error("La création de compte par Google exige un code d'accès.");
     },
 
     async getUser(id) {
-      return getUserById(id);
+      return findUserById(id);
     },
 
     async getUserByEmail(email) {
-      return getUserByEmail(email);
+      return findUserByEmail(email);
     },
 
     async getUserByAccount({ provider, providerAccountId }) {
-      return getUserByAccount(provider, providerAccountId);
+      return findUserByAccount(provider, providerAccountId);
     },
 
     async updateUser(user) {
@@ -133,7 +210,7 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
       if (user.image !== undefined) changes.image = user.image;
 
       if (Object.keys(changes).length === 0) {
-        const stored = await getUserById(user.id);
+        const stored = await findUserById(user.id);
         if (!stored) throw new Error("Utilisateur introuvable.");
         return stored;
       }
@@ -147,6 +224,29 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
     },
 
     async linkAccount(account: AdapterAccount) {
+      const invitationContext = await getAdminInvitationContext(context);
+      if (invitationContext !== null) {
+        const googleContext = await consumeGoogleAuthContext(
+          googleAuthContexts,
+          account.providerAccountId,
+          Date.now(),
+          context.surface,
+        );
+        if (!googleContext) throw new Error("Liaison Google refusee.");
+
+        const completeGoogle =
+          context.completeAdminInvitationGoogleAccount ?? completeAdminInvitationGoogleAccount;
+        const completed = await completeGoogle({
+          invitationId: invitationContext.invitationId,
+          transactionId: invitationContext.transactionId,
+          userId: account.userId,
+          provider: "google",
+          providerAccountId: account.providerAccountId,
+        });
+        if (!completed) throw new Error("Échec de la liaison du compte invité Google.");
+        return account;
+      }
+
       const googleContext = await consumeGoogleAuthContext(
         googleAuthContexts,
         account.providerAccountId,
@@ -158,7 +258,7 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
         throw new Error("La liaison Google doit être effectuée par le parcours explicite d'inscription admin.");
       }
 
-      const user = await getUserById(account.userId);
+      const user = await findUserById(account.userId);
       if (
         !user
         || !googleEmailMatchesUser(user.email, googleContext.email)
@@ -403,14 +503,49 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           email,
           surface: context.surface,
           resolveGoogleUniversityId: context.resolveGoogleUniversityId,
+          resolveAdminInvitationOauthContext: context.resolveAdminInvitationOauthContext,
           getCurrentUniversityId: context.getCurrentUniversityId,
           now,
           store: googleAuthContexts,
         });
         if (!googleContext.accepted) return false;
 
-        const linkedUser = await getUserByAccount(account.provider, account.providerAccountId);
-        const emailUser = linkedUser ? null : await getUserByEmail(email);
+        const findUserByAcc = context.getUserByAccount ?? getUserByAccount;
+        const findUserByEm = context.getUserByEmail ?? getUserByEmail;
+        const linkedUser = await findUserByAcc(account.provider, account.providerAccountId);
+        const emailUser = linkedUser ? null : await findUserByEm(email);
+
+        const invitationContext = await getAdminInvitationContext(context);
+        if (invitationContext !== null) {
+          const checkEligibility =
+            context.checkAdminInvitationGoogleEligibility ?? checkAdminInvitationGoogleEligibility;
+          const eligibility = await checkEligibility({
+            invitationId: invitationContext.invitationId,
+            transactionId: invitationContext.transactionId,
+            email,
+          });
+          if (!eligibility.ok) {
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            return false;
+          }
+
+          // Aucune liaison automatique à un compte existant. Le rôle super_admin ne passe jamais.
+          if (emailUser || linkedUser) {
+            const existing = linkedUser ?? emailUser;
+            if (existing) {
+              if (existing.role === "super_admin") {
+                await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+                return false;
+              }
+              if (!eligibility.pendingUserId || existing.id !== eligibility.pendingUserId) {
+                await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+                return false;
+              }
+            }
+          }
+
+          return true;
+        }
         if (emailUser) {
           let existingAccount: { userId: string } | undefined;
           try {
