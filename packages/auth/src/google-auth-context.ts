@@ -109,6 +109,20 @@ export async function recordGoogleAuthContext(options: {
     if (
       resolved !== null
       && typeof resolved === "object"
+      && "flow" in resolved
+      && (resolved as Record<string, unknown>).flow === "super_login"
+    ) {
+      if (
+        "transactionId" in resolved
+        && typeof (resolved as Record<string, unknown>).transactionId === "string"
+      ) {
+        universityId = null;
+      } else {
+        return { accepted: false, universityId: null };
+      }
+    } else if (
+      resolved !== null
+      && typeof resolved === "object"
       && "invitationId" in resolved
       && "transactionId" in resolved
     ) {

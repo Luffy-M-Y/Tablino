@@ -292,3 +292,19 @@ test("adapter linkAccount refuses absent and expired contexts before database ac
     Object.assign(googleAuthContexts, originalMethods);
   }
 });
+
+test("recordGoogleAuthContext refuse un objet { flow: 'super_login' } sans transactionId", async () => {
+  const options = createOptions({
+    resolveGoogleUniversityId: async () => ({ flow: "super_login" }),
+  });
+  const result = await recordGoogleAuthContext(options);
+  assert.deepEqual(result, { accepted: false, universityId: null });
+});
+
+test("recordGoogleAuthContext refuse un objet { flow: 'super_login' } avec transactionId non string", async () => {
+  const options = createOptions({
+    resolveGoogleUniversityId: async () => ({ flow: "super_login", transactionId: 12345 }),
+  });
+  const result = await recordGoogleAuthContext(options);
+  assert.deepEqual(result, { accepted: false, universityId: null });
+});

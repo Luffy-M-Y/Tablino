@@ -22,6 +22,7 @@ import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
 import { createUniversitySignupToken } from "./university-signup-token";
 import { createGoogleExistingAccountToken } from "./google-existing-account-token";
+import { createSuperGoogleExistingAccountTokenEnv } from "./google-super-existing-account-token";
 import {
   AUTH_ADMIN_GOOGLE_ERROR_PATH,
   AUTH_ADMIN_GOOGLE_EXISTING_ACCOUNT,
@@ -29,6 +30,7 @@ import {
   isAdminCentralGoogleLinkAllowed,
   shouldMarkGoogleEmailVerified,
 } from "./admin-google-signin";
+import { decideAdminSuperGoogleSignIn } from "./admin-super-google-signin";
 import type { AuthRole } from "./roles";
 import { createAuthGuards, type AuthSurface, type GuardRole } from "./guards";
 import {
@@ -55,6 +57,11 @@ export type AdminInvitationOauthContext = {
   transactionId: string;
 };
 
+export type AdminSuperLoginOauthContext = {
+  flow: "super_login";
+  transactionId: string;
+};
+
 type AuthOptionsContext = {
   surface: AuthSurface;
   getCurrentUniversityId: () => Promise<string>;
@@ -62,6 +69,7 @@ type AuthOptionsContext = {
   resolveAdminInvitationOauthContext?: () => Promise<{ invitationId: string; transactionId: string } | null>;
   resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
+  resolveGoogleSuperExistingAccountUrl?: (token: string) => Promise<string | null>;
   isAuthAdminCentral?: boolean;
   errorPage?: string;
   checkAdminInvitationGoogleEligibility?: typeof checkAdminInvitationGoogleEligibility;
@@ -70,6 +78,10 @@ type AuthOptionsContext = {
   getUserById?: (id: string) => Promise<AuthAdapterUser | null>;
   getUserByEmail?: (email: string) => Promise<AuthAdapterUser | null>;
   getUserByAccount?: (provider: string, providerAccountId: string) => Promise<AuthAdapterUser | null>;
+  getSuperAdminSecurityDetails?: (userId: string) => Promise<{
+    passwordHash: string | null;
+    revokedAt: Date | null;
+  } | null>;
 };
 
 async function getAdminInvitationContext(
@@ -93,6 +105,31 @@ async function getAdminInvitationContext(
         && typeof (res as any).transactionId === "string"
       ) {
         return res as AdminInvitationOauthContext;
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+async function getAdminSuperLoginContext(
+  context: AuthOptionsContext,
+): Promise<AdminSuperLoginOauthContext | null> {
+  if (context.resolveGoogleUniversityId) {
+    try {
+      const res = await (context.resolveGoogleUniversityId as () => Promise<unknown>)();
+      if (res !== null && typeof res === "object") {
+        const obj = res as Record<string, unknown>;
+        if (
+          obj.flow === "super_login"
+          && typeof obj.transactionId === "string"
+        ) {
+          return {
+            flow: "super_login",
+            transactionId: obj.transactionId,
+          };
+        }
       }
     } catch {
       return null;
@@ -140,6 +177,23 @@ async function getUserByAccount(
   return row ? toAuthUser(row.user) : null;
 }
 
+async function getSuperAdminSecurityDetails(userId: string): Promise<{
+  passwordHash: string | null;
+  revokedAt: Date | null;
+} | null> {
+  const [row] = await db.select({
+    passwordHash: schema.users.passwordHash,
+    revokedAt: schema.users.revokedAt,
+  })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  return row ? {
+    passwordHash: row.passwordHash,
+    revokedAt: row.revokedAt,
+  } : null;
+}
+
 function toAdapterAccount(account: typeof schema.accounts.$inferSelect): AdapterAccount {
   return {
     userId: account.userId,
@@ -163,6 +217,11 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
 
   return {
     async createUser(user: Omit<AdapterUser, "id">) {
+      const superLoginContext = await getAdminSuperLoginContext(context);
+      if (superLoginContext !== null) {
+        throw new Error("La création de compte est interdite dans le flux de connexion super admin.");
+      }
+
       const invitationContext = await getAdminInvitationContext(context);
       if (invitationContext !== null) {
         if (!user.email) {
@@ -224,6 +283,11 @@ function createDrizzleAdapter(context: AuthOptionsContext): Adapter {
     },
 
     async linkAccount(account: AdapterAccount) {
+      const superLoginContext = await getAdminSuperLoginContext(context);
+      if (superLoginContext !== null) {
+        throw new Error("La liaison de compte est interdite dans le flux de connexion super admin.");
+      }
+
       const invitationContext = await getAdminInvitationContext(context);
       if (invitationContext !== null) {
         const googleContext = await consumeGoogleAuthContext(
@@ -546,6 +610,66 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
 
           return true;
         }
+
+        const superLoginContext = await getAdminSuperLoginContext(context);
+        if (superLoginContext !== null) {
+          const targetUser = emailUser ?? linkedUser ?? (await findUserByEm(email));
+          if (!targetUser) {
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          const readSecurity = context.getSuperAdminSecurityDetails ?? getSuperAdminSecurityDetails;
+          let userSecurity: { passwordHash: string | null; revokedAt: Date | null } | null;
+          try {
+            userSecurity = await readSecurity(targetUser.id);
+          } catch {
+            try {
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            } catch {
+              // Ignore l'échec de suppression du contexte pour garantir le renvoi du refus générique.
+            }
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          if (!userSecurity) {
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          const decision = decideAdminSuperGoogleSignIn({
+            isAuthAdminCentral: context.isAuthAdminCentral === true,
+            user: {
+              role: targetUser.role,
+              universityId: targetUser.universityId,
+              revokedAt: userSecurity.revokedAt,
+              emailVerified: targetUser.emailVerified,
+              passwordHash: userSecurity.passwordHash,
+            },
+          });
+
+          if (!decision) {
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          try {
+            const existingToken = createSuperGoogleExistingAccountTokenEnv({
+              email,
+              now,
+            });
+            const redirectUrl = await context.resolveGoogleSuperExistingAccountUrl?.(existingToken);
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            return redirectUrl ?? AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          } catch {
+            try {
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            } catch {
+              // Ignore l'échec de suppression du contexte pour garantir le renvoi du refus générique.
+            }
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+        }
         if (emailUser) {
           let existingAccount: { userId: string } | undefined;
           try {
@@ -810,3 +934,7 @@ export {
   verifySuperGoogleExistingAccountTokenEnv,
   SUPER_GOOGLE_EXISTING_ACCOUNT_TOKEN_TTL_MS,
 } from "./google-super-existing-account-token";
+export {
+  decideAdminSuperGoogleSignIn,
+} from "./admin-super-google-signin";
+export type { AdminSuperGoogleUser } from "./admin-super-google-signin";
