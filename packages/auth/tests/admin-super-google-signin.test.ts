@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import fs from "node:fs";
+import path from "node:path";
+import {
+  checkAdminSuperLoginGoogleEligibility,
+  createAdminSuperLoginOauthTransferCode,
+} from "@tablino/db";
 import { createAuthOptions } from "../src/index";
 import { googleAuthContexts } from "../src/google-auth-context";
 import { verifySuperGoogleExistingAccountToken } from "../src/google-super-existing-account-token";
 import { verifyGoogleExistingAccountToken } from "../src/google-existing-account-token";
+import { AUTH_ADMIN_GOOGLE_ERROR_PATH } from "../src/admin-google-signin";
 
 const SECRET = "test-secret-long-enough-for-hkdf-32bytes";
 process.env.NEXTAUTH_SECRET = SECRET;
@@ -746,4 +753,607 @@ test("jeton super émis seulement pour le cas accepté (jamais lors d'un refus)"
   } finally {
     Object.assign(googleAuthContexts, originalMethods);
   }
+});
+
+test("editor lié Google accepté : code créé, URL renvoyée", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-editor-linked",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    let eligibilityInput: unknown = null;
+    let transferCodeInput: unknown = null;
+    let resolvedCode: string | null = null;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async (input) => {
+        eligibilityInput = input;
+        return { ok: true, userId: user.id };
+      },
+      createSuperLoginTransferCode: async (input) => {
+        transferCodeInput = input;
+        return "transfer-code-editor-xyz";
+      },
+      resolveGoogleSuperTransferUrl: async (code) => {
+        resolvedCode = code;
+        return `/auth-admin/callback?code=${code}`;
+      },
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, "/auth-admin/callback?code=transfer-code-editor-xyz");
+    assert.deepEqual(eligibilityInput, {
+      transactionId: "tx-super-test-789",
+      email: "editor@example.com",
+      providerAccountId: "acc-google-editor",
+    });
+    assert.deepEqual(transferCodeInput, {
+      transactionId: "tx-super-test-789",
+      userId: "user-editor-linked",
+    });
+    assert.equal(resolvedCode, "transfer-code-editor-xyz");
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("lector lié Google accepté", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-lector-linked",
+      role: "super_admin_lector",
+      email: "lector@example.com",
+    });
+
+    let eligibilityInput: unknown = null;
+    let transferCodeInput: unknown = null;
+    let resolvedCode: string | null = null;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async (input) => {
+        eligibilityInput = input;
+        return { ok: true, userId: user.id };
+      },
+      createSuperLoginTransferCode: async (input) => {
+        transferCodeInput = input;
+        return "transfer-code-lector-xyz";
+      },
+      resolveGoogleSuperTransferUrl: async (code) => {
+        resolvedCode = code;
+        return `/auth-admin/callback?code=${code}`;
+      },
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-lector", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, "/auth-admin/callback?code=transfer-code-lector-xyz");
+    assert.deepEqual(eligibilityInput, {
+      transactionId: "tx-super-test-789",
+      email: "lector@example.com",
+      providerAccountId: "acc-google-lector",
+    });
+    assert.deepEqual(transferCodeInput, {
+      transactionId: "tx-super-test-789",
+      userId: "user-lector-linked",
+    });
+    assert.equal(resolvedCode, "transfer-code-lector-xyz");
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("chef refusé, éligibilité et code NON appelés (espions)", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-super-chef",
+      role: "super_admin",
+      email: "chef@example.com",
+    });
+
+    let eligibilityCalls = 0;
+    let transferCodeCalls = 0;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => {
+        eligibilityCalls++;
+        return { ok: true, userId: user.id };
+      },
+      createSuperLoginTransferCode: async () => {
+        transferCodeCalls++;
+        return "code-chef";
+      },
+      resolveGoogleSuperTransferUrl: async (c) => `/callback?code=${c}`,
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-chef", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(eligibilityCalls, 0);
+    assert.equal(transferCodeCalls, 0);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("revokedAt présent : refusé, éligibilité non appelée", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-revoked",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    let eligibilityCalls = 0;
+    let transferCodeCalls = 0;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails({
+        revokedAt: new Date("2026-05-01T12:00:00Z"),
+      }),
+      checkSuperLoginGoogleEligibility: async () => {
+        eligibilityCalls++;
+        return { ok: true, userId: user.id };
+      },
+      createSuperLoginTransferCode: async () => {
+        transferCodeCalls++;
+        return "code-revoked";
+      },
+      resolveGoogleSuperTransferUrl: async (c) => `/callback?code=${c}`,
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-revoked", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(eligibilityCalls, 0);
+    assert.equal(transferCodeCalls, 0);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("éligibilité renvoie ok faux : refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-editor-not-eligible",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    let transferCodeCalls = 0;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: false, userId: null }),
+      createSuperLoginTransferCode: async () => {
+        transferCodeCalls++;
+        return "code-should-not-exist";
+      },
+      resolveGoogleSuperTransferUrl: async (c) => `/callback?code=${c}`,
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-not-eligible", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(transferCodeCalls, 0);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("éligibilité lève : refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-editor-throws",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    let transferCodeCalls = 0;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => {
+        throw new Error("DB connection failure in eligibility");
+      },
+      createSuperLoginTransferCode: async () => {
+        transferCodeCalls++;
+        return "code-should-not-exist";
+      },
+      resolveGoogleSuperTransferUrl: async (c) => `/callback?code=${c}`,
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-throws", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(transferCodeCalls, 0);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("création du code renvoie faux : refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-editor-code-null",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    let resolverCalls = 0;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: true, userId: user.id }),
+      createSuperLoginTransferCode: async () => null,
+      resolveGoogleSuperTransferUrl: async (c) => {
+        resolverCalls++;
+        return `/callback?code=${c}`;
+      },
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-code-null", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(resolverCalls, 0);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("création du code lève : refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-editor-code-throw",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    let resolverCalls = 0;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: true, userId: user.id }),
+      createSuperLoginTransferCode: async () => {
+        throw new Error("DB failure during transfer code creation");
+      },
+      resolveGoogleSuperTransferUrl: async (c) => {
+        resolverCalls++;
+        return `/callback?code=${c}`;
+      },
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-code-throw", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(resolverCalls, 0);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("resolveGoogleSuperTransferUrl absent ou null : refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-editor-no-url",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    // Cas absent
+    const optionsAbsent = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: true, userId: user.id }),
+      createSuperLoginTransferCode: async () => "valid-code-absent",
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signInAbsent = optionsAbsent.callbacks?.signIn;
+    assert.ok(signInAbsent);
+
+    const resultAbsent = await signInAbsent({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-absent", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+    assert.equal(resultAbsent, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+
+    // Cas renvoie null
+    const optionsNull = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: true, userId: user.id }),
+      createSuperLoginTransferCode: async () => "valid-code-null",
+      resolveGoogleSuperTransferUrl: async () => null,
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signInNull = optionsNull.callbacks?.signIn;
+    assert.ok(signInNull);
+
+    const resultNull = await signInNull({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-null", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+    assert.equal(resultNull, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("compte à mot de passe seul : jeton googleExisting comme avant, éligibilité non appelée", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-password-only",
+      role: "super_admin_editor",
+      email: "passwordonly@example.com",
+    });
+
+    let eligibilityCalls = 0;
+    let transferCodeCalls = 0;
+    let existingToken: string | null = null;
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => {
+        eligibilityCalls++;
+        return { ok: true, userId: user.id };
+      },
+      createSuperLoginTransferCode: async () => {
+        transferCodeCalls++;
+        return "transfer-code";
+      },
+      resolveGoogleSuperExistingAccountUrl: async (token) => {
+        existingToken = token;
+        return `/login?googleExisting=${token}`;
+      },
+      getUserByAccount: async () => null, // Pas de compte Google lié
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-password-only", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(typeof result, "string");
+    assert.ok((result as string).startsWith("/login?googleExisting="));
+    assert.ok(existingToken !== null);
+    assert.equal(eligibilityCalls, 0);
+    assert.equal(transferCodeCalls, 0);
+
+    const verified = verifySuperGoogleExistingAccountToken(existingToken!, { secret: SECRET });
+    assert.deepEqual(verified, { email: "passwordonly@example.com" });
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("deleteGoogleAuthContext lève : refus générique quand même", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  const fakeStore = createFakeGoogleAuthContextService();
+  fakeStore.delete = async () => {
+    throw new Error("Store delete failure");
+  };
+  Object.assign(googleAuthContexts, fakeStore);
+
+  try {
+    const user = createValidSuperUser({
+      id: "user-delete-throws",
+      role: "super_admin_editor",
+      email: "editor@example.com",
+    });
+
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: false, userId: null }),
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-delete-throws", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+  } finally {
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("test sans injection : le repli réel est référencé (preuve par lecture de code, pas par appel base)", () => {
+  const indexPath = typeof import.meta !== "undefined" && import.meta.url
+    ? new URL("../src/index.ts", import.meta.url)
+    : path.resolve(__dirname, "../src/index.ts");
+  const indexSource = fs.readFileSync(indexPath, "utf8");
+
+  // Preuve que les fonctions sont importées depuis @tablino/db
+  assert.ok(
+    indexSource.includes("checkAdminSuperLoginGoogleEligibility"),
+    "checkAdminSuperLoginGoogleEligibility doit être importé dans src/index.ts",
+  );
+  assert.ok(
+    indexSource.includes("createAdminSuperLoginOauthTransferCode"),
+    "createAdminSuperLoginOauthTransferCode doit être importé dans src/index.ts",
+  );
+
+  // Preuve que les replis sont référencés dans signIn sans injection
+  assert.ok(
+    indexSource.includes("context.checkSuperLoginGoogleEligibility ?? checkAdminSuperLoginGoogleEligibility"),
+    "Le repli checkAdminSuperLoginGoogleEligibility doit être référencé",
+  );
+  assert.ok(
+    indexSource.includes("context.createSuperLoginTransferCode ?? createAdminSuperLoginOauthTransferCode"),
+    "Le repli createAdminSuperLoginOauthTransferCode doit être référencé",
+  );
+
+  // Preuve que les fonctions importées de @tablino/db sont bien des fonctions
+  assert.equal(typeof checkAdminSuperLoginGoogleEligibility, "function");
+  assert.equal(typeof createAdminSuperLoginOauthTransferCode, "function");
 });

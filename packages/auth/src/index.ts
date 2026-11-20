@@ -17,6 +17,8 @@ import {
   checkAdminInvitationGoogleEligibility,
   createPendingAdminInvitationGoogleUser,
   completeAdminInvitationGoogleAccount,
+  checkAdminSuperLoginGoogleEligibility,
+  createAdminSuperLoginOauthTransferCode,
 } from "@tablino/db";
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
@@ -70,11 +72,14 @@ type AuthOptionsContext = {
   resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleSuperExistingAccountUrl?: (token: string) => Promise<string | null>;
+  resolveGoogleSuperTransferUrl?: (code: string) => Promise<string | null>;
   isAuthAdminCentral?: boolean;
   errorPage?: string;
   checkAdminInvitationGoogleEligibility?: typeof checkAdminInvitationGoogleEligibility;
   createPendingAdminInvitationGoogleUser?: typeof createPendingAdminInvitationGoogleUser;
   completeAdminInvitationGoogleAccount?: typeof completeAdminInvitationGoogleAccount;
+  checkSuperLoginGoogleEligibility?: typeof checkAdminSuperLoginGoogleEligibility;
+  createSuperLoginTransferCode?: typeof createAdminSuperLoginOauthTransferCode;
   getUserById?: (id: string) => Promise<AuthAdapterUser | null>;
   getUserByEmail?: (email: string) => Promise<AuthAdapterUser | null>;
   getUserByAccount?: (provider: string, providerAccountId: string) => Promise<AuthAdapterUser | null>;
@@ -613,9 +618,23 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
 
         const superLoginContext = await getAdminSuperLoginContext(context);
         if (superLoginContext !== null) {
+          const safeDeleteGoogleAuthContext = async () => {
+            try {
+              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            } catch {
+              // Ignore l'échec de suppression du contexte pour garantir le renvoi du refus générique.
+            }
+          };
+
           const targetUser = emailUser ?? linkedUser ?? (await findUserByEm(email));
           if (!targetUser) {
-            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            await safeDeleteGoogleAuthContext();
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          // Refus explicite et immédiat si targetUser.role === "super_admin" (le chef).
+          if (targetUser.role === "super_admin") {
+            await safeDeleteGoogleAuthContext();
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
@@ -624,19 +643,74 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           try {
             userSecurity = await readSecurity(targetUser.id);
           } catch {
+            await safeDeleteGoogleAuthContext();
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          if (!userSecurity || userSecurity.revokedAt !== null) {
+            await safeDeleteGoogleAuthContext();
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          const hasLinkedGoogle = linkedUser !== null && linkedUser.id === targetUser.id;
+          if (hasLinkedGoogle) {
+            const checkEligibility =
+              context.checkSuperLoginGoogleEligibility ?? checkAdminSuperLoginGoogleEligibility;
+            let eligibility: { ok: boolean; userId?: string | null };
             try {
-              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+              eligibility = await checkEligibility({
+                transactionId: superLoginContext.transactionId,
+                email: email.toLowerCase(),
+                providerAccountId: account.providerAccountId,
+              });
             } catch {
-              // Ignore l'échec de suppression du contexte pour garantir le renvoi du refus générique.
+              await safeDeleteGoogleAuthContext();
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
-            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+
+            if (!eligibility?.ok) {
+              await safeDeleteGoogleAuthContext();
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+
+            const createTransferCode =
+              context.createSuperLoginTransferCode ?? createAdminSuperLoginOauthTransferCode;
+            let code: string | null;
+            try {
+              code = await createTransferCode({
+                transactionId: superLoginContext.transactionId,
+                userId: targetUser.id,
+              });
+            } catch {
+              await safeDeleteGoogleAuthContext();
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+
+            if (!code) {
+              await safeDeleteGoogleAuthContext();
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+
+            let redirectUrl: string | null = null;
+            try {
+              redirectUrl = context.resolveGoogleSuperTransferUrl
+                ? await context.resolveGoogleSuperTransferUrl(code)
+                : null;
+            } catch {
+              await safeDeleteGoogleAuthContext();
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+
+            if (!redirectUrl) {
+              await safeDeleteGoogleAuthContext();
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+
+            await safeDeleteGoogleAuthContext();
+            return redirectUrl;
           }
 
-          if (!userSecurity) {
-            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
-            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
-          }
-
+          // Sinon (compte à mot de passe seulement, sans compte Google lié)
           const decision = decideAdminSuperGoogleSignIn({
             isAuthAdminCentral: context.isAuthAdminCentral === true,
             user: {
@@ -649,7 +723,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           });
 
           if (!decision) {
-            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            await safeDeleteGoogleAuthContext();
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
@@ -659,14 +733,10 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
               now,
             });
             const redirectUrl = await context.resolveGoogleSuperExistingAccountUrl?.(existingToken);
-            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+            await safeDeleteGoogleAuthContext();
             return redirectUrl ?? AUTH_ADMIN_GOOGLE_ERROR_PATH;
           } catch {
-            try {
-              await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
-            } catch {
-              // Ignore l'échec de suppression du contexte pour garantir le renvoi du refus générique.
-            }
+            await safeDeleteGoogleAuthContext();
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
         }
