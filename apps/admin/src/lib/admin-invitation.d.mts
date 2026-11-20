@@ -1,3 +1,9 @@
+export {
+  runStartAdminInvitationGoogle,
+  ADMIN_INVITATION_GOOGLE_START_ERROR_MESSAGE,
+  type StartAdminInvitationGoogleResult,
+} from "./admin-invitation-google-start.mjs";
+
 export type AdminInvitationRole = "super_admin_editor" | "super_admin_lector";
 
 export const ADMIN_INVITATION_COOKIE: "tablino-admin-invitation-token";
