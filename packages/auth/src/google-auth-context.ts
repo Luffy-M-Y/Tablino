@@ -73,7 +73,7 @@ export async function recordGoogleAuthContext(options: {
   providerAccountId: string;
   email: string;
   surface: GoogleAuthSurface;
-  resolveGoogleUniversityId?: () => Promise<string | null>;
+  resolveGoogleUniversityId?: () => Promise<unknown>;
   resolveAdminInvitationOauthContext?: () => Promise<{ invitationId: string; transactionId: string } | null>;
   getCurrentUniversityId: () => Promise<string>;
   now: number;

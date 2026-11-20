@@ -58,7 +58,7 @@ export type AdminInvitationOauthContext = {
 type AuthOptionsContext = {
   surface: AuthSurface;
   getCurrentUniversityId: () => Promise<string>;
-  resolveGoogleUniversityId?: () => Promise<string | null>;
+  resolveGoogleUniversityId?: () => Promise<unknown>;
   resolveAdminInvitationOauthContext?: () => Promise<{ invitationId: string; transactionId: string } | null>;
   resolveGoogleSignupUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
@@ -803,3 +803,10 @@ export {
   verifyGoogleExistingAccountTokenEnv,
   GOOGLE_EXISTING_ACCOUNT_TOKEN_TTL_MS,
 } from "./google-existing-account-token";
+export {
+  createSuperGoogleExistingAccountToken,
+  verifySuperGoogleExistingAccountToken,
+  createSuperGoogleExistingAccountTokenEnv,
+  verifySuperGoogleExistingAccountTokenEnv,
+  SUPER_GOOGLE_EXISTING_ACCOUNT_TOKEN_TTL_MS,
+} from "./google-super-existing-account-token";
