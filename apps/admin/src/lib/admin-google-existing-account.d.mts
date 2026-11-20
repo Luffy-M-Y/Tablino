@@ -4,6 +4,7 @@ export function getAdminGoogleExistingAccountEmail(options: {
   token: string | undefined;
   hostContext: AdminHostContext;
   verifyToken: (token: string) => { email: string; universityId: string } | null;
+  verifySuperToken?: (token: string) => { email: string } | null;
 }): string | null;
 
 export function getAdminGoogleExistingAccountMessage(

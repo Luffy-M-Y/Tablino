@@ -62,6 +62,11 @@ export function LoginForm({
       ticketField.name = "ticket";
       ticketField.value = result.ticket;
       form.appendChild(ticketField);
+      const kindField = document.createElement("input");
+      kindField.type = "hidden";
+      kindField.name = "kind";
+      kindField.value = result.kind;
+      form.appendChild(kindField);
       document.body.appendChild(form);
       form.submit();
     } catch {

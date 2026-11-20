@@ -85,6 +85,27 @@ export function buildAdminGoogleExistingAccountUrl({
 }
 
 /**
+ * Construit l'URL de connexion super admin avec un jeton de compte Google existant.
+ *
+ * @param {{ adminRootDomain: string, secure: boolean, token: string }} options
+ * @returns {string | null}
+ */
+export function buildSuperAdminGoogleExistingAccountUrl({
+  adminRootDomain,
+  secure,
+  token,
+}) {
+  if (typeof token !== "string" || token.length === 0) return null;
+  const returnUrl = buildSuperAdminReturnUrl({ adminRootDomain, secure });
+  if (returnUrl === null) return null;
+
+  const url = new URL(returnUrl);
+  url.pathname = "/login";
+  url.searchParams.set("googleExisting", token);
+  return url.toString();
+}
+
+/**
  * Construit l'URL de transfert université avec le code.
  *
  * @param {{ slug: string, adminRootDomain: string, secure: boolean, code: string }} options

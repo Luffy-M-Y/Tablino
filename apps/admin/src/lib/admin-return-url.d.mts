@@ -16,6 +16,12 @@ export function buildAdminGoogleExistingAccountUrl(options: {
   token: string;
 }): string | null;
 
+export function buildSuperAdminGoogleExistingAccountUrl(options: {
+  adminRootDomain: string;
+  secure: boolean;
+  token: string;
+}): string | null;
+
 export function buildAdminTransferRedirectUrl(options: {
   slug: string;
   adminRootDomain: string;
