@@ -14,12 +14,14 @@ test("returns role-authorized super-admin navigation entries", () => {
       { label: "Validations", href: "/approvals" },
       { label: "Revenus", href: "/revenus" },
       { label: "Ajouter un admin", href: "/admin-invitations" },
+      { label: "Admins", href: "/admins" },
     ],
     super_admin_editor: [
       { label: "Accueil", href: "/" },
       { label: "Validations", href: "/approvals" },
       { label: "Revenus", href: "/revenus" },
       { label: "Ajouter un admin", href: "/admin-invitations" },
+      { label: "Admins", href: "/admins" },
     ],
     super_admin_lector: [{ label: "Accueil", href: "/" }],
   };

@@ -5,6 +5,7 @@ export type AdminMenuEntry =
         | "approvals"
         | "revenues"
         | "admin-invitations"
+        | "admins"
         | "structure"
         | "scan"
         | "upload"
