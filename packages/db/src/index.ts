@@ -361,3 +361,39 @@ export type {
   CompleteUniversityPartnershipInput,
   CompleteUniversityPartnershipResult,
 } from "./university-partnership";
+export {
+  listActiveSuperAdmins,
+  createAdminRevocationService,
+  createAdminRevocationStepUpVerifier,
+  verifyAdminRevocationStepUp,
+  revokeSuperAdminAccount,
+  ADMIN_REVOCATION_AUDIT_RETENTION_MONTHS,
+} from "./admin-revocation";
+export type {
+  ActiveSuperAdminRole,
+  ActiveSuperAdminRow,
+  AdminRevocationStepUpResult,
+  AdminRevocationStepUpVerifierDependencies,
+  RevokeSuperAdminAccountInput,
+  RevokeSuperAdminAccountFailureReason,
+  RevokeSuperAdminAccountResult,
+  AdminRevocationServiceDependencies,
+} from "./admin-revocation";
+export {
+  ADMIN_REVOCATION_ALERT_RETENTION_MS,
+  ADMIN_REVOCATION_ALERT_LEASE_MS,
+  ADMIN_REVOCATION_ALERT_RETRY_DELAYS_MS,
+  enqueueAdminRevocationAlerts,
+  processAdminRevocationAlertOutbox,
+  getAdminRevocationAlertReservationState,
+  getAdminRevocationAlertFailureState,
+  isAdminRevocationAlertReservationDue,
+  isRevokedAdminRole,
+} from "./admin-revocation-outbox";
+export type {
+  AdminRevocationAlert,
+  AdminRevocationAlertSender,
+  ProcessAdminRevocationAlertOutboxResult,
+  RevokedAdminRole,
+} from "./admin-revocation-outbox";
+
