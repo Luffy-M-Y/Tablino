@@ -1,7 +1,5 @@
 import { AdminCard } from "@/components/admin-ui";
 
-export const instant = false;
-
 export default function AuthAdminErrorPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--color-page-background)] px-4 py-6">
@@ -10,7 +8,7 @@ export default function AuthAdminErrorPage() {
           Erreur de connexion
         </h1>
         <p className="mt-3 text-sm text-[color:var(--color-muted-foreground)]">
-          La connexion a échoué. Recommencez depuis votre université.
+          La connexion a échoué. Recommencez depuis la page de connexion de votre espace d&apos;administration.
         </p>
       </AdminCard>
     </main>
