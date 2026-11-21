@@ -430,6 +430,58 @@ export const adminInvitationAlertOutbox = pgTable("admin_invitation_alert_outbox
   ),
 ]).enableRLS();
 
+export const adminRevocationAudit = pgTable("admin_revocation_audit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  revokedUserId: uuid("revoked_user_id")
+    .references(() => users.id, { onDelete: "set null" }),
+  revokedByUserId: uuid("revoked_by_user_id")
+    .references(() => users.id, { onDelete: "set null" }),
+  revokedEmail: varchar("revoked_email", { length: 255 }).notNull(),
+  revokerEmail: varchar("revoker_email", { length: 255 }).notNull(),
+  revokedRole: roleEnum("revoked_role").notNull(),
+  revokerRole: roleEnum("revoker_role").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => [
+  index("admin_revocation_audit_revoker_created_idx").on(t.revokedByUserId, t.createdAt),
+  index("admin_revocation_audit_expires_at_idx").on(t.expiresAt),
+  check(
+    "admin_revocation_audit_revoked_role_check",
+    sql`${t.revokedRole}::text IN ('super_admin_editor', 'super_admin_lector')`,
+  ),
+  check(
+    "admin_revocation_audit_revoker_role_check",
+    sql`${t.revokerRole}::text IN ('super_admin', 'super_admin_editor')`,
+  ),
+]).enableRLS();
+
+export const adminRevocationAlertOutbox = pgTable("admin_revocation_alert_outbox", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  auditId: uuid("audit_id")
+    .references(() => adminRevocationAudit.id, { onDelete: "cascade" })
+    .notNull(),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  status: varchar("status", { length: 16 }).default("pending").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => [
+  uniqueIndex("admin_revocation_alert_outbox_audit_recipient_uq")
+    .on(t.auditId, t.recipientEmail),
+  index("admin_revocation_alert_outbox_due_idx").on(t.status, t.nextAttemptAt),
+  index("admin_revocation_alert_outbox_expires_at_idx").on(t.expiresAt),
+  check(
+    "admin_revocation_alert_outbox_status_check",
+    sql.raw("status IN ('pending', 'processing', 'sent', 'failed')"),
+  ),
+  check(
+    "admin_revocation_alert_outbox_attempts_check",
+    sql.raw("attempts >= 0 AND attempts <= 3"),
+  ),
+]).enableRLS();
+
 export const adminInvitationOauthTransactions = pgTable("admin_invitation_oauth_transactions", {
   id: uuid("id").primaryKey().defaultRandom(),
   invitationId: uuid("invitation_id")
