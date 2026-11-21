@@ -8,4 +8,4 @@ export function runAdminInvitationOutboxRoute(input: {
   authorization: string | null;
   configuredSecret: string | undefined;
   processOutbox: () => Promise<unknown>;
-}): Promise<{ status: 204 | 404 | 405 | 500 }>;
+}): Promise<{ status: 200 | 204 | 404 | 405 | 500; body?: unknown }>;

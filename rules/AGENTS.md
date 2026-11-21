@@ -31,7 +31,10 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Pour lancer apps/admin en dev, apps/admin/.env.local doit contenir DATABASE_URL (même cible que .env.test) et UNIVERSITY_ID. Noms seulement, jamais de valeurs.
 - Base de test autorisée : référence `xblapziuxietpjqewkwh` uniquement. Références interdites : `dmkhqphgxmgsgosvrylx` et `dfrlsuhllzqsqerqzsch`. Vérifier référence et port avant toute opération.
 - Base de test xblapziuxietpjqewkwh conservée jusqu'à la fin de la phase de développement. Suppression à la demande de l'utilisateur seulement.
-- Tables : universities, programs, levels, academic_years, subjects, resources (cours), assignments (devoirs), users, accounts, sessions, verification_tokens, subscriptions, email_verification_codes, password_reset_codes, auth_attempts.
+- Tables : universities, programs, levels, academic_years, subjects, resources (cours), assignments (devoirs), access_codes, users, admin_invitations, admin_invitation_audit, admin_invitation_codes, admin_invitation_alert_outbox, admin_revocation_audit, admin_revocation_alert_outbox, accounts, sessions, verification_tokens, subscriptions, email_verification_codes, password_reset_codes, auth_attempts.
+- Migration 0024 (`0024_round_serpent_society.sql`) : ajoute les tables `admin_revocation_audit` et `admin_revocation_alert_outbox`.
+- Clés étrangères vers `users.id` : 15 au total dans le schéma (13 antérieures + `admin_revocation_audit.revoked_user_id` et `revoked_by_user_id`, toutes deux avec `onDelete: "set null"`).
+- Règle harnais de test DB : la chaîne réelle de Drizzle pour les requêtes verrouillées d'outbox est `.where().orderBy().limit(1).for("update", { skipLocked: true })` ; dans un harnais simulant Drizzle, `limit()` doit renvoyer un objet attendable qui possède aussi la méthode `.for()` résolvant vers le même résultat, consommant les lignes simulées une seule fois. Dans `admin-revocation.ts`, la chaîne de verrouillage est `.for("update").limit(1)`.
 - Isolation : clés étrangères composites incluant `university_id`. Test : `db:test-isolation` (8 cas, doit rester vert).
 - Statut : `programs.status` porte `draft` ou `published` ; seule une filière publiée est visible dans `apps/web`. Niveaux, matières et années suivent le statut de leur filière. Ressources et devoirs gardent leur propre statut. Le statut « disponible / à rendre / expiré » d'un devoir se calcule depuis l'échéance, jamais stocké.
 - Année académique : globale à l'université, liée via `subjects.academic_year_id`.
@@ -69,7 +72,7 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 16. Ne jamais supposer le nom, l'existence ou le chemin d'une fonction ou d'un fichier : auditer d'abord.
 17. PowerShell : Select-String sans -Recurse ; utiliser Get-ChildItem -Recurse -Filter. Chemins avec crochets : -LiteralPath, ou git add avec la forme :(literal)chemin entre guillemets.
 18. Composants client : jamais crypto.randomUUID ; compteur dans un useRef.
-19. Le script test de apps/admin/package.json liste les fichiers à la main : tout nouveau fichier de test y est ajouté. packages/db utilise des fichiers dans tests/ dont le nom finit par .test.ts.
+19. Le script test de apps/admin/package.json liste les fichiers à la main : tout nouveau fichier de test y est ajouté. packages/db utilise des fichiers dans tests/ dont le nom finit par .test.ts ; les tests de packages/db et packages/email sont pris par motif.
 20. Module .mjs importé depuis TypeScript : extension dans l'alias, avec un fichier .d.mts.
 21. Nouvelle dépendance : accord du propriétaire, puis pnpm add par le propriétaire ; jamais pnpm approve-builds sans accord.
 22. Assets (OCR, langue) : locaux dans apps/admin/public, jamais depuis un CDN.
@@ -207,6 +210,20 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
   - `super_admin_lector` : lecture seule ; éligible à la connexion Google sur `sup-admin`.
 - Table `admin_invitations` : stocke les invitations en attente et acceptées. Matrice de permissions dans `apps/admin/src/lib/admin-permissions.mjs`.
 - Trigger de protection du chef (`users_protect_super_admin_identity`) : empêche la suppression, la révocation et le changement de rôle du `super_admin` chef en base.
+- Permission `admins` (`apps/admin/src/lib/admin-permissions.mjs`) :
+  - Accordée uniquement à `super_admin` et `super_admin_editor`.
+  - Matrice `getRevocableAdminRoles(actorRole)` : le chef (`super_admin`) peut révoquer `super_admin_editor` et `super_admin_lector` ; l'éditeur (`super_admin_editor`) peut révoquer `super_admin_lector` uniquement ; le lecteur (`super_admin_lector`) ne peut rien révoquer.
+  - Règles : révoquer un editor = chef seul ; révoquer un lector = chef et editor ; personne ne peut révoquer le chef ni révoquer son propre compte (auto-révocation interdite).
+- Services db de révocation (`packages/db/src/admin-revocation.ts` et `admin-revocation-outbox.ts`) :
+  - `listActiveSuperAdmins` : sélectionne les comptes super actifs non révoqués (`super_admin`, `super_admin_editor`, `super_admin_lector`), sans hash de mot de passe, avec le booléen `hasPassword` (`passwordHash !== null`), ordonnés par rôle puis email.
+  - `revokeSuperAdminAccount` : auto-révocation refusée avant la base (`actorId === targetId` -> `self_revocation`) ; step-up par mot de passe avec limiteur de débit (5 essais par 15 min avec identifiant `admin-revocation:<userId>`) ; exécuté dans UNE seule transaction (`tx`) avec verrouillage `for("update").limit(1)` de l'acteur et de la cible ; supprime les sessions de la cible dans `sessions` ; révoque les invitations en attente créées par la cible dans `admin_invitations` (`revokedAt = now` pour les invitations non consommées et non révoquées) ; crée une entrée dans `admin_revocation_audit` conservée 12 mois (`ADMIN_REVOCATION_AUDIT_RETENTION_MONTHS`) ; liste exhaustive des raisons de refus : `self_revocation`, `not_allowed`, `no_password`, `invalid_password`, `rate_limited`, `target_not_found`, `target_already_revoked`, `target_not_allowed`, `insufficient_permissions`.
+  - Alertes outbox de révocation (`enqueueAdminRevocationAlerts`, `processAdminRevocationAlertOutbox`) : destinataires = tous les `super_admin` et `super_admin_editor` actifs ; tentatives d'envoi = immédiate, +20 min, +60 min ; bail de traitement = 10 min (`ADMIN_REVOCATION_ALERT_LEASE_MS`) ; rétention = 90 jours (`ADMIN_REVOCATION_ALERT_RETENTION_MS`) ; e-mail d'alerte sans lien ni jeton.
+- Page `/admins` (`apps/admin/src/app/admins`) :
+  - Protégée par `requireAdminPermission("admins")`, accessible uniquement sur l'hôte `sup-admin`.
+  - Affiche la liste des comptes super administrateurs actifs (`listActiveSuperAdmins`) avec badge « Vous » sur son propre compte.
+  - Bouton « Révoquer » affiché selon `canRevoke` (calculé par `getAdminRevocationRows`).
+  - Message d'avertissement `no_password` (« Définissez un mot de passe pour votre compte avant d'effectuer une révocation. ») affiché et bouton de révocation masqué/bloqué si l'acteur connecté n'a pas de mot de passe.
+  - Entrée de menu `Admins` (`id: "admins"`, `href: "/admins"`, `icon: "UserCheck"`, `permission: "admins"`) placée juste après `admin-invitations` dans `ADMIN_MENU_ITEMS`.
 
 ### Invitation
 - Step-up mot de passe : l'inviteur doit reconfirmer son mot de passe seulement pour inviter un `super_admin_editor`.
@@ -247,12 +264,16 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Chef (`super_admin`) et editor (`super_admin_editor`) : un lien par section autorisée.
 - Lector (`super_admin_lector`) : son rôle et le lien Accueil.
 
-### Outbox d'alertes (migration 0022)
-- Table persistante `admin_invitation_alert_outbox`.
+### Outbox d'alertes (migration 0022 et migration 0024)
+- Tables persistantes : `admin_invitation_alert_outbox` et `admin_revocation_alert_outbox`.
 - Tentatives d'envoi : immédiate, +20 min, +60 min, puis échec définitif.
 - Purge : 90 jours. Bail de traitement : 10 min.
-- Route interne `POST` protégée par `ADMIN_INVITATION_OUTBOX_SECRET`. Aucun planificateur automatique pour l'instant.
-- Tables créées par la migration 0022 : `admin_invitation_alert_outbox`, `admin_invitation_audit`, `admin_invitation_codes`.
+- Route interne (`apps/admin/src/app/api/internal/admin-invitation-outbox/route.ts` et `apps/admin/src/lib/admin-invitation-outbox-auth.mjs`) :
+  - Protégée par l'en-tête `Authorization: Bearer <ADMIN_INVITATION_OUTBOX_SECRET>` (secret configuré d'au moins 32 caractères, comparé avec `timingSafeEqual`).
+  - Traite les DEUX outbox séquentiellement : invitation (`processAdminInvitationAlertOutbox`) puis révocation (`processAdminRevocationAlertOutbox`), l'une ne bloquant pas l'autre.
+  - Réponses HTTP : `404` si non autorisé ou si la méthode n'est pas `POST` ; `200` avec corps JSON de compteurs (`{ ...invitation, revocation }`) si `processOutbox` renvoie des données ; `204` si `processOutbox` renvoie `undefined` ; `500` en cas d'exception (si l'un des deux traitements lève une exception, une erreur générique est relancée après avoir tenté les deux).
+  - Aucun planificateur automatique pour l'instant.
+- Tables créées par la migration 0022 : `admin_invitation_alert_outbox`, `admin_invitation_audit`, `admin_invitation_codes`. Tables créées par la migration 0024 : `admin_revocation_audit`, `admin_revocation_alert_outbox`.
 
 ### Réinitialisation de mot de passe admin par hôte (PR #85 / `fix/admin-password-reset-host-scope`)
 - Fonction `isUserEligibleForAdminPasswordReset(user: AdminPasswordResetCandidate | null | undefined, host: AdminPasswordResetHost): boolean` dans `packages/db/src/password-reset.ts`.

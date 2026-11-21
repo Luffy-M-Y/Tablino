@@ -29,7 +29,10 @@ export async function runAdminInvitationOutboxRoute({
   if (method !== "POST") return { status: 404 };
 
   try {
-    await processOutbox();
+    const data = await processOutbox();
+    if (data !== undefined) {
+      return { status: 200, body: data };
+    }
     return { status: 204 };
   } catch {
     return { status: 500 };

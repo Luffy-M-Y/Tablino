@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   canRoleUseAdminPermission,
   getAdminPermissionRoles,
+  getRevocableAdminRoles,
 } from "../src/lib/admin-permissions.mjs";
 
 const matrix = [
@@ -19,6 +20,7 @@ const matrix = [
   ["structure", ["super_admin", "super_admin_editor", "university_admin"]],
   ["files", ["super_admin", "super_admin_editor", "university_admin"]],
   ["drafts", ["super_admin", "super_admin_editor", "university_admin"]],
+  ["admins", ["super_admin", "super_admin_editor"]],
   ["partnership", []],
 ];
 const roles = [
@@ -47,4 +49,25 @@ test("enforces the full admin permission matrix with default denial", () => {
   assert.equal(canRoleUseAdminPermission("super_admin", "unknown"), false);
   assert.equal(canRoleUseAdminPermission("super_admin", "__proto__"), false);
   assert.equal(canRoleUseAdminPermission(null, "adminHome"), false);
+});
+
+test("getRevocableAdminRoles returns allowed revocable roles by actor role", () => {
+  assert.deepEqual(getRevocableAdminRoles("super_admin"), [
+    "super_admin_editor",
+    "super_admin_lector",
+  ]);
+  assert.deepEqual(getRevocableAdminRoles("super_admin_editor"), [
+    "super_admin_lector",
+  ]);
+  assert.deepEqual(getRevocableAdminRoles("super_admin_lector"), []);
+  assert.deepEqual(getRevocableAdminRoles("university_admin"), []);
+  assert.deepEqual(getRevocableAdminRoles("student"), []);
+  assert.deepEqual(getRevocableAdminRoles("unknown"), []);
+  assert.deepEqual(getRevocableAdminRoles(null), []);
+  assert.deepEqual(getRevocableAdminRoles(undefined), []);
+  assert.deepEqual(getRevocableAdminRoles("__proto__"), []);
+  for (const role of roles) {
+    const revocable = getRevocableAdminRoles(role);
+    assert.equal(revocable.includes("super_admin"), false, `${role} cannot revoke super_admin`);
+  }
 });

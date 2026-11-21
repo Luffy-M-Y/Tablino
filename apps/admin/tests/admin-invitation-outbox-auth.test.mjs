@@ -77,3 +77,40 @@ test("authorized POST returns 204 and processing failures return 500", async () 
   assert.deepEqual(post, { status: 204 });
   assert.deepEqual(failedPost, { status: 500 });
 });
+
+test("authorized POST returning outbox data yields 200 with JSON payload including revocation", async () => {
+  const result = await runAdminInvitationOutboxRoute({
+    method: "POST",
+    authorization: `Bearer ${SECRET}`,
+    configuredSecret: SECRET,
+    processOutbox: async () => ({
+      processed: 2,
+      sent: 2,
+      retried: 0,
+      failed: 0,
+      revocation: {
+        processed: 1,
+        sent: 1,
+        retried: 0,
+        failed: 0,
+      },
+    }),
+  });
+
+  assert.deepEqual(result, {
+    status: 200,
+    body: {
+      processed: 2,
+      sent: 2,
+      retried: 0,
+      failed: 0,
+      revocation: {
+        processed: 1,
+        sent: 1,
+        retried: 0,
+        failed: 0,
+      },
+    },
+  });
+});
+

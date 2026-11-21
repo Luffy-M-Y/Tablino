@@ -188,3 +188,36 @@ export async function sendAdminInvitationAlertEmail(
     textContent: `${invitation.inviterEmail} a invité ${invitation.invitedEmail} comme ${roleLabel} le ${createdAt} (UTC).`,
   });
 }
+
+export async function sendAdminRevocationAlertEmail(
+  to: string,
+  revocation: {
+    revokerEmail: string;
+    revokedEmail: string;
+    role: "super_admin_editor" | "super_admin_lector";
+    revokedAt: Date;
+  },
+): Promise<void> {
+  const roleLabels = {
+    super_admin_editor: "Éditeur super administrateur",
+    super_admin_lector: "Lecteur super administrateur",
+  } as const;
+  if (revocation.role !== "super_admin_editor" && revocation.role !== "super_admin_lector") {
+    throw new Error("Rôle de révocation invalide.");
+  }
+  const roleLabel = roleLabels[revocation.role];
+  const revokerEmail = escapeHtml(revocation.revokerEmail);
+  const revokedEmail = escapeHtml(revocation.revokedEmail);
+  const revokedAt = new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(revocation.revokedAt);
+
+  return sendBrevoEmail({
+    to,
+    subject: "Révocation d'un compte d'administration Tablino",
+    htmlContent: `<p>${revokerEmail} a révoqué le compte ${revokedEmail} (${roleLabel}) le ${escapeHtml(revokedAt)} (UTC).</p>`,
+    textContent: `${revocation.revokerEmail} a révoqué le compte ${revocation.revokedEmail} (${roleLabel}) le ${revokedAt} (UTC).`,
+  });
+}
