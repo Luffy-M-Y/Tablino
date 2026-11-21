@@ -17,8 +17,24 @@ const PERMISSION_ROLES = Object.freeze({
   structure: Object.freeze(["super_admin", "super_admin_editor", "university_admin"]),
   files: Object.freeze(["super_admin", "super_admin_editor", "university_admin"]),
   drafts: Object.freeze(["super_admin", "super_admin_editor", "university_admin"]),
+  admins: Object.freeze(["super_admin", "super_admin_editor"]),
   partnership: Object.freeze([]),
 });
+
+const REVOCABLE_ADMIN_ROLES = Object.freeze({
+  super_admin: Object.freeze(["super_admin_editor", "super_admin_lector"]),
+  super_admin_editor: Object.freeze(["super_admin_lector"]),
+});
+
+export function getRevocableAdminRoles(actorRole) {
+  if (
+    typeof actorRole !== "string"
+    || !Object.prototype.hasOwnProperty.call(REVOCABLE_ADMIN_ROLES, actorRole)
+  ) {
+    return [];
+  }
+  return [...REVOCABLE_ADMIN_ROLES[actorRole]];
+}
 
 export function getAdminPermissionRoles(permission) {
   if (

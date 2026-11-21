@@ -12,6 +12,7 @@ export type AdminPermission =
   | "structure"
   | "files"
   | "drafts"
+  | "admins"
   | "partnership";
 
 export type AdminPermissionRole =
@@ -27,3 +28,6 @@ export function canRoleUseAdminPermission(
   role: unknown,
   permission: unknown,
 ): boolean;
+export function getRevocableAdminRoles(
+  actorRole: unknown,
+): ("super_admin_editor" | "super_admin_lector")[];
