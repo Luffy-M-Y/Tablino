@@ -4,8 +4,6 @@ import { AUTH_ADMIN_TRANSACTION_COOKIE_NAME } from "@/lib/auth-admin-transaction
 import { getAuthAdminSigninPage } from "@/lib/auth-admin-signin.mjs";
 import { GoogleSignInForm } from "./google-sign-in-form";
 
-export const instant = false;
-
 export default async function AuthAdminSigninPage() {
   await connection();
   const cookieStore = await cookies();

@@ -1,4 +1,4 @@
-import { verifyAuthAdminTransaction } from "./auth-admin-transaction.mjs";
+import { parseAuthAdminTransaction } from "./auth-admin-transaction.mjs";
 
 function normalizeHost(authority) {
   if (typeof authority !== "string" || authority.length === 0 || authority !== authority.trim()) return null;
@@ -30,6 +30,27 @@ export function createAdminGoogleUniversityResolver({
     if (h === null || c === null || h !== c) return null;
 
     const cookie = await getCookie();
-    return verifyAuthAdminTransaction(cookie, { now: now(), secret: getSecret() });
+    const parsed = parseAuthAdminTransaction(cookie, { now: now(), secret: getSecret() });
+    if (parsed === null) return null;
+
+    if (parsed.flow === "university") {
+      return parsed.universityId;
+    }
+
+    if (parsed.flow === "invitation") {
+      return {
+        invitationId: parsed.invitationId,
+        transactionId: parsed.transactionId,
+      };
+    }
+
+    if (parsed.flow === "super_login") {
+      return {
+        flow: "super_login",
+        transactionId: parsed.transactionId,
+      };
+    }
+
+    return null;
   };
 }

@@ -16,6 +16,7 @@ export function getAuthAdminReturnCode(searchParams: URLSearchParams): string | 
 
 export function resolveAuthAdminReturnDecision(input: {
   code: string | null;
+  flow?: string | null;
   hostContext: AdminReturnHostContext;
   consumeResult: { userId: string } | null;
   user: AdminReturnUser | null;

@@ -4,6 +4,8 @@ import {
   buildAdminGoogleExistingAccountUrl,
   buildAdminReturnUrl,
   buildAdminTransferRedirectUrl,
+  buildSuperAdminGoogleExistingAccountUrl,
+  buildSuperAdminTransferRedirectUrl,
 } from "../src/lib/admin-return-url.mjs";
 
 test("builds the return URL with a normalized valid admin root domain", () => {
@@ -92,4 +94,118 @@ test("existing Google account URL is built on the validated university login hos
     }),
     null,
   );
+});
+
+test("buildSuperAdminGoogleExistingAccountUrl builds the super admin login URL with encoded token", () => {
+  assert.equal(
+    buildSuperAdminGoogleExistingAccountUrl({
+      adminRootDomain: "admin.tablino.com",
+      secure: true,
+      token: "super/token+value",
+    }),
+    "https://sup-admin.admin.tablino.com/login?googleExisting=super%2Ftoken%2Bvalue",
+  );
+  assert.equal(
+    buildSuperAdminGoogleExistingAccountUrl({
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      token: "super-token-123",
+    }),
+    "http://sup-admin.localhost:3001/login?googleExisting=super-token-123",
+  );
+});
+
+test("buildSuperAdminGoogleExistingAccountUrl returns null for empty token", () => {
+  assert.equal(
+    buildSuperAdminGoogleExistingAccountUrl({
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      token: "",
+    }),
+    null,
+  );
+  assert.equal(
+    buildSuperAdminGoogleExistingAccountUrl({
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      token: null,
+    }),
+    null,
+  );
+});
+
+test("buildSuperAdminGoogleExistingAccountUrl returns null for invalid adminRootDomain", () => {
+  for (const adminRootDomain of [
+    "",
+    " ",
+    "https://admin.tablino.com",
+    "admin.tablino.com/path",
+    "user@admin.tablino.com",
+  ]) {
+    assert.equal(
+      buildSuperAdminGoogleExistingAccountUrl({
+        adminRootDomain,
+        secure: true,
+        token: "valid-token",
+      }),
+      null,
+    );
+  }
+});
+
+test("buildSuperAdminTransferRedirectUrl encodes code and flow parameter", () => {
+  assert.equal(
+    buildSuperAdminTransferRedirectUrl({
+      adminRootDomain: "admin.tablino.com",
+      secure: true,
+      code: "a b",
+      flow: "super_login",
+    }),
+    "https://sup-admin.admin.tablino.com/auth-admin/return?code=a+b&flow=super_login",
+  );
+  assert.equal(
+    buildSuperAdminTransferRedirectUrl({
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      code: "transfer-123",
+      flow: "invitation",
+    }),
+    "http://sup-admin.localhost:3001/auth-admin/return?code=transfer-123&flow=invitation",
+  );
+});
+
+test("buildSuperAdminTransferRedirectUrl returns null for empty code", () => {
+  assert.equal(
+    buildSuperAdminTransferRedirectUrl({
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      code: "",
+    }),
+    null,
+  );
+  assert.equal(
+    buildSuperAdminTransferRedirectUrl({
+      adminRootDomain: "localhost:3001",
+      secure: false,
+      code: null,
+    }),
+    null,
+  );
+});
+
+test("buildSuperAdminTransferRedirectUrl returns null for invalid adminRootDomain", () => {
+  for (const adminRootDomain of [
+    "",
+    "https://admin.tablino.com",
+    "admin.tablino.com/path",
+  ]) {
+    assert.equal(
+      buildSuperAdminTransferRedirectUrl({
+        adminRootDomain,
+        secure: true,
+        code: "valid-code",
+      }),
+      null,
+    );
+  }
 });

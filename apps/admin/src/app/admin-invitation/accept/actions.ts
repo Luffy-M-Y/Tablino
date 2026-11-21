@@ -4,6 +4,7 @@ import { getCloudflareClientIp } from "@tablino/auth";
 import {
   checkRateLimit,
   consumeAdminInvitationCode,
+  createAdminInvitationOauthStartTicket,
   recordFailure,
   resendAdminInvitationCode,
   startAdminInvitationAcceptance,
@@ -15,6 +16,7 @@ import { getAdminHostContext } from "@/lib/admin-host-context";
 import {
   getAdminInvitationMessage,
   runAdminInvitationAcceptance,
+  runStartAdminInvitationGoogle,
   ADMIN_INVITATION_COOKIE,
   ADMIN_INVITATION_PATH,
 } from "@/lib/admin-invitation.mjs";
@@ -139,4 +141,14 @@ export async function resendInvitationCodeAction(
 ): Promise<AcceptInvitationActionState> {
   const outcome = await runAcceptanceStage("resend", formData);
   return toState(outcome.reason, outcome.step);
+}
+
+export async function startAdminInvitationGoogleAction() {
+  return runStartAdminInvitationGoogle({
+    getHostContext: getAdminHostContext,
+    getToken: async () => (await cookies()).get(ADMIN_INVITATION_COOKIE)?.value,
+    createTicket: createAdminInvitationOauthStartTicket,
+    getCentralHost: () => process.env.AUTH_ADMIN_CENTRAL_HOST,
+    secure: process.env.NODE_ENV === "production",
+  });
 }

@@ -6,6 +6,7 @@ export const AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE =
 export async function runStartAdminGoogleSignIn({
   getHostContext,
   createTicket,
+  createSuperLoginTicket,
   getCentralHost,
   secure,
 }) {
@@ -20,23 +21,46 @@ export async function runStartAdminGoogleSignIn({
   } catch {
     return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
   }
-  if (
-    hostContext?.kind !== "university"
-    || typeof hostContext.universityId !== "string"
-    || hostContext.universityId.length === 0
-  ) {
-    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+
+  if (hostContext?.kind === "university") {
+    if (
+      typeof hostContext.universityId !== "string"
+      || hostContext.universityId.length === 0
+      || typeof createTicket !== "function"
+    ) {
+      return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+    }
+
+    let ticket;
+    try {
+      ticket = await createTicket(hostContext.universityId, "admin");
+    } catch {
+      return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+    }
+    if (typeof ticket !== "string" || ticket.length === 0) {
+      return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+    }
+
+    return { ok: true, action, ticket, kind: "university" };
   }
 
-  let ticket;
-  try {
-    ticket = await createTicket(hostContext.universityId, "admin");
-  } catch {
-    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
-  }
-  if (typeof ticket !== "string" || ticket.length === 0) {
-    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+  if (hostContext?.kind === "super") {
+    if (typeof createSuperLoginTicket !== "function") {
+      return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+    }
+
+    let ticket;
+    try {
+      ticket = await createSuperLoginTicket();
+    } catch {
+      return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+    }
+    if (typeof ticket !== "string" || ticket.length === 0) {
+      return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+    }
+
+    return { ok: true, action, ticket, kind: "super_login" };
   }
 
-  return { ok: true, action, ticket };
+  return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
 }

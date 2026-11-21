@@ -9,7 +9,7 @@ Développeur senior full-stack. Le propriétaire (M-Y) est développeur. Vise qu
 PWA multi-universités : archive de cours et de devoirs, organisée par
 Filière → Niveau → Année académique → Matière → Ressources (cours) ou Devoirs.
 - Application étudiants (`apps/web`) : lecture seule, deux sections : Cours et Devoirs.
-- Dashboard administration (apps/admin) : scan, upload, gestion de la structure, gestion des cours, devoirs et brouillons (recherche et suppression). Les étudiants ne déposent rien.
+- Dashboard administration (`apps/admin`) : scan, upload, gestion de la structure, gestion des cours, devoirs et brouillons (recherche et suppression). Les étudiants ne déposent rien.
 - Multi-tenant : une plateforme, une base, isolation par `university_id`.
 - Premier pilote visé : l'ISCOM. Aucune donnée réelle d'université dans le code ni dans le seed.
 
@@ -42,7 +42,7 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Mutations transactionnelles dans `packages/db/src/structure.ts` : `updateCycleYearsCount`, `updateLevelYearNumber`, `updateCycleShortCode`, `updateProgramStatus`. Les trois mutations de cycle/niveau verrouillent le cycle d'abord avec `SELECT ... FOR UPDATE` filtré par université ; aucun chemin ne doit prendre ces verrous dans l'ordre inverse. `updateProgramStatus` verrouille la filière ciblée, avec filtre d'université, et ne verrouille pas de cycle. `canReduceYearsCount` reste un alias exporté obsolète. `updateCycleShortCode` normalise le code en majuscules après trim ; une collision renvoie `short_code_taken`. Changer l'année d'un niveau régénère son nom et son slug ; les permutations de numéros sont refusées.
 - Test d'intégration transactionnel de structure : `pnpm --filter @tablino/db db:test-structure`. Le script partage le garde de `_provisioning` (référence autorisée et port `5432`) et nettoie ses lignes temporaires ; ne pas l'ajouter au script unitaire `test`.
 - Dans `test/db-isolation-cycles`, l'insertion de `"order"` dans `test-isolation.ts` concerne `cycles.order` ; elle n'écrit pas `levels.order`, supprimée en 0006.
-- Journal des Server Actions de structure : `action`, `result` et `reason` sont limités par liste blanche, puis écrits via `console.info`; aucun identifiant, champ de formulaire, e-mail, secret ni objet/message d'erreur brut.
+- Journal des Server Actions de structure : `action`, `result` et `reason` sont limités par liste blanche, puis écrits via `console.info` ; aucun identifiant, champ de formulaire, e-mail, secret ni objet/message d'erreur brut.
 - Tests réels inter-universités et inspection : `pnpm --filter @tablino/db db:test-tenant-scope` et `pnpm --filter @tablino/db db:inspect-tenant-scope`. Les deux passent par `_database-guard` et `.env.test` ; refuser si `DATABASE_URL` est déjà définie dans le processus. L'inspecteur utilise une transaction `READ ONLY` et ne doit contenir aucune écriture. Il rapporte les marqueurs ZZ ancrés et les faux marqueurs séparément, ainsi que les migrations sans données personnelles.
 - `test-tenant-scope` génère par exécution un suffixe aléatoire de 11 lettres majuscules ; les marqueurs parents ont la forme exacte `ZZ` + suffixe + `A` ou `B` (`^ZZ[A-Z]{12}$`). Exécuter un seul run à la fois : le nettoyage de démarrage et de fin cible tous les marqueurs valides. Après un kill brutal, relancer le script pour nettoyer les résidus au démarrage ; procédure manuelle Windows : lancer avec `--wait-for-sigint`, relever le PID Node, puis `Stop-Process -Id <PID> -Force` dans un autre terminal.
 - Au SIGINT, le script attend le nettoyage ; délai maximal 15 secondes. En cas de `CLEANUP_TIMEOUT`, des résidus peuvent rester : relancer le script. Le scénario de dépassement du délai n'a pas été testé. Si un lancement échoue avec `ENOMEM` avant l'exécution, relancer une fois ; si l'erreur persiste, arrêter et rapporter l'erreur, sans contournement.
@@ -78,6 +78,7 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 25. Utiliser git --no-pager pour log, diff, show et branch.
 26. Script jetable avec id codé en dur : non gardé. Pour un SELECT ad hoc : script tmp- non commité, supprimé après.
 27. Publication ou écriture visible du site public : base de test seulement.
+28. Interdiction : ne JAMAIS écrire « export const instant » dans apps/admin (cacheComponents n'étant pas activé, cela provoque une erreur 500 sur la route).
 
 ## Sécurité
 - Aucun secret, URL de connexion ni clé dans le code, les commits, les captures ou les réponses. Les fichiers `.env*` ne doivent jamais apparaître dans une capture. Ils sont ignorés par Git : vérifier avec `git status` avant chaque commit.
@@ -87,11 +88,11 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Clés d'API : côté serveur uniquement.
 
 ## Authentification et roles (`feat/auth-roles`)
-- Roles : `super_admin` (global), `university_admin` (une universite), `student`. L'ancien role `admin` est converti en `university_admin` ; `scanner` est supprime (donnees demo uniquement).
+- Rôles : `super_admin` (global), `university_admin` (une université), `student`. L'ancien rôle `admin` est converti en `university_admin` ; `scanner` est supprimé (données démo uniquement).
 - CHECK `users_role_university_scope_check` : `super_admin` exige `university_id IS NULL` ; `university_admin` et `student` exigent `university_id IS NOT NULL`.
-- Migrations versionnees : `0004_peaceful_marten_broadcloak.sql` ajoute l'identite et les roles ; `0005_fair_zzzax.sql` ajoute l'index unique `users_email_lower_unique` sur `lower(users.email)`. Verifier l'etat de chaque migration avant d'en lancer une nouvelle ; ne pas supposer qu'elle est appliquee.
+- Migrations versionnées : `0004_peaceful_marten_broadcloak.sql` ajoute l'identité et les rôles ; `0005_fair_zzzax.sql` ajoute l'index unique `users_email_lower_unique` sur `lower(users.email)`. Vérifier l'état de chaque migration avant d'en lancer une nouvelle ; ne pas supposer qu'elle est appliquée.
 - Migration `0015_mean_betty_ross.sql` : codes de réinitialisation de mot de passe ; appliquée et vérifiée sur la base de test autorisée le 06/11/2026.
-- `packages/auth` utilise Google OAuth et l'adaptateur Drizzle sur `users`, `accounts`, `sessions`, `verification_tokens` ; les sessions sont persistees en base. Google dans `apps/web` cree uniquement des `student` ; `apps/admin` accepte uniquement les comptes provisionnes. Aucun role privilegie n'est attribue par inscription publique.
+- `packages/auth` utilise Google OAuth et l'adaptateur Drizzle sur `users`, `accounts`, `sessions`, `verification_tokens` ; les sessions sont persistées en base. Google dans `apps/web` crée uniquement des `student` ; `apps/admin` accepte uniquement les comptes provisionnés. Aucun rôle privilégié n'est attribué par inscription publique.
 - Provisionnement opérateur, sans session ni route publique : `pnpm --filter @tablino/db db:create-super-admin <email>` (saisie interactive masquée et confirmée du mot de passe) et `pnpm --filter @tablino/db db:create-university-admin <email> <slug-ou-id>`. Les scripts normalisent l'e-mail, refusent les doublons et ne modifient pas un utilisateur existant. `create-super-admin` refuse s'il existe déjà un `super_admin` ; ne pas lancer plusieurs créations concurrentes.
 - `packages/db/scripts/_provisioning.ts` ne charge pas de fichier d'environnement : `openProvisioningDatabase()` délègue à `openGuardedDatabase()`. `packages/db/scripts/_database-guard.ts` charge `packages/db/.env.test` sans écraser une `DATABASE_URL` déjà définie, puis valide la cible avant d'ouvrir le pool. Les scripts de test refusent séparément toute `DATABASE_URL` préexistante.
 - Hôtes : étudiants `{slug}.{domaine}` ; admin d'université `{slug}-admin.{ADMIN_ROOT_DOMAIN}` ; super admin `sup-admin.{ADMIN_ROOT_DOMAIN}` (non public, slug `sup` réservé) ; hôte central Google admin `auth-admin.{ADMIN_ROOT_DOMAIN}` (slug `auth` réservé). Le domaine racine nu sert au futur site vitrine et répond 404. En local : `ADMIN_ROOT_DOMAIN=localhost:3001`, hôte central `127.0.0.1:3001`. Le super admin se connecte par mot de passe seulement, sur `sup-admin`.
@@ -99,11 +100,11 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Google admin : le flux central utilise `/auth-admin/start`, `/auth-admin/signin`, `/auth-admin/transfer`, `/auth-admin/return` et `/auth-admin/error`, avec le cookie `tablino-admin-oauth-tx`. Les tickets OAuth sont liés à la surface. En mode central, seul un `university_admin` de la bonne université est accepté ; `linkAccount` refuse toute liaison sur le central et `markGoogleEmailVerified` n'est pas appelé pour l'admin. Les redirections sont construites depuis l'en-tête `Host` validé.
 - Compte existant : un compte créé par mot de passe n'est jamais lié automatiquement à Google. Le retour se fait sur `/login?googleExisting=<jeton>` ; ce jeton AES-256-GCM contient l'e-mail et l'université, expire après 10 minutes et n'est pas à usage unique. Le message est construit par `getAdminGoogleExistingAccountMessage`.
 - Scripts DB en base de test : `diagnose-admin-google-account.ts` est en lecture seule. `unlink-admin-google-account.ts` est en dry-run par défaut ; `--apply` est requis pour écrire, et l'opération transactionnelle supprime au plus une ligne `google` pour l'utilisateur ciblé. Ces scripts passent par `_database-guard.ts` et refusent une `DATABASE_URL` déjà définie.
-- Gardes serveur `requireSession`, `requireRole`, `requireUniversityAccess` dans `packages/auth/src/guards.ts` : la session est verifiee et role/universite sont relus dans `users` a chaque appel. `apps/admin` autorise `super_admin` globalement et `university_admin` dans son universite ; `apps/web` autorise les etudiants de l'universite courante. Anonyme : redirection `/api/auth/signin` ; role ou perimetre refuse : 403.
-- Regle d'abonnement : un abonnement d'universite expire n'autorise plus l'acces aux contenus proteges ; le controle doit etre serveur. Cette regle reste a integrer avec la facturation future par universite. Ne pas modifier `subscriptions` ni `users.subscription_expires_at` dans `feat/auth-roles`.
+- Gardes serveur `requireSession`, `requireRole`, `requireUniversityAccess` dans `packages/auth/src/guards.ts` : la session est vérifiée et rôle/université sont relus dans `users` à chaque appel. `apps/admin` autorise `super_admin` globalement et `university_admin` dans son université ; `apps/web` autorise les étudiants de l'université courante. Anonyme : redirection `/api/auth/signin` ; rôle ou périmètre refusé : 403.
+- Règle d'abonnement : un abonnement d'université expiré n'autorise plus l'accès aux contenus protégés ; le contrôle doit être serveur. Cette règle reste à intégrer avec la facturation future par université. Ne pas modifier `subscriptions` ni `users.subscription_expires_at` dans `feat/auth-roles`.
 - Variables d'environnement (noms de `.env.example` uniquement) : `DATABASE_URL`, `UNIVERSITY_ID`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY`, `CLOUDFLARE_TURNSTILE_SECRET_KEY`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `CINETPAY_API_KEY`, `CINETPAY_SITE_ID`, `PAYMENT_WEBHOOK_SECRET`. Ne jamais documenter leurs valeurs.
 - L'authentification par e-mail/mot de passe (inscription, connexion, vérification et réinitialisation) est implémentée dans `apps/web` et `apps/admin`. La réinitialisation admin utilise des cookies et jetons isolés du web, un code à durée limitée, des limites de débit, une réponse générique et l'invalidation des sessions après changement du mot de passe. Turnstile protège les actions publiques d'authentification admin, y compris l'inscription finale après Google OAuth ; le déclenchement direct de Google OAuth reste hors protection Turnstile.
-- Reste : interface de gestion des comptes universitaires, controle d'abonnement expire sur les ressources, tests d'integration apres accord, domaine d'authentification central et validation de `callbackUrl`.
+- Reste : interface de gestion des comptes universitaires, contrôle d'abonnement expiré sur les ressources, tests d'intégration après accord, domaine d'authentification central et validation de `callbackUrl`.
 
 ## Conventions
 - Pages de lecture : Server Components, rendu dynamique (le build ne doit pas dépendre de la base ; vérifier avec `pnpm build` sans `DATABASE_URL`).
@@ -131,7 +132,7 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Codes d'accès : aucune suppression de codes (un code utilisé est référencé par `users.access_code_id`). Les codes inactifs (expirés, épuisés, révoqués) sont masqués par défaut ; les afficher avec `?inactifs=1`.
 
 ## Fonctionnalités prévues (ne pas implémenter sans demande)
-- Authentification restante : email/mot de passe, interface de creation d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisee.
+- Authentification restante : e-mail/mot de passe, interface de création d'un `university_admin`, domaine d'authentification central, cookie de domaine et validation de `callbackUrl` contre une liste autorisée.
 - Paiement : mobile money (Orange Money, Moov Money) via agrégateur (CinetPay, PayDunya ou Ligdicash), interface d'abstraction, pas de renouvellement automatique : abonnement par période avec date d'expiration, webhook vérifié côté serveur.
 - Scan (dashboard) : caméra multi-pages, redressement, PDF, OCR (Tesseract), validation avant publication. Fait (PR #37 et #38).
 - Remise de devoirs par les étudiants : interdite sans validation préalable.
@@ -155,7 +156,7 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 ## État d'avancement (à mettre à jour après chaque branche)
 - `feat/admin-shell` fusionnée (PR #12) ; PR #13 (état admin-shell) ; PR #14 `fix/auth-google-timeout` (`httpOptions.timeout` 10 s sur le provider Google, logger JSON sans métadonnées dans `packages/auth`) ; PR #15 `fix/admin-global-css` (import de `globals.css` dans le layout admin) ; `origin/develop` = `77b16ff`. Connexion Google admin confirmée en fenêtre privée, rendu de l'accueil admin vérifié à l'écran.
 - `feat/admin-shell`, étapes 1 à 5 : identité visuelle, navigation responsive avec profil et déconnexion, composant `AdminPage` avec fil d'Ariane sur l'accueil et les pages de structure, cartes d'accueil Structure, Uploader un fichier et Scanner. Aucune lecture de base ajoutée ; gardes inchangées ; `packages/auth` intact. Le propriétaire a vérifié 13/13 tests admin, build OK et tsc code 0. Rendu visuel non vérifié.
-- PR #19 à #22 fusionnées : durée portée par `program_cycles.years_count`, création de cycles dans l’administration, styles de structure et résolution d’une université courante pour la navigation et les actions.
+- PR #19 à #22 fusionnées : durée portée par `program_cycles.years_count`, création de cycles dans l'administration, styles de structure et résolution d'une université courante pour la navigation et les actions.
 - PR #23, #25, #26, #27 fusionnées. admin-structure terminée avec la PR #26. Rendu visuel validé à l'écran par le propriétaire.
 - PR #28 feat/admin-upload-page fusionnée (fusion 4a5af2c) : page /upload, formulaire (Type, Filière, Niveau, Année académique, Matière, Titre, Fichier), uploadFileAction, createResource, createAssignment, inferResourceFormat. Stockage SIMULÉ : aucun objet écrit, statut draft. Taille max 20 Mio dans l'action, bodySizeLimit 25mb côté Next.
 - PR #29 chore/db-inspect-resources fusionnée (fusion 1ab869f) : script db:inspect-resources, lecture seule, transaction READ ONLY.
@@ -180,7 +181,7 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - `test/db-tenant-scope` : tests réels inter-universités, marqueurs et nettoyage, journal sûr et inspection gardée ; commits clés `2417713`, `268f346`, `abf5694`, `dfb474b`, `63335ea`, `d098b49`.
 - Ordre des PR : `admin-structure` → `db-command-guards` → `web-system-fonts` → `db-isolation-cycles` → `db-tenant-scope`.
 - Le seed ne s'exécute pas sur la base de test sans accord explicite.
-- Fait sur `feat/auth-roles`, etapes 1 a 4 : modele d'identite, migrations 0004/0005, Google OAuth avec adaptateur Drizzle et sessions en base, scripts de provisionnement, gardes serveur ; six cas de test ecrits. Etat d'application des migrations et tests d'integration a confirmer avant toute commande base.
+- Fait sur `feat/auth-roles`, étapes 1 à 4 : modèle d'identité, migrations 0004/0005, Google OAuth avec adaptateur Drizzle et sessions en base, scripts de provisionnement, gardes serveur ; six cas de test écrits. État d'application des migrations et tests d'intégration à confirmer avant toute commande base.
 - Fait : monorepo, schéma hiérarchique, migrations 0000 à 0002, seed idempotent (UUID fixes), test d'isolation 8/8 — commités sur `feat/db-levels-slug`.
 - Fait : RLS (migration 0002), push + PR de `feat/db-levels-slug` vers `develop` — fusionné.
 - Fait : `feat/web-navigation` — navigation Filière→Niveau→Année→Matière→Ressources|Devoirs. Push + PR vers `develop` — fusionné.
@@ -200,8 +201,11 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 ## Rôles super-admin et invitations (`feat/admin-invitations-roles`)
 
 ### Rôles super
-- Trois rôles super : `super_admin` (chef, unique, intouchable, provisionné par script `db:create-super-admin`), `super_admin_editor`, `super_admin_lector`.
-- Table `admin_invitations` : stocke les invitations en attente et acceptées. Matrice de permissions dans `apps/admin/src/lib/admin-permissions.ts`.
+- Trois rôles super, accessibles sur l'hôte `sup-admin` uniquement :
+  - `super_admin` : le chef, unique, intouchable, provisionné par script `db:create-super-admin`. Exclu de la connexion Google (décision confirmée, connexion par mot de passe uniquement).
+  - `super_admin_editor` : invite et révoque seulement des lectors ; éligible à la connexion Google sur `sup-admin`.
+  - `super_admin_lector` : lecture seule ; éligible à la connexion Google sur `sup-admin`.
+- Table `admin_invitations` : stocke les invitations en attente et acceptées. Matrice de permissions dans `apps/admin/src/lib/admin-permissions.mjs`.
 - Trigger de protection du chef (`users_protect_super_admin_identity`) : empêche la suppression, la révocation et le changement de rôle du `super_admin` chef en base.
 
 ### Invitation
@@ -216,7 +220,26 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Formulaire : mot de passe saisi deux fois.
 - Puis OTP 6 chiffres : 10 min de validité, 5 essais max, renvoi après 60 s, Turnstile sur chaque étape.
 - Le compte n'est créé qu'après validation de l'OTP.
-- Google OAuth pour les invitations : PR 3, hors périmètre de la PR 2.
+
+### Connexion Google super-admin et invitations (PR 3)
+- Flux Google super : sur l'hôte `sup-admin`, le formulaire de connexion propose la connexion Google avec `kind = "super_login"` et un ticket de démarrage (`createAdminSuperLoginOauthStartTicket`).
+- Cookie de transaction : `tablino-admin-oauth-tx` transporte l'état et l'identifiant de transaction OAuth sur l'hôte central `auth-admin`.
+- Code de transfert : après validation sur l'hôte central, émission d'un code de transfert à usage unique (`createAdminSuperLoginOauthTransferCode`).
+- Retour sur l'hôte super : redirection vers `/auth-admin/return` sur `sup-admin`, gérant les flux `flow = "invitation"` ou `flow = "super_login"` pour consommer le code de transfert et initialiser la session Auth.js.
+- Page d'erreur neutre (`apps/admin/src/app/auth-admin/error/page.tsx`) : « La connexion a échoué. Recommencez depuis la page de connexion de votre espace d'administration. »
+
+### Proxy et filtrage des chemins par type d'hôte (apps/admin)
+- Implémenté via `isAdminProxyPathAllowed(kind, pathname)` dans `apps/admin/src/lib/admin-host.mjs`, où `kind` (`"super" | "central" | "university"`) est le type d'hôte admin résolu et `pathname` le chemin d'URL.
+- Hôte central (`kind === "central"`, `auth-admin`) : autorise uniquement `/auth-admin/start`, `/auth-admin/signin`, `/auth-admin/transfer`, `/auth-admin/error`, ainsi que `/api/auth/csrf`, `/api/auth/signin/google` et `/api/auth/callback/google`.
+- Hôtes super (`kind === "super"`, `sup-admin`) et université (`kind === "university"`, `{slug}-admin`) : tout chemin sous `/auth-admin/` est strictement refusé SAUF `/auth-admin/return` (correction de la ligne 194, commit `565dd43`).
+- Tout chemin refusé par le proxy renvoie une réponse `404` au corps vide.
+
+### Règles de test de bout en bout (E2E)
+- Fenêtre normale = `super_admin` (le chef).
+- Fenêtre privée = autre compte (`super_admin_editor`, `super_admin_lector` ou `university_admin`).
+- Fermer toutes les fenêtres privées avant un rejeu pour purger l'ensemble des cookies de session et de transaction.
+- Toujours vérifier l'adresse Google choisie sur l'écran Google pour éviter les erreurs d'association ou de compte inattendu.
+- Ne jamais recharger une URL de callback Google (un rejeu provoque l'erreur « State cookie was missing » due à la consommation du jeton/cookie d'état OAuth).
 
 ### Navbar par rôle
 - Navbar calculée depuis la matrice `admin-permissions` : chaque entrée est filtrée par rôle.

@@ -131,3 +131,154 @@ test("successful transfer expires the exact admin session and transaction cookie
     assert.equal(cookie.options.expires.getTime(), 0);
   }
 });
+
+test("central transfer refuses cookie with cross-flow or incompatible session role", async () => {
+  // 1. Cookie super_login mais session university_admin
+  const superTxCookie = createAuthAdminTransaction({
+    flow: "super_login",
+    transactionId: "tx-super-123",
+    now: NOW,
+    secret: SECRET,
+  });
+  const res1 = await runAuthAdminTransfer(makeOptions({
+    transactionCookie: superTxCookie,
+    session: { user: { id: USER_ID, role: "university_admin", universityId: UNIVERSITY_ID } },
+  }).options);
+  assert.deepEqual(res1, { ok: false });
+
+  // 2. Cookie university mais session super_admin_editor
+  const univTxCookie = createAuthAdminTransaction({
+    flow: "university",
+    universityId: UNIVERSITY_ID,
+    now: NOW,
+    secret: SECRET,
+  });
+  const res2 = await runAuthAdminTransfer(makeOptions({
+    transactionCookie: univTxCookie,
+    session: { user: { id: USER_ID, role: "super_admin_editor", universityId: null } },
+  }).options);
+  assert.deepEqual(res2, { ok: false });
+
+  // 3. Cookie invitation mais session avec universityId non nul
+  const invTxCookie = createAuthAdminTransaction({
+    flow: "invitation",
+    invitationId: "inv-123",
+    transactionId: "tx-inv-123",
+    now: NOW,
+    secret: SECRET,
+  });
+  const res3 = await runAuthAdminTransfer(makeOptions({
+    transactionCookie: invTxCookie,
+    session: { user: { id: USER_ID, role: "super_admin_editor", universityId: "univ-1" } },
+  }).options);
+  assert.deepEqual(res3, { ok: false });
+});
+
+test("central transfer refuses super_admin role unconditionally", async () => {
+  for (const flow of ["university", "super_login", "invitation"]) {
+    let txCookie;
+    if (flow === "university") {
+      txCookie = createAuthAdminTransaction({ flow: "university", universityId: UNIVERSITY_ID, now: NOW, secret: SECRET });
+    } else if (flow === "super_login") {
+      txCookie = createAuthAdminTransaction({ flow: "super_login", transactionId: "tx-1", now: NOW, secret: SECRET });
+    } else {
+      txCookie = createAuthAdminTransaction({ flow: "invitation", invitationId: "i-1", transactionId: "tx-1", now: NOW, secret: SECRET });
+    }
+    const res = await runAuthAdminTransfer(makeOptions({
+      transactionCookie: txCookie,
+      session: { user: { id: USER_ID, role: "super_admin", universityId: null } },
+    }).options);
+    assert.deepEqual(res, { ok: false });
+  }
+});
+
+test("central transfer handles super_login flow nominally", async () => {
+  const calls = { superCreated: [], deleted: [] };
+  const txCookie = createAuthAdminTransaction({
+    flow: "super_login",
+    transactionId: "tx-super-abc",
+    now: NOW,
+    secret: SECRET,
+  });
+
+  const result = await runAuthAdminTransfer({
+    host: CENTRAL_HOST,
+    centralHost: CENTRAL_HOST,
+    session: {
+      user: {
+        id: "super-user-1",
+        role: "super_admin_editor",
+        universityId: null,
+      },
+    },
+    sessionToken: SESSION_TOKEN,
+    transactionCookie: txCookie,
+    secret: SECRET,
+    now: NOW,
+    adminRootDomain: "admin.tablino.com",
+    secure: true,
+    createSuperLoginTransferCode: async (input) => {
+      calls.superCreated.push(input);
+      return "super-transfer-code-123";
+    },
+    deleteSession: async (token) => {
+      calls.deleted.push(token);
+      return { deleted: true };
+    },
+  });
+
+  assert.deepEqual(calls.superCreated, [{ transactionId: "tx-super-abc", userId: "super-user-1" }]);
+  assert.deepEqual(calls.deleted, [SESSION_TOKEN]);
+  assert.deepEqual(result, {
+    ok: true,
+    redirectUrl: "https://sup-admin.admin.tablino.com/auth-admin/return?code=super-transfer-code-123&flow=super_login",
+  });
+});
+
+test("central transfer handles invitation flow nominally", async () => {
+  const calls = { invCreated: [], deleted: [] };
+  const txCookie = createAuthAdminTransaction({
+    flow: "invitation",
+    invitationId: "invitation-abc",
+    transactionId: "tx-inv-abc",
+    now: NOW,
+    secret: SECRET,
+  });
+
+  const result = await runAuthAdminTransfer({
+    host: CENTRAL_HOST,
+    centralHost: CENTRAL_HOST,
+    session: {
+      user: {
+        id: "invited-user-1",
+        role: "super_admin_lector",
+        universityId: null,
+      },
+    },
+    sessionToken: SESSION_TOKEN,
+    transactionCookie: txCookie,
+    secret: SECRET,
+    now: NOW,
+    adminRootDomain: "admin.tablino.com",
+    secure: true,
+    createInvitationTransferCode: async (input) => {
+      calls.invCreated.push(input);
+      return "inv-transfer-code-456";
+    },
+    deleteSession: async (token) => {
+      calls.deleted.push(token);
+      return { deleted: true };
+    },
+  });
+
+  assert.deepEqual(calls.invCreated, [{
+    invitationId: "invitation-abc",
+    transactionId: "tx-inv-abc",
+    userId: "invited-user-1",
+  }]);
+  assert.deepEqual(calls.deleted, [SESSION_TOKEN]);
+  assert.deepEqual(result, {
+    ok: true,
+    redirectUrl: "https://sup-admin.admin.tablino.com/auth-admin/return?code=inv-transfer-code-456&flow=invitation",
+  });
+});

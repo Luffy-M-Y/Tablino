@@ -6,6 +6,7 @@ import {
 } from "../src/lib/auth-admin-start.mjs";
 import {
   AUTH_ADMIN_TRANSACTION_COOKIE_NAME,
+  parseAuthAdminTransaction,
   verifyAuthAdminTransaction,
 } from "../src/lib/auth-admin-transaction.mjs";
 
@@ -15,14 +16,17 @@ const SECRET = "test-nextauth-secret";
 const UNIVERSITY_ID = "university-test";
 const GOOGLE_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=test";
 
-function makeRequest({ host = CENTRAL_HOST, ticket = "start-ticket" } = {}) {
+function makeRequest({ host = CENTRAL_HOST, ticket = "start-ticket", kind = "university", omitKind = false } = {}) {
+  const params = {};
+  if (ticket !== undefined) params.ticket = ticket;
+  if (!omitKind && kind !== undefined) params.kind = kind;
   return new Request(`http://${host}/auth-admin/start`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       host,
     },
-    body: new URLSearchParams({ ticket }),
+    body: new URLSearchParams(params),
   });
 }
 
@@ -119,4 +123,78 @@ test("admin start falls back to signin when the direct OAuth flow is unavailable
   assert.equal(response.status, 303);
   assert.equal(response.headers.get("Location"), `http://${CENTRAL_HOST}/auth-admin/signin`);
   assert.match(response.headers.get("Set-Cookie") ?? "", /tablino-admin-oauth-tx=/);
+});
+
+test("admin start rejects missing, empty, or unknown kind", async () => {
+  const handler = createHandler();
+  for (const kind of [undefined, "", "unknown", "student", "super"]) {
+    const response = await handler(makeRequest({ kind, omitKind: kind === undefined }));
+    assert.equal(response.status, 400);
+  }
+});
+
+test("admin start processes invitation kind with service and sets flow=invitation", async () => {
+  let ticketReceived;
+  const handler = createHandler({
+    consumeAdminInvitationOauthStartTicket: async (ticket) => {
+      ticketReceived = ticket;
+      return { invitationId: "invitation-123", transactionId: "tx-inv-456" };
+    },
+    baseUrl: undefined,
+  });
+
+  const response = await handler(makeRequest({ kind: "invitation", ticket: "inv-ticket-abc" }));
+  assert.equal(ticketReceived, "inv-ticket-abc");
+  assert.equal(response.status, 303);
+
+  const cookie = response.headers.get("Set-Cookie") ?? "";
+  const transaction = cookie.split(";")[0]?.slice(`${AUTH_ADMIN_TRANSACTION_COOKIE_NAME}=`.length);
+  const parsed = parseAuthAdminTransaction(transaction, {
+    now: new Date("2026-11-13T21:00:00.000Z"),
+    secret: SECRET,
+  });
+  assert.deepEqual(parsed, {
+    flow: "invitation",
+    invitationId: "invitation-123",
+    transactionId: "tx-inv-456",
+  });
+});
+
+test("admin start processes super_login kind with service and sets flow=super_login", async () => {
+  let ticketReceived;
+  const handler = createHandler({
+    consumeAdminSuperLoginOauthStartTicket: async (ticket) => {
+      ticketReceived = ticket;
+      return { transactionId: "tx-super-789" };
+    },
+    baseUrl: undefined,
+  });
+
+  const response = await handler(makeRequest({ kind: "super_login", ticket: "super-ticket-xyz" }));
+  assert.equal(ticketReceived, "super-ticket-xyz");
+  assert.equal(response.status, 303);
+
+  const cookie = response.headers.get("Set-Cookie") ?? "";
+  const transaction = cookie.split(";")[0]?.slice(`${AUTH_ADMIN_TRANSACTION_COOKIE_NAME}=`.length);
+  const parsed = parseAuthAdminTransaction(transaction, {
+    now: new Date("2026-11-13T21:00:00.000Z"),
+    secret: SECRET,
+  });
+  assert.deepEqual(parsed, {
+    flow: "super_login",
+    transactionId: "tx-super-789",
+  });
+});
+
+test("admin start rejects invitation and super_login when service fails or ticket is invalid", async () => {
+  const handler = createHandler({
+    consumeAdminInvitationOauthStartTicket: async () => null,
+    consumeAdminSuperLoginOauthStartTicket: async () => null,
+  });
+
+  const res1 = await handler(makeRequest({ kind: "invitation", ticket: "bad-ticket" }));
+  assert.equal(res1.status, 400);
+
+  const res2 = await handler(makeRequest({ kind: "super_login", ticket: "bad-ticket" }));
+  assert.equal(res2.status, 400);
 });

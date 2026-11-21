@@ -4,6 +4,7 @@ import { getCloudflareClientIp, getSessionCookieConfig } from "@tablino/auth";
 import {
   authenticateAdminPassword,
   checkRateLimit,
+  createAdminSuperLoginOauthStartTicket,
   createOauthStartTicket,
   createStudentSession,
   recordFailure,
@@ -31,6 +32,7 @@ export async function startAdminGoogleSignInAction() {
   return runStartAdminGoogleSignIn({
     getHostContext: getAdminHostContext,
     createTicket: (universityId, surface) => createOauthStartTicket(universityId, surface),
+    createSuperLoginTicket: () => createAdminSuperLoginOauthStartTicket(),
     getCentralHost: () => process.env.AUTH_ADMIN_CENTRAL_HOST,
     secure: process.env.NODE_ENV === "production",
   });

@@ -10,6 +10,12 @@ export function createAuthAdminStartHandler(options: {
     ticket: string,
     surface: "admin",
   ) => Promise<string | null>;
+  consumeAdminInvitationOauthStartTicket?: (
+    ticket: string,
+  ) => Promise<{ invitationId: string; transactionId: string } | null>;
+  consumeAdminSuperLoginOauthStartTicket?: (
+    ticket: string,
+  ) => Promise<{ transactionId: string } | null>;
   getSecret: () => string | undefined;
   secure: boolean;
   baseUrl?: string;

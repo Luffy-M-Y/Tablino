@@ -4,7 +4,11 @@ import { db, eq, schema } from "@tablino/db";
 import { AUTH_ADMIN_TRANSACTION_COOKIE_NAME } from "./auth-admin-transaction.mjs";
 import { createAdminGoogleUniversityResolver } from "./admin-google-resolver.mjs";
 import { isAuthAdminCentralHost } from "./admin-host.mjs";
-import { buildAdminGoogleExistingAccountUrl } from "./admin-return-url.mjs";
+import {
+  buildAdminGoogleExistingAccountUrl,
+  buildSuperAdminGoogleExistingAccountUrl,
+  buildSuperAdminTransferRedirectUrl,
+} from "./admin-return-url.mjs";
 
 const resolveGoogleUniversityId = createAdminGoogleUniversityResolver({
   getHost: async () => (await headers()).get("host"),
@@ -29,6 +33,33 @@ export function getAdminAuthOptions(host: string | null) {
         if (!(rows.length > 0) || !rows[0].slug || !adminRootDomain) return null;
         return buildAdminGoogleExistingAccountUrl({
           slug: rows[0].slug,
+          adminRootDomain,
+          secure: process.env.NODE_ENV === "production",
+          token,
+        });
+      } catch {
+        return null;
+      }
+    },
+    resolveGoogleSuperTransferUrl: async (code) => {
+      try {
+        const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
+        if (!adminRootDomain) return null;
+        return buildSuperAdminTransferRedirectUrl({
+          adminRootDomain,
+          secure: process.env.NODE_ENV === "production",
+          code,
+          flow: "super_login",
+        });
+      } catch {
+        return null;
+      }
+    },
+    resolveGoogleSuperExistingAccountUrl: async (token) => {
+      try {
+        const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
+        if (!adminRootDomain) return null;
+        return buildSuperAdminGoogleExistingAccountUrl({
           adminRootDomain,
           secure: process.env.NODE_ENV === "production",
           token,

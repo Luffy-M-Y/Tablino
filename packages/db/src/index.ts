@@ -295,6 +295,55 @@ export {
 } from "./admin-invitation-check";
 export type { InvitationCheckDependencies } from "./admin-invitation-check";
 export {
+  ADMIN_INVITATION_OAUTH_START_TICKET_TTL_MS,
+  ADMIN_INVITATION_OAUTH_TRANSACTION_TTL_MS,
+  ADMIN_INVITATION_OAUTH_TRANSFER_CODE_TTL_MS,
+  createAdminInvitationOauthService,
+  createAdminInvitationOauthStartTicket,
+  consumeAdminInvitationOauthStartTicket,
+  checkAdminInvitationGoogleEligibility,
+  createPendingAdminInvitationGoogleUser,
+  completeAdminInvitationGoogleAccount,
+  createAdminInvitationOauthTransferCode,
+  consumeAdminInvitationOauthTransferCode,
+} from "./admin-invitation-oauth";
+export type {
+  AdminInvitationOauthContext,
+  AdminInvitationGoogleEligibility,
+  AdminInvitationOauthRepository,
+  AdminInvitationOauthDependencies,
+} from "./admin-invitation-oauth";
+export {
+  ADMIN_SUPER_LOGIN_OAUTH_START_TICKET_TTL_MS,
+  ADMIN_SUPER_LOGIN_OAUTH_TRANSACTION_TTL_MS,
+  ADMIN_SUPER_LOGIN_OAUTH_TRANSFER_CODE_TTL_MS,
+  createAdminSuperLoginOauthService,
+  createAdminSuperLoginOauthStartTicket,
+  consumeAdminSuperLoginOauthStartTicket,
+  checkAdminSuperLoginGoogleEligibility,
+  createAdminSuperLoginOauthTransferCode,
+  consumeAdminSuperLoginOauthTransferCode,
+} from "./admin-super-login-oauth";
+export type {
+  AdminSuperLoginOauthContext,
+  AdminSuperLoginGoogleEligibility,
+  AdminSuperLoginOauthRepository,
+  AdminSuperLoginOauthDependencies,
+} from "./admin-super-login-oauth";
+export {
+  createAdminGoogleAuthContextDrizzleRepository,
+  createAdminGoogleAuthContextService,
+  recordGoogleAuthContext,
+  consumeGoogleAuthContext,
+  deleteGoogleAuthContext,
+  pruneExpiredGoogleAuthContexts,
+} from "./admin-google-auth-context";
+export type {
+  AdminGoogleAuthContextRecord,
+  AdminGoogleAuthContextRepository,
+  AdminGoogleAuthContextDependencies,
+} from "./admin-google-auth-context";
+export {
   listPendingUniversitiesForApproval,
   approveUniversity,
 } from "./university-approval";

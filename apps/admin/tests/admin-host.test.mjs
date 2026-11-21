@@ -239,9 +239,12 @@ test("l'hôte université n'expose que le retour auth-admin parmi ces routes", (
   assert.equal(isAdminProxyPathAllowed("university", "/api/auth/signin/%67oogle"), false);
 });
 
-test("l'hôte super-admin ne publie pas les routes du flux Google central", () => {
-  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/return"), false);
+test("l'hôte super-admin n'expose que le retour auth-admin parmi ces routes", () => {
+  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/return"), true);
+  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/start"), false);
+  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/signin"), false);
   assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/transfer"), false);
+  assert.equal(isAdminProxyPathAllowed("super", "/auth-admin/error"), false);
   assert.equal(isAdminProxyPathAllowed("super", "/api/auth/signin/google"), false);
   assert.equal(isAdminProxyPathAllowed("super", "/api/auth/callback/google"), false);
   assert.equal(isAdminProxyPathAllowed("super", "/login"), true);

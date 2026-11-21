@@ -1,6 +1,9 @@
 import { LoginForm } from "./login-form";
 import { getAdminHostContext } from "@/lib/admin-host-context";
-import { verifyGoogleExistingAccountToken } from "@tablino/auth";
+import {
+  verifyGoogleExistingAccountToken,
+  verifySuperGoogleExistingAccountTokenEnv,
+} from "@tablino/auth";
 import { getAdminGoogleExistingAccountEmail } from "@/lib/admin-google-existing-account.mjs";
 
 export default async function LoginPage({
@@ -21,6 +24,7 @@ export default async function LoginPage({
     verifyToken: (token) => verifyGoogleExistingAccountToken(token, {
       secret: process.env.NEXTAUTH_SECRET,
     }),
+    verifySuperToken: (token) => verifySuperGoogleExistingAccountTokenEnv(token),
   });
 
   return (
@@ -39,7 +43,7 @@ export default async function LoginPage({
           passwordResetComplete={params.reset === "ok"}
           invitationAccepted={params.invitation === "accepted"}
           googleExistingEmail={googleExistingEmail ?? undefined}
-          showGoogleSignIn={hostContext?.kind === "university"}
+          showGoogleSignIn={hostContext?.kind === "university" || hostContext?.kind === "super"}
           googleSignInError={
             params.error === "google"
               ? "Impossible de finaliser la connexion. Réessayez."

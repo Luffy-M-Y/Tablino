@@ -191,7 +191,7 @@ export function isAdminProxyPathAllowed(kind, pathname) {
   }
 
   if (decodedPathname.startsWith("/auth-admin/")) {
-    return kind === "university" && decodedPathname === "/auth-admin/return";
+    return (kind === "university" || kind === "super") && decodedPathname === "/auth-admin/return";
   }
 
   return decodedPathname !== "/api/auth/signin/google"

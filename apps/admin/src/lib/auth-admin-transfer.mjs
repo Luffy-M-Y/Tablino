@@ -1,11 +1,12 @@
 import {
   AUTH_ADMIN_TRANSACTION_COOKIE_NAME,
-  verifyAuthAdminTransaction,
+  parseAuthAdminTransaction,
 } from "./auth-admin-transaction.mjs";
 import { isAuthAdminCentralHost } from "./admin-host.mjs";
 import {
   buildAdminReturnUrl,
   buildAdminTransferRedirectUrl,
+  buildSuperAdminTransferRedirectUrl,
 } from "./admin-return-url.mjs";
 
 function failure() {
@@ -49,21 +50,23 @@ export async function runAuthAdminTransfer({
   secure,
   lookupUniversitySlug,
   createTransferCode,
+  createInvitationTransferCode,
+  createSuperLoginTransferCode,
   deleteSession,
 }) {
   if (!isAuthAdminCentralHost(host, centralHost)) return failure();
 
-  const transactionUniversityId = verifyAuthAdminTransaction(transactionCookie, {
+  const transaction = parseAuthAdminTransaction(transactionCookie, {
     now,
     secret,
   });
+  if (!transaction) return failure();
+
   const user = session?.user;
   if (
-    !transactionUniversityId
-    || !user
-    || user.role !== "university_admin"
+    !user
     || !user.id
-    || user.universityId !== transactionUniversityId
+    || user.role === "super_admin"
     || typeof sessionToken !== "string"
     || sessionToken.length === 0
     || sessionToken.length > 500
@@ -71,36 +74,103 @@ export async function runAuthAdminTransfer({
     return failure();
   }
 
-  let slug;
-  try {
-    slug = await lookupUniversitySlug(transactionUniversityId);
-  } catch {
-    return failure();
-  }
-  if (
-    typeof slug !== "string"
-    || buildAdminReturnUrl({ slug, adminRootDomain, secure }) === null
-  ) {
-    return failure();
-  }
-
   let code;
-  try {
-    code = await createTransferCode({
-      universityId: transactionUniversityId,
-      userId: user.id,
+  let redirectUrl;
+
+  if (transaction.flow === "university") {
+    if (
+      user.role !== "university_admin"
+      || user.universityId !== transaction.universityId
+    ) {
+      return failure();
+    }
+
+    let slug;
+    try {
+      slug = await lookupUniversitySlug(transaction.universityId);
+    } catch {
+      return failure();
+    }
+    if (
+      typeof slug !== "string"
+      || buildAdminReturnUrl({ slug, adminRootDomain, secure }) === null
+    ) {
+      return failure();
+    }
+
+    try {
+      code = await createTransferCode({
+        universityId: transaction.universityId,
+        userId: user.id,
+      });
+    } catch {
+      return failure();
+    }
+    if (typeof code !== "string" || code.length === 0) return failure();
+
+    redirectUrl = buildAdminTransferRedirectUrl({
+      slug,
+      adminRootDomain,
+      secure,
+      code,
     });
-  } catch {
+    if (redirectUrl === null) return failure();
+  } else if (transaction.flow === "super_login") {
+    if (
+      (user.role !== "super_admin_editor" && user.role !== "super_admin_lector")
+      || user.universityId !== null
+    ) {
+      return failure();
+    }
+    if (typeof createSuperLoginTransferCode !== "function") return failure();
+
+    try {
+      code = await createSuperLoginTransferCode({
+        transactionId: transaction.transactionId,
+        userId: user.id,
+      });
+    } catch {
+      return failure();
+    }
+    if (typeof code !== "string" || code.length === 0) return failure();
+
+    redirectUrl = buildSuperAdminTransferRedirectUrl({
+      adminRootDomain,
+      secure,
+      code,
+      flow: "super_login",
+    });
+    if (redirectUrl === null) return failure();
+  } else if (transaction.flow === "invitation") {
+    if (
+      (user.role !== "super_admin_editor" && user.role !== "super_admin_lector")
+      || user.universityId !== null
+    ) {
+      return failure();
+    }
+    if (typeof createInvitationTransferCode !== "function") return failure();
+
+    try {
+      code = await createInvitationTransferCode({
+        invitationId: transaction.invitationId,
+        transactionId: transaction.transactionId,
+        userId: user.id,
+      });
+    } catch {
+      return failure();
+    }
+    if (typeof code !== "string" || code.length === 0) return failure();
+
+    redirectUrl = buildSuperAdminTransferRedirectUrl({
+      adminRootDomain,
+      secure,
+      code,
+      flow: "invitation",
+    });
+    if (redirectUrl === null) return failure();
+  } else {
     return failure();
   }
-
-  const redirectUrl = buildAdminTransferRedirectUrl({
-    slug,
-    adminRootDomain,
-    secure,
-    code,
-  });
-  if (redirectUrl === null) return failure();
 
   let deletion;
   try {
