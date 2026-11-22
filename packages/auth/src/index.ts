@@ -626,15 +626,25 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             }
           };
 
+          const logSuperAuthRefusal = (code: string) => {
+            try {
+              console.warn(JSON.stringify({ code }));
+            } catch {
+              // Si le journal lui-même échoue, le retour ne change jamais.
+            }
+          };
+
           const targetUser = emailUser ?? linkedUser ?? (await findUserByEm(email));
           if (!targetUser) {
             await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_user_not_found");
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
           // Refus explicite et immédiat si targetUser.role === "super_admin" (le chef).
           if (targetUser.role === "super_admin") {
             await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_chief_denied");
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
@@ -644,11 +654,19 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             userSecurity = await readSecurity(targetUser.id);
           } catch {
             await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_security_unavailable");
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
-          if (!userSecurity || userSecurity.revokedAt !== null) {
+          if (!userSecurity) {
             await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_security_unavailable");
+            return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+          }
+
+          if (userSecurity.revokedAt !== null) {
+            await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_revoked");
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
@@ -665,11 +683,13 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
               });
             } catch {
               await safeDeleteGoogleAuthContext();
+              logSuperAuthRefusal("google_super_eligibility_error");
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
             if (!eligibility?.ok) {
               await safeDeleteGoogleAuthContext();
+              logSuperAuthRefusal("google_super_eligibility_denied");
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
@@ -683,11 +703,13 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
               });
             } catch {
               await safeDeleteGoogleAuthContext();
+              logSuperAuthRefusal("google_super_transfer_failed");
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
             if (!code) {
               await safeDeleteGoogleAuthContext();
+              logSuperAuthRefusal("google_super_transfer_failed");
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
@@ -698,11 +720,13 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
                 : null;
             } catch {
               await safeDeleteGoogleAuthContext();
+              logSuperAuthRefusal("google_super_transfer_failed");
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
             if (!redirectUrl) {
               await safeDeleteGoogleAuthContext();
+              logSuperAuthRefusal("google_super_transfer_failed");
               return AUTH_ADMIN_GOOGLE_ERROR_PATH;
             }
 
@@ -724,6 +748,7 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
 
           if (!decision) {
             await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_decision_denied");
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
 
@@ -734,9 +759,14 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
             });
             const redirectUrl = await context.resolveGoogleSuperExistingAccountUrl?.(existingToken);
             await safeDeleteGoogleAuthContext();
-            return redirectUrl ?? AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            if (!redirectUrl) {
+              logSuperAuthRefusal("google_super_existing_url_failed");
+              return AUTH_ADMIN_GOOGLE_ERROR_PATH;
+            }
+            return redirectUrl;
           } catch {
             await safeDeleteGoogleAuthContext();
+            logSuperAuthRefusal("google_super_existing_url_failed");
             return AUTH_ADMIN_GOOGLE_ERROR_PATH;
           }
         }

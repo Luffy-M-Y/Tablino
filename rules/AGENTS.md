@@ -244,6 +244,20 @@ Dépendances autorisées dans apps/admin : pdf-lib ^1.17.1 et tesseract.js ^7.0.
 - Code de transfert : après validation sur l'hôte central, émission d'un code de transfert à usage unique (`createAdminSuperLoginOauthTransferCode`).
 - Retour sur l'hôte super : redirection vers `/auth-admin/return` sur `sup-admin`, gérant les flux `flow = "invitation"` ou `flow = "super_login"` pour consommer le code de transfert et initialiser la session Auth.js.
 - Page d'erreur neutre (`apps/admin/src/app/auth-admin/error/page.tsx`) : « La connexion a échoué. Recommencez depuis la page de connexion de votre espace d'administration. »
+- Journal des refus Google du bloc super : fonction `logSuperAuthRefusal` (`packages/auth/src/index.ts`) qui écrit `console.warn(JSON.stringify({ code }))` ; le retour de `signIn` reste `AUTH_ADMIN_GOOGLE_ERROR_PATH` ; l'écran reste générique, le motif n'est JAMAIS affiché à l'écran.
+- Codes des refus Google super (9 codes) :
+  - `google_super_user_not_found` : aucun compte trouvé pour l'adresse Google.
+  - `google_super_chief_denied` : tentative de connexion Google avec le compte du chef (`super_admin`).
+  - `google_super_security_unavailable` : échec de lecture des détails de sécurité ou détails absents.
+  - `google_super_revoked` : compte administrateur révoqué (`revokedAt !== null`).
+  - `google_super_eligibility_error` : exception levée lors de la vérification d'éligibilité (`checkEligibility`).
+  - `google_super_eligibility_denied` : éligibilité refusée (`eligibility.ok` faux).
+  - `google_super_transfer_failed` : échec ou absence du code de transfert ou de l'URL de transfert.
+  - `google_super_decision_denied` : refus renvoyé par `decideAdminSuperGoogleSignIn`.
+  - `google_super_existing_url_failed` : URL de redirection de compte existant absente ou en échec.
+- Règle de journalisation : un refus Google ne journalise que le code ; jamais d'e-mail, de `providerAccountId`, d'identifiant utilisateur, de jeton, de `state`, de code OAuth ni de message d'exception. Un échec du journal ne change jamais le retour (`try/catch`).
+- Tests unitaires des refus : 9 tests « refus journalisé » dans `packages/auth/tests/admin-super-google-signin.test.ts` prouvent le retour inchangé (`AUTH_ADMIN_GOOGLE_ERROR_PATH`), une seule ligne de journal égale à `{"code":"..."}` et l'absence totale d'e-mail ou d'identifiant dans la sortie journalisée. Le script `test` de `packages/auth/package.json` liste les fichiers à la main et contient déjà ce fichier.
+- Précision sur le périmètre : le bloc université de `signIn` n'a PAS de journal à codes (réservé à un lot séparé).
 
 ### Proxy et filtrage des chemins par type d'hôte (apps/admin)
 - Implémenté via `isAdminProxyPathAllowed(kind, pathname)` dans `apps/admin/src/lib/admin-host.mjs`, où `kind` (`"super" | "central" | "university"`) est le type d'hôte admin résolu et `pathname` le chemin d'URL.
