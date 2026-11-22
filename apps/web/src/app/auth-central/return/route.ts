@@ -39,24 +39,38 @@ export async function GET(request: NextRequest) {
     return cleanRedirect(request, decision.path);
   }
 
-  // Refuse un utilisateur révoqué avant de créer la session.
+  // Refuse un utilisateur révoqué, de mauvais rôle ou d'une autre université avant de créer la session.
   let userFound = false;
   let revokedAt: Date | null = null;
+  let role: string | null = null;
+  let userUniversityId: string | null = null;
   try {
     const rows = await db
-      .select({ revokedAt: schema.users.revokedAt })
+      .select({
+        revokedAt: schema.users.revokedAt,
+        role: schema.users.role,
+        universityId: schema.users.universityId,
+      })
       .from(schema.users)
       .where(eq(schema.users.id, decision.userId))
       .limit(1);
     if (rows.length > 0) {
       userFound = true;
       revokedAt = rows[0].revokedAt;
+      role = rows[0].role;
+      userUniversityId = rows[0].universityId;
     }
   } catch {
     return cleanRedirect(request, "/connexion");
   }
 
-  const sessionAllowed = resolveSessionAllowed({ userFound, revokedAt });
+  const sessionAllowed = resolveSessionAllowed({
+    userFound,
+    revokedAt,
+    role,
+    userUniversityId,
+    hostUniversityId: universityId,
+  });
   if (!sessionAllowed.allowed) {
     return cleanRedirect(request, "/connexion");
   }

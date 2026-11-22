@@ -27,13 +27,28 @@ export function resolveReturnDecision({ code, universityId, consumeResult }) {
 
 /**
  * Décide si une session peut être créée pour un utilisateur, selon
- * son existence et son statut de révocation.
+ * son existence, son statut de révocation, son rôle et son université.
  *
- * @param {{ userFound: boolean, revokedAt: Date | null }} input
+ * @param {{
+ *   userFound: boolean,
+ *   revokedAt: Date | null,
+ *   role: string | null,
+ *   userUniversityId: string | null,
+ *   hostUniversityId: string | null,
+ * }} input
  * @returns {{ allowed: true } | { allowed: false }}
  */
-export function resolveSessionAllowed({ userFound, revokedAt }) {
+export function resolveSessionAllowed({
+  userFound,
+  revokedAt,
+  role,
+  userUniversityId,
+  hostUniversityId,
+}) {
   if (!userFound) return { allowed: false };
   if (revokedAt !== null) return { allowed: false };
+  if (role !== "student") return { allowed: false };
+  if (typeof userUniversityId !== "string" || userUniversityId.length === 0) return { allowed: false };
+  if (userUniversityId !== hostUniversityId) return { allowed: false };
   return { allowed: true };
 }
