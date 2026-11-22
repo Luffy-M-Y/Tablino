@@ -1357,3 +1357,356 @@ test("test sans injection : le repli réel est référencé (preuve par lecture 
   assert.equal(typeof checkAdminSuperLoginGoogleEligibility, "function");
   assert.equal(typeof createAdminSuperLoginOauthTransferCode, "function");
 });
+
+function captureConsoleWarn() {
+  const originalWarn = console.warn;
+  const messages: string[] = [];
+  console.warn = (message: string) => {
+    messages.push(message);
+  };
+  return {
+    messages,
+    restore() {
+      console.warn = originalWarn;
+    },
+  };
+}
+
+test("refus journalisé : google_super_user_not_found quand aucun compte n'est trouvé", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getUserByAccount: async () => null,
+      getUserByEmail: async () => null,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: "unknown-user", email: "unknown@example.com" },
+      account: { provider: "google", providerAccountId: "acc-google-unknown", type: "oauth" },
+      profile: { email: "unknown@example.com", email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_user_not_found" }));
+    assert.ok(!warnCapture.messages[0].includes("unknown@example.com"));
+    assert.ok(!warnCapture.messages[0].includes("unknown-user"));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_chief_denied quand l'utilisateur est le chef super_admin", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const chief = createValidSuperUser({ role: "super_admin", email: "chief@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getUserByAccount: async () => null,
+      getUserByEmail: async () => chief,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: chief.id, email: chief.email },
+      account: { provider: "google", providerAccountId: "acc-google-chief", type: "oauth" },
+      profile: { email: chief.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_chief_denied" }));
+    assert.ok(!warnCapture.messages[0].includes(chief.email));
+    assert.ok(!warnCapture.messages[0].includes(chief.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_security_unavailable quand la lecture de sécurité échoue ou est absente", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => {
+        throw new Error("Security DB lookup failed");
+      },
+      getUserByAccount: async () => null,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_security_unavailable" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_revoked quand le compte est révoqué", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails({ revokedAt: new Date("2026-02-01T00:00:00Z") }),
+      getUserByAccount: async () => null,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_revoked" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_eligibility_error quand checkEligibility lève une exception", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => {
+        throw new Error("Eligibility network timeout");
+      },
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_eligibility_error" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_eligibility_denied quand checkEligibility renvoie un refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: false, userId: null }),
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_eligibility_denied" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_transfer_failed quand la création ou la résolution du code de transfert échoue", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      checkSuperLoginGoogleEligibility: async () => ({ ok: true, userId: user.id }),
+      createSuperLoginTransferCode: async () => null,
+      getUserByAccount: async () => user,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_transfer_failed" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_decision_denied quand decideAdminSuperGoogleSignIn renvoie un refus", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com", emailVerified: null });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      getUserByAccount: async () => null,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_decision_denied" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
+
+test("refus journalisé : google_super_existing_url_failed quand l'URL de compte existant est absente ou échoue", async () => {
+  const originalMethods = { ...googleAuthContexts };
+  Object.assign(googleAuthContexts, createFakeGoogleAuthContextService());
+  const warnCapture = captureConsoleWarn();
+
+  try {
+    const user = createValidSuperUser({ role: "super_admin_editor", email: "editor@example.com" });
+    const options = createAuthOptions({
+      surface: "admin",
+      isAuthAdminCentral: true,
+      getCurrentUniversityId: async () => "legacy-univ",
+      resolveGoogleUniversityId: SUPER_LOGIN_RESOLVER,
+      getSuperAdminSecurityDetails: async () => createValidSecurityDetails(),
+      resolveGoogleSuperExistingAccountUrl: async () => null,
+      getUserByAccount: async () => null,
+      getUserByEmail: async () => user,
+    });
+
+    const signIn = options.callbacks?.signIn;
+    assert.ok(signIn);
+
+    const result = await signIn({
+      user: { id: user.id, email: user.email },
+      account: { provider: "google", providerAccountId: "acc-google-editor", type: "oauth" },
+      profile: { email: user.email, email_verified: true },
+    });
+
+    assert.equal(result, AUTH_ADMIN_GOOGLE_ERROR_PATH);
+    assert.equal(warnCapture.messages.length, 1);
+    assert.equal(warnCapture.messages[0], JSON.stringify({ code: "google_super_existing_url_failed" }));
+    assert.ok(!warnCapture.messages[0].includes(user.email));
+    assert.ok(!warnCapture.messages[0].includes(user.id));
+  } finally {
+    warnCapture.restore();
+    Object.assign(googleAuthContexts, originalMethods);
+  }
+});
