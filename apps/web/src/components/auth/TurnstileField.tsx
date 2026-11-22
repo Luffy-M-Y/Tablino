@@ -98,6 +98,7 @@ export function TurnstileField({
         src={SCRIPT_URL}
         strategy="afterInteractive"
         onReady={renderWidget}
+        onLoad={renderWidget}
         onError={() => setError(CONFIG_ERROR)}
       />
       <div ref={containerRef} />
