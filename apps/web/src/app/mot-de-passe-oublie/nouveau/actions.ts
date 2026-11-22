@@ -2,7 +2,6 @@
 
 import {
   getPasswordResetConfirmedCookieConfig,
-  getPasswordResetCookieConfig,
   verifyPasswordResetConfirmedToken,
 } from "@tablino/auth";
 import { setStudentPassword } from "@tablino/db";
@@ -10,7 +9,10 @@ import { cookies } from "next/headers";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type NewPasswordActionState = { message: string | null; redirectTo?: "/connexion?reset=ok" };
+export type NewPasswordActionState = {
+  message: string | null;
+  redirectTo?: "/mot-de-passe-oublie/termine";
+};
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -60,10 +62,5 @@ export async function setNewPasswordAction(
     }
   }
 
-  const requestConfig = getPasswordResetCookieConfig();
-  const confirmedConfig = getPasswordResetConfirmedCookieConfig();
-  const cookieStore = await cookies();
-  cookieStore.set(requestConfig.name, "", { ...requestConfig.options, maxAge: 0 });
-  cookieStore.set(confirmedConfig.name, "", { ...confirmedConfig.options, maxAge: 0 });
-  return { message: null, redirectTo: "/connexion?reset=ok" };
+  return { message: null, redirectTo: "/mot-de-passe-oublie/termine" };
 }
