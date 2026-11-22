@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { startTrial } from "@tablino/db";
-import { forbidden, redirect } from "next/navigation";
+import { forbidden } from "next/navigation";
 import { requireStudentSession } from "@/lib/authorization";
 
-type TrialActionState = { message: string | null };
+type TrialActionState = { message: string | null; redirectTo?: "/" };
 
 export async function startTrialAction(
   _previousState: TrialActionState,
@@ -17,7 +17,7 @@ export async function startTrialAction(
   const result = await startTrial(user.universityId, user.id);
   if (result.ok) {
     revalidatePath("/", "layout");
-    redirect("/");
+    return { message: null, redirectTo: "/" };
   }
 
   switch (result.reason) {

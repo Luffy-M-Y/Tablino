@@ -6,12 +6,11 @@ import {
   registerStudentWithCode,
   resetAttempts,
 } from "@tablino/db";
-import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type RegisterActionState = { message: string | null };
+export type RegisterActionState = { message: string | null; redirectTo?: "/verification" | "/connexion" };
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -64,7 +63,7 @@ export async function registerAction(
 
   if (result.ok && result.userId) {
     await startEmailVerification(result.userId, email.trim().toLowerCase());
-    redirect("/verification");
+    return { message: null, redirectTo: "/verification" };
   }
-  redirect("/connexion");
+  return { message: null, redirectTo: "/connexion" };
 }
