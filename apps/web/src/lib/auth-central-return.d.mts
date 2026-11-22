@@ -17,4 +17,7 @@ export function resolveReturnDecision(input: {
 export function resolveSessionAllowed(input: {
   userFound: boolean;
   revokedAt: Date | null;
+  role: string | null;
+  userUniversityId: string | null;
+  hostUniversityId: string | null;
 }): SessionAllowedDecision;

@@ -108,15 +108,42 @@ test("simulation: resolveReturnDecision retourne redirect avec un universityId d
 // ─── 8. resolveSessionAllowed : utilisateur autorisé, révoqué, absent ─────────────
 
 test("simulation: resolveSessionAllowed autorise un utilisateur non révoqué", () => {
-  assert.deepEqual(resolveSessionAllowed({ userFound: true, revokedAt: null }), { allowed: true });
+  assert.deepEqual(
+    resolveSessionAllowed({
+      userFound: true,
+      revokedAt: null,
+      role: "student",
+      userUniversityId: UNIVERSITY_ID,
+      hostUniversityId: UNIVERSITY_ID,
+    }),
+    { allowed: true },
+  );
 });
 
 test("simulation: resolveSessionAllowed refuse un utilisateur révoqué", () => {
-  assert.deepEqual(resolveSessionAllowed({ userFound: true, revokedAt: new Date() }), { allowed: false });
+  assert.deepEqual(
+    resolveSessionAllowed({
+      userFound: true,
+      revokedAt: new Date(),
+      role: "student",
+      userUniversityId: UNIVERSITY_ID,
+      hostUniversityId: UNIVERSITY_ID,
+    }),
+    { allowed: false },
+  );
 });
 
 test("simulation: resolveSessionAllowed refuse un utilisateur absent", () => {
-  assert.deepEqual(resolveSessionAllowed({ userFound: false, revokedAt: null }), { allowed: false });
+  assert.deepEqual(
+    resolveSessionAllowed({
+      userFound: false,
+      revokedAt: null,
+      role: null,
+      userUniversityId: null,
+      hostUniversityId: UNIVERSITY_ID,
+    }),
+    { allowed: false },
+  );
 });
 
 // ─── 9. Transaction expirée : vérification échoue ───────────────────────────────
