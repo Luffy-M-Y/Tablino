@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { requestResetAction } from "./actions";
@@ -8,6 +8,12 @@ import { requestResetAction } from "./actions";
 export function RequestResetForm() {
   const [state, action, pending] = useActionState(requestResetAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
+
+  useEffect(() => {
+    if (state.redirectTo) {
+      window.location.assign(state.redirectTo);
+    }
+  }, [state.redirectTo]);
 
   return (
     <form action={action} className="space-y-4">

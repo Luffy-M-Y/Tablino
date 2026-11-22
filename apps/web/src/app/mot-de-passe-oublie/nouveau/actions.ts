@@ -7,11 +7,10 @@ import {
 } from "@tablino/auth";
 import { setStudentPassword } from "@tablino/db";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type NewPasswordActionState = { message: string | null };
+export type NewPasswordActionState = { message: string | null; redirectTo?: "/connexion?reset=ok" };
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -66,5 +65,5 @@ export async function setNewPasswordAction(
   const cookieStore = await cookies();
   cookieStore.set(requestConfig.name, "", { ...requestConfig.options, maxAge: 0 });
   cookieStore.set(confirmedConfig.name, "", { ...confirmedConfig.options, maxAge: 0 });
-  redirect("/connexion?reset=ok");
+  return { message: null, redirectTo: "/connexion?reset=ok" };
 }

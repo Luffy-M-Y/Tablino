@@ -15,12 +15,11 @@ import {
   verifyEmailCode,
 } from "@tablino/db";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { sendVerificationEmail } from "@/lib/email";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type VerificationActionState = { message: string | null };
+export type VerificationActionState = { message: string | null; redirectTo?: "/" | "/connexion" };
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -81,7 +80,7 @@ export async function verifyCodeAction(
     ...verificationCookieConfig.options,
     maxAge: 0,
   });
-  redirect("/");
+  return { message: null, redirectTo: "/" };
 }
 
 export async function resendCodeAction(
@@ -108,7 +107,7 @@ export async function resendCodeAction(
   if (!issued.ok) {
     switch (issued.reason) {
       case "already_verified":
-        redirect("/connexion");
+        return { message: null, redirectTo: "/connexion" };
       case "too_soon":
         return { message: "Patiente une minute avant de redemander." };
       case "not_found":

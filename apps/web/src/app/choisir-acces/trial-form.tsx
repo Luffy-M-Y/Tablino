@@ -1,11 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { errorClass, primaryButtonClass } from "@/components/ui/kit";
 import { startTrialAction } from "./actions";
 
 export function TrialForm() {
   const [state, action, pending] = useActionState(startTrialAction, { message: null });
+
+  useEffect(() => {
+    if (state.redirectTo) {
+      window.location.assign(state.redirectTo);
+    }
+  }, [state.redirectTo]);
 
   return (
     <form action={action}>

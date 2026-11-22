@@ -17,6 +17,11 @@ export function ResetVerificationForms() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [verifyTurnstileToken, setVerifyTurnstileToken] = useState("");
   const [resendTurnstileToken, setResendTurnstileToken] = useState("");
+  useEffect(() => {
+    if (verifyState.redirectTo) {
+      window.location.assign(verifyState.redirectTo);
+    }
+  }, [verifyState.redirectTo]);
   useEffect(function () {
     if (resendState.message === "Un nouveau code a \u00e9t\u00e9 envoy\u00e9.") setSecondsLeft(60);
   }, [resendState]);
