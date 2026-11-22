@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { setNewPasswordAction } from "./actions";
@@ -8,6 +8,12 @@ import { setNewPasswordAction } from "./actions";
 export function NewPasswordForm() {
   const [state, action, pending] = useActionState(setNewPasswordAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
+
+  useEffect(() => {
+    if (state.redirectTo) {
+      window.location.assign(state.redirectTo);
+    }
+  }, [state.redirectTo]);
 
   return (
     <form action={action} className="space-y-5">

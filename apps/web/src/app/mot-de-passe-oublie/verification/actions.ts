@@ -14,12 +14,11 @@ import {
   verifyPasswordResetCode,
 } from "@tablino/db";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type ResetVerificationActionState = { message: string | null };
+export type ResetVerificationActionState = { message: string | null; redirectTo?: "/mot-de-passe-oublie/nouveau" };
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -77,7 +76,7 @@ export async function verifyResetCodeAction(
     createPasswordResetConfirmedToken(userId),
     confirmedConfig.options,
   );
-  redirect("/mot-de-passe-oublie/nouveau");
+  return { message: null, redirectTo: "/mot-de-passe-oublie/nouveau" };
 }
 
 export async function resendResetCodeAction(

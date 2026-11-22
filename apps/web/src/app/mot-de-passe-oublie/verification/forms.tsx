@@ -5,6 +5,9 @@ import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass, sec
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { resendResetCodeAction, verifyResetCodeAction } from "./actions";
 
+const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_SUCCESS_MESSAGE = "Un nouveau code a été envoyé.";
+
 export function ResetVerificationForms() {
   const [verifyState, verifyAction, verifyPending] = useActionState(
     verifyResetCodeAction,
@@ -14,11 +17,19 @@ export function ResetVerificationForms() {
     resendResetCodeAction,
     { message: null },
   );
-  const [secondsLeft, setSecondsLeft] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
   const [verifyTurnstileToken, setVerifyTurnstileToken] = useState("");
   const [resendTurnstileToken, setResendTurnstileToken] = useState("");
+  useEffect(() => {
+    if (verifyState.redirectTo) {
+      window.location.assign(verifyState.redirectTo);
+    }
+  }, [verifyState.redirectTo]);
   useEffect(function () {
-    if (resendState.message === "Un nouveau code a \u00e9t\u00e9 envoy\u00e9.") setSecondsLeft(60);
+    if (resendState.message === RESEND_SUCCESS_MESSAGE) {
+      setResendTurnstileToken("");
+      setSecondsLeft(RESEND_COOLDOWN_SECONDS);
+    }
   }, [resendState]);
   useEffect(function () {
     if (secondsLeft <= 0) return;
@@ -65,11 +76,13 @@ export function ResetVerificationForms() {
         ) : null}
       </form>
       <form action={resendAction} className="space-y-3">
-        <TurnstileField
-          action="password_reset_resend"
-          onTokenChange={setResendTurnstileToken}
-          resetKey={resendState}
-        />
+        {secondsLeft === 0 ? (
+          <TurnstileField
+            action="password_reset_resend"
+            onTokenChange={setResendTurnstileToken}
+            resetKey={resendState}
+          />
+        ) : null}
         <button
           type="submit"
           disabled={resendPending || secondsLeft > 0 || !resendTurnstileToken}

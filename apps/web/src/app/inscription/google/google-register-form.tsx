@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { registerGoogleAction } from "./actions";
@@ -8,6 +8,12 @@ import { registerGoogleAction } from "./actions";
 export function GoogleRegisterForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState(registerGoogleAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
+
+  useEffect(() => {
+    if (state.redirectTo) {
+      window.location.assign(state.redirectTo);
+    }
+  }, [state.redirectTo]);
 
   return (
     <form action={action} className="space-y-5">

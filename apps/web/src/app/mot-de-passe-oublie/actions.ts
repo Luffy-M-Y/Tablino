@@ -1,11 +1,10 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { startPasswordReset } from "@/lib/password-reset-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type RequestResetActionState = { message: string | null };
+export type RequestResetActionState = { message: string | null; redirectTo?: "/mot-de-passe-oublie/verification" };
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -23,5 +22,5 @@ export async function requestResetAction(
   const universityId = await getCurrentUniversityId();
   const email = readStringField(formData, "email");
   await startPasswordReset(universityId, email);
-  redirect("/mot-de-passe-oublie/verification");
+  return { message: null, redirectTo: "/mot-de-passe-oublie/verification" };
 }

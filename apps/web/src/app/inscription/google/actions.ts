@@ -9,11 +9,10 @@ import {
   resetAttempts,
 } from "@tablino/db";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
-export type GoogleRegisterActionState = { message: string | null };
+export type GoogleRegisterActionState = { message: string | null; redirectTo?: "/" };
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -76,5 +75,5 @@ export async function registerGoogleAction(
     ...cookieConfig.options,
     expires: session.expires,
   });
-  redirect("/");
+  return { message: null, redirectTo: "/" };
 }
