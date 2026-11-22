@@ -9,9 +9,10 @@ const NO_STORE_HEADERS = {
   "Referrer-Policy": "no-referrer",
 };
 
-function cleanRedirect(request: NextRequest, path: string) {
-  return NextResponse.redirect(new URL(path, request.url), {
-    headers: NO_STORE_HEADERS,
+function cleanRedirect(path: string) {
+  return new NextResponse(null, {
+    status: 307,
+    headers: { ...NO_STORE_HEADERS, Location: path },
   });
 }
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const decision = resolveReturnDecision({ code, universityId, consumeResult });
   if (decision.action === "redirect") {
-    return cleanRedirect(request, decision.path);
+    return cleanRedirect(decision.path);
   }
 
   // Refuse un utilisateur révoqué, de mauvais rôle ou d'une autre université avant de créer la session.
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       userUniversityId = rows[0].universityId;
     }
   } catch {
-    return cleanRedirect(request, "/connexion");
+    return cleanRedirect("/connexion");
   }
 
   const sessionAllowed = resolveSessionAllowed({
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
     hostUniversityId: universityId,
   });
   if (!sessionAllowed.allowed) {
-    return cleanRedirect(request, "/connexion");
+    return cleanRedirect("/connexion");
   }
 
   // Crée une nouvelle session tenant avec le même nom et attributs de cookie.
@@ -80,13 +81,11 @@ export async function GET(request: NextRequest) {
   try {
     session = await createStudentSession(decision.userId);
   } catch {
-    return cleanRedirect(request, "/connexion");
+    return cleanRedirect("/connexion");
   }
 
   const config = getSessionCookieConfig("web");
-  const response = NextResponse.redirect(new URL("/", request.url), {
-    headers: NO_STORE_HEADERS,
-  });
+  const response = cleanRedirect("/");
   response.cookies.set(config.name, session.sessionToken, {
     ...config.options,
     expires: session.expires,
