@@ -1,20 +1,21 @@
 import "server-only";
 
-import { validateUniversitySlug } from "@tablino/db";
+import { buildUniversitySlug } from "@tablino/db";
 import { buildUniversityHostnames } from "./university-hostnames.mjs";
 
 export type UniversityHostnamePreview =
   | {
     ok: true;
     acronym: string;
+    locality: string;
     slug: string;
     students: string;
     admin: string;
   }
   | { ok: false; reason: string };
 
-export function getUniversityHostnamePreview(acronym: string): UniversityHostnamePreview {
-  const slugResult = validateUniversitySlug(acronym.trim());
+export function getUniversityHostnamePreview(acronym: string, locality?: string): UniversityHostnamePreview {
+  const slugResult = buildUniversitySlug(acronym.trim(), locality);
   if (!slugResult.ok) {
     return { ok: false, reason: slugResult.reason };
   }
@@ -36,6 +37,7 @@ export function getUniversityHostnamePreview(acronym: string): UniversityHostnam
   return {
     ok: true,
     acronym: acronym.trim(),
+    locality: locality?.trim() ?? "",
     slug: slugResult.slug,
     ...hostnames,
   };

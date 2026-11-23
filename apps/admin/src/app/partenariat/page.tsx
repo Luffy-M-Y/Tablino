@@ -17,10 +17,11 @@ export default async function PartenariatPage() {
 
   const contract = getContractClauses(info.revenueShareBps);
   const initialAcronym = info.acronym ?? "";
+  const initialLocality = info.locality ?? "";
   const initialPreview = initialAcronym
     && process.env.STUDENT_ROOT_DOMAIN
     && process.env.ADMIN_ROOT_DOMAIN
-    ? getUniversityHostnamePreview(initialAcronym)
+    ? getUniversityHostnamePreview(initialAcronym, initialLocality)
     : null;
 
   return (
@@ -79,6 +80,8 @@ export default async function PartenariatPage() {
         </h2>
         <PartnershipForm
           initialAcronym={initialAcronym}
+          initialLocality={initialLocality}
+          initialVisibility={info.visibility}
           initialPreview={initialPreview}
         />
       </section>
