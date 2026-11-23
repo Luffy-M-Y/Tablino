@@ -234,6 +234,8 @@ test("completeUniversityPartnership activates university and upserts payout deta
     acronym: "ISCOM",
     slug: "iscom",
     status: "active",
+    locality: null,
+    visibility: "private",
   });
 
   assert.equal(fake.inserts.length, 1);
@@ -378,4 +380,154 @@ test("completeUniversityPartnership refuses a university outside the session uni
   assert.deepEqual(result, { ok: false, reason: "not_authorized" });
   assert.equal(fake.updates.length, 0);
   assert.equal(fake.inserts.length, 0);
+});
+
+test("completeUniversityPartnership writes locality, visibility, and the combined slug", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved" }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [],
+      [],
+    ],
+    updateResults: [[{ revenueShareBps: 3000 }]],
+  });
+
+  const result = await completeUniversityPartnership({
+    userId: "user-approved",
+    universityId: "u-approved",
+    acronym: "UTM",
+    locality: "Ouaga",
+    visibility: "public",
+    operator: "Moov Money",
+    holderName: "Titulaire",
+    numberEncrypted: "v1:enc",
+    contractVersion: "v1",
+  }, fake.database);
+
+  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000 });
+  assert.deepEqual(fake.updates[0].values, {
+    acronym: "UTM",
+    slug: "utm-ouaga",
+    status: "active",
+    locality: "Ouaga",
+    visibility: "public",
+  });
+});
+
+test("completeUniversityPartnership defaults locality to null and visibility to private", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved" }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [],
+      [],
+    ],
+    updateResults: [[{ revenueShareBps: 3000 }]],
+  });
+
+  const result = await completeUniversityPartnership({
+    userId: "user-approved",
+    universityId: "u-approved",
+    acronym: "ISCOM",
+    operator: "Moov Money",
+    holderName: "Titulaire",
+    numberEncrypted: "v1:enc",
+    contractVersion: "v1",
+  }, fake.database);
+
+  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000 });
+  assert.deepEqual(fake.updates[0].values, {
+    acronym: "ISCOM",
+    slug: "iscom",
+    status: "active",
+    locality: null,
+    visibility: "private",
+  });
+});
+
+test("completeUniversityPartnership rejects an invalid visibility before starting a transaction", async () => {
+  const fake = createMemoryDatabase();
+
+  const result = await completeUniversityPartnership({
+    userId: "user-approved",
+    universityId: "u-approved",
+    acronym: "ISCOM",
+    visibility: "hidden" as never,
+    operator: "Moov Money",
+    holderName: "Titulaire",
+    numberEncrypted: "v1:enc",
+    contractVersion: "v1",
+  }, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "invalid_input" });
+  assert.equal(fake.transactionCount, 0);
+});
+
+test("completeUniversityPartnership rejects a locality longer than 60 characters", async () => {
+  const fake = createMemoryDatabase();
+
+  const result = await completeUniversityPartnership({
+    userId: "user-approved",
+    universityId: "u-approved",
+    acronym: "ISCOM",
+    locality: "a".repeat(61),
+    operator: "Moov Money",
+    holderName: "Titulaire",
+    numberEncrypted: "v1:enc",
+    contractVersion: "v1",
+  }, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "invalid_input" });
+  assert.equal(fake.transactionCount, 0);
+});
+
+test("completeUniversityPartnership reports slug_taken for an existing combined slug", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved" }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [],
+      [{ id: "u-other" }],
+    ],
+  });
+
+  const result = await completeUniversityPartnership({
+    userId: "user-approved",
+    universityId: "u-approved",
+    acronym: "UTM",
+    locality: "Ouaga",
+    operator: "Moov Money",
+    holderName: "Titulaire",
+    numberEncrypted: "v1:enc",
+    contractVersion: "v1",
+  }, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "slug_taken" });
+  assert.equal(fake.updates.length, 0);
+});
+
+test("getUniversityPartnershipInfo returns locality and visibility", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{
+        name: "Université Joseph Ki-Zerbo",
+        acronym: "UJKZ",
+        status: "approved",
+        revenueShareBps: 3000,
+        locality: "Ouaga",
+        visibility: "public",
+      }],
+    ],
+  });
+
+  const result = await getUniversityPartnershipInfo("u-1", fake.database);
+  assert.deepEqual(result, {
+    name: "Université Joseph Ki-Zerbo",
+    acronym: "UJKZ",
+    status: "approved",
+    revenueShareBps: 3000,
+    locality: "Ouaga",
+    visibility: "public",
+  });
 });

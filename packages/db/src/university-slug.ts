@@ -1,4 +1,4 @@
-export { validateUniversitySlug } from "./university-slug.mjs";
+export { validateUniversitySlug, buildUniversitySlug } from "./university-slug.mjs";
 export type {
   UniversitySlugFailureReason,
   UniversitySlugResult,

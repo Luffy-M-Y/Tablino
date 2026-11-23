@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateUniversitySlug } from "../src/university-slug";
+import { buildUniversitySlug, validateUniversitySlug } from "../src/university-slug";
 
 test("rejects an empty acronym", () => {
   assert.deepEqual(validateUniversitySlug(""), { ok: false, reason: "empty" });
@@ -119,5 +119,56 @@ test("normalizes uppercase letters", () => {
   assert.deepEqual(validateUniversitySlug("UNI-42"), {
     ok: true,
     slug: "uni-42",
+  });
+});
+
+test("buildUniversitySlug keeps the acronym result when locality is null or empty", () => {
+  assert.deepEqual(buildUniversitySlug("UTM", null), validateUniversitySlug("UTM"));
+  assert.deepEqual(buildUniversitySlug("UTM", "   "), validateUniversitySlug("UTM"));
+});
+
+test("buildUniversitySlug appends a normalized locality", () => {
+  assert.deepEqual(buildUniversitySlug("UTM", "Ouaga"), { ok: true, slug: "utm-ouaga" });
+});
+
+test("buildUniversitySlug separates locality words with a single hyphen", () => {
+  assert.deepEqual(buildUniversitySlug("UTM", "Bobo Dioulasso"), {
+    ok: true,
+    slug: "utm-bobo-dioulasso",
+  });
+});
+
+test("buildUniversitySlug removes accents from the locality", () => {
+  assert.deepEqual(buildUniversitySlug("UTM", "Thiès"), {
+    ok: true,
+    slug: "utm-thies",
+  });
+});
+
+test("buildUniversitySlug rejects a locality without any letter or digit", () => {
+  assert.deepEqual(buildUniversitySlug("UTM", "!!!"), {
+    ok: false,
+    reason: "invalid_locality",
+  });
+});
+
+test("buildUniversitySlug returns the acronym failure before the locality", () => {
+  assert.deepEqual(buildUniversitySlug("", "Ouaga"), {
+    ok: false,
+    reason: "empty",
+  });
+});
+
+test("buildUniversitySlug rejects a combined slug longer than 57 characters", () => {
+  assert.deepEqual(buildUniversitySlug("a".repeat(50), "b".repeat(10)), {
+    ok: false,
+    reason: "too_long",
+  });
+});
+
+test("buildUniversitySlug rejects a combined slug ending with -admin", () => {
+  assert.deepEqual(buildUniversitySlug("utm", "admin"), {
+    ok: false,
+    reason: "admin_suffix",
   });
 });
