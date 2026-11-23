@@ -15,6 +15,7 @@ export const roleEnum = pgEnum("role", [
 ]);
 export const statusEnum = pgEnum("status", ["draft", "published"]);
 export const universityStatusEnum = pgEnum("university_status", ["pending", "approved", "active"]);
+export const universityVisibilityEnum = pgEnum("university_visibility", ["private", "public"]);
 export const planEnum = pgEnum("plan", ["premium_pro", "premium_pro_max"]);
 export const resourceFormatEnum = pgEnum("resource_format", [
   "pdf", "video", "audio", "docx", "pptx", "link", "other",
@@ -31,9 +32,12 @@ export const universities = pgTable("universities", {
   status: universityStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   revenueShareBps: integer("revenue_share_bps").default(3000).notNull(),
+  visibility: universityVisibilityEnum("visibility").default("private").notNull(),
+  locality: varchar("locality", { length: 60 }),
 }, (t) => [
   check("universities_revenue_share_check", sql.raw("revenue_share_bps >= 0 AND revenue_share_bps <= 10000")),
   check("universities_active_slug_format_check", sql.raw("status <> 'active' OR slug ~ '^[a-z0-9]([a-z0-9-]{0,55}[a-z0-9])?$'")),
+  check("universities_locality_not_blank_check", sql.raw("locality IS NULL OR length(btrim(locality)) > 0")),
 ]).enableRLS();
 
 export const universityPayoutDetails = pgTable("university_payout_details", {
