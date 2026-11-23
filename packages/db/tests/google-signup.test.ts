@@ -152,7 +152,7 @@ test("registerGoogleStudentWithCode rejects invalid input before opening a trans
 });
 
 test("registerGoogleStudentWithCode rejects an existing email", async () => {
-  const fake = createMemoryDatabase({ selectedRows: [[{ id: "existing-user" }]] });
+  const fake = createMemoryDatabase({ selectedRows: [[{ visibility: "private" }], [{ id: "existing-user" }]] });
 
   assert.deepEqual(
     await registerGoogleStudentWithCode("university-id", validInput, fake.database),
@@ -164,7 +164,7 @@ test("registerGoogleStudentWithCode rejects an existing email", async () => {
 
 test("registerGoogleStudentWithCode rejects an existing Google account", async () => {
   const fake = createMemoryDatabase({
-    selectedRows: [[], [{ userId: "existing-user" }]],
+    selectedRows: [[{ visibility: "private" }], [], [{ userId: "existing-user" }]],
   });
 
   assert.deepEqual(
@@ -177,7 +177,7 @@ test("registerGoogleStudentWithCode rejects an existing Google account", async (
 
 test("registerGoogleStudentWithCode rejects an unavailable code", async () => {
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[{ visibility: "private" }], [], []],
     updateResults: [[]],
   });
 
@@ -192,7 +192,7 @@ test("registerGoogleStudentWithCode rejects an unavailable code", async () => {
 test("registerGoogleStudentWithCode consumes a code and creates a Google student", async () => {
   const now = new Date("2026-10-26T12:00:00.000Z");
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[{ visibility: "private" }], [], []],
     updateResults: [[{ id: "access-code-id" }]],
     insertResults: [[{ id: "user-id" }], []],
   });
@@ -230,7 +230,7 @@ test("registerGoogleStudentWithCode consumes a code and creates a Google student
 test("registerGoogleStudentWithCode maps a unique constraint violation to email_taken", async () => {
   const uniqueError = Object.assign(new Error("unique constraint"), { code: "23505" });
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[{ visibility: "private" }], [], []],
     updateResults: [[{ id: "access-code-id" }]],
     insertResults: [[{ id: "user-id" }], uniqueError],
   });
@@ -241,4 +241,114 @@ test("registerGoogleStudentWithCode maps a unique constraint violation to email_
   );
   assert.equal(fake.updates.length, 1);
   assert.equal(fake.inserts.length, 2);
+});
+
+test("registerGoogleStudentWithCode creates a student without a code in a public university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ visibility: "public" }], [], []],
+    insertResults: [[{ id: "user-id" }], []],
+  });
+
+  const result = await registerGoogleStudentWithCode(
+    "university-id",
+    { ...validInput, accessCode: undefined },
+    fake.database,
+  );
+
+  assert.deepEqual(result, { ok: true, userId: "user-id" });
+  assert.deepEqual(fake.updates, []);
+  assert.equal(fake.inserts.length, 2);
+  assert.equal(fake.inserts[0].values?.accessCodeId, null);
+});
+
+test("registerGoogleStudentWithCode does not consume a provided code in a public university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ visibility: "public" }], [], []],
+    updateResults: [[{ id: "access-code-id" }]],
+    insertResults: [[{ id: "user-id" }], []],
+  });
+
+  const result = await registerGoogleStudentWithCode("university-id", validInput, fake.database);
+
+  assert.deepEqual(result, { ok: true, userId: "user-id" });
+  assert.deepEqual(fake.updates, []);
+  assert.equal(fake.inserts.length, 2);
+  assert.equal(fake.inserts[0].values?.accessCodeId, null);
+});
+
+test("registerGoogleStudentWithCode requires a code in a private university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ visibility: "private" }], [], []],
+  });
+
+  assert.deepEqual(
+    await registerGoogleStudentWithCode(
+      "university-id",
+      { ...validInput, accessCode: undefined },
+      fake.database,
+    ),
+    { ok: false, reason: "invalid_code" },
+  );
+  assert.deepEqual(fake.updates, []);
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("registerGoogleStudentWithCode consumes a code in a private university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ visibility: "private" }], [], []],
+    updateResults: [[{ id: "access-code-id" }]],
+    insertResults: [[{ id: "user-id" }], []],
+  });
+
+  const result = await registerGoogleStudentWithCode("university-id", validInput, fake.database);
+
+  assert.deepEqual(result, { ok: true, userId: "user-id" });
+  assert.equal(fake.updates.length, 1);
+  assert.equal(fake.updates[0].table, schema.accessCodes);
+  assert.equal(fake.inserts[0].values?.accessCodeId, "access-code-id");
+});
+
+test("registerGoogleStudentWithCode rejects an unknown university", async () => {
+  const fake = createMemoryDatabase({ selectedRows: [] });
+
+  assert.deepEqual(
+    await registerGoogleStudentWithCode("unknown-university", validInput, fake.database),
+    { ok: false, reason: "invalid_input" },
+  );
+  assert.deepEqual(fake.updates, []);
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("registerGoogleStudentWithCode rejects an existing email in a public university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ visibility: "public" }], [{ id: "existing-user" }]],
+  });
+
+  assert.deepEqual(
+    await registerGoogleStudentWithCode(
+      "university-id",
+      { ...validInput, accessCode: undefined },
+      fake.database,
+    ),
+    { ok: false, reason: "email_taken" },
+  );
+  assert.deepEqual(fake.updates, []);
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("registerGoogleStudentWithCode rejects an existing account in a public university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ visibility: "public" }], [], [{ userId: "existing-user" }]],
+  });
+
+  assert.deepEqual(
+    await registerGoogleStudentWithCode(
+      "university-id",
+      { ...validInput, accessCode: undefined },
+      fake.database,
+    ),
+    { ok: false, reason: "account_taken" },
+  );
+  assert.deepEqual(fake.updates, []);
+  assert.deepEqual(fake.inserts, []);
 });
