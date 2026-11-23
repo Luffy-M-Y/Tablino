@@ -25,7 +25,7 @@ export async function registerStudentWithCode(
     lastName: string;
     email: string;
     password: string;
-    accessCode: string;
+    accessCode?: string;
   },
   database?: RegistrationDatabase,
   now = new Date(),
@@ -34,7 +34,7 @@ export async function registerStudentWithCode(
     typeof input.firstName !== "string"
     || typeof input.lastName !== "string"
     || typeof input.email !== "string"
-    || typeof input.accessCode !== "string"
+    || (input.accessCode !== undefined && typeof input.accessCode !== "string")
   ) {
     return { ok: false, reason: "invalid_input" };
   }
@@ -42,6 +42,7 @@ export async function registerStudentWithCode(
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();
   const email = input.email.trim().toLowerCase();
+  const accessCode = input.accessCode?.trim() || "";
   const separator = email.indexOf("@");
   if (
     firstName.length < 1
@@ -54,13 +55,20 @@ export async function registerStudentWithCode(
     || separator !== email.lastIndexOf("@")
     || separator === email.length - 1
     || !isPasswordValid(input.password)
-    || !isAccessCodeFormatValid(normalizeAccessCode(input.accessCode))
+    || (accessCode.length > 0 && !isAccessCodeFormatValid(normalizeAccessCode(accessCode)))
   ) {
     return { ok: false, reason: "invalid_input" };
   }
 
   try {
     return await (await resolveDatabase(database)).transaction(async (tx) => {
+      const [university] = await tx
+        .select({ visibility: schema.universities.visibility })
+        .from(schema.universities)
+        .where(eq(schema.universities.id, universityId))
+        .limit(1);
+      if (!university) return { ok: false, reason: "invalid_input" };
+
       const existingUsers = await tx
         .select({ id: schema.users.id })
         .from(schema.users)
@@ -68,18 +76,24 @@ export async function registerStudentWithCode(
         .limit(1);
       if (existingUsers.length > 0) return { ok: false, reason: "email_taken" };
 
-      const accessCodes = await tx
-        .update(schema.accessCodes)
-        .set({ usesCount: sql`uses_count + 1` })
-        .where(and(
-          eq(schema.accessCodes.codeHash, hashAccessCode(input.accessCode)),
-          eq(schema.accessCodes.universityId, universityId),
-          isNull(schema.accessCodes.revokedAt),
-          gt(schema.accessCodes.expiresAt, now),
-          lt(schema.accessCodes.usesCount, schema.accessCodes.maxUses),
-        ))
-        .returning({ id: schema.accessCodes.id });
-      if (accessCodes.length === 0) return { ok: false, reason: "invalid_code" };
+      let accessCodeId: string | null = null;
+      if (university.visibility !== "public") {
+        if (accessCode.length === 0) return { ok: false, reason: "invalid_code" };
+
+        const accessCodes = await tx
+          .update(schema.accessCodes)
+          .set({ usesCount: sql`uses_count + 1` })
+          .where(and(
+            eq(schema.accessCodes.codeHash, hashAccessCode(accessCode)),
+            eq(schema.accessCodes.universityId, universityId),
+            isNull(schema.accessCodes.revokedAt),
+            gt(schema.accessCodes.expiresAt, now),
+            lt(schema.accessCodes.usesCount, schema.accessCodes.maxUses),
+          ))
+          .returning({ id: schema.accessCodes.id });
+        if (accessCodes.length === 0) return { ok: false, reason: "invalid_code" };
+        accessCodeId = accessCodes[0].id;
+      }
 
       const [user] = await tx
         .insert(schema.users)
@@ -88,7 +102,7 @@ export async function registerStudentWithCode(
           email,
           role: "student",
           universityId,
-          accessCodeId: accessCodes[0].id,
+          accessCodeId,
           passwordHash: hashPassword(input.password),
         })
         .returning({ id: schema.users.id });

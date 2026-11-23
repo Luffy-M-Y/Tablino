@@ -24,7 +24,7 @@ export async function registerGoogleStudentWithCode(
     name: string | null;
     image: string | null;
     providerAccountId: string;
-    accessCode: string;
+    accessCode?: string;
   },
   database?: GoogleSignupDatabase,
   now = new Date(),
@@ -34,7 +34,7 @@ export async function registerGoogleStudentWithCode(
     || input === null
     || typeof input.email !== "string"
     || typeof input.providerAccountId !== "string"
-    || typeof input.accessCode !== "string"
+    || (input.accessCode !== undefined && typeof input.accessCode !== "string")
     || (input.name !== null && typeof input.name !== "string")
     || (input.image !== null && typeof input.image !== "string")
   ) {
@@ -42,6 +42,7 @@ export async function registerGoogleStudentWithCode(
   }
 
   const email = input.email.trim().toLowerCase();
+  const accessCode = input.accessCode?.trim() || "";
   const separator = email.indexOf("@");
   const providerAccountId = input.providerAccountId.trim();
   const name = input.name?.trim() || null;
@@ -56,13 +57,20 @@ export async function registerGoogleStudentWithCode(
     || providerAccountId.length > 255
     || (name !== null && name.length > 255)
     || (image !== null && image.length > 500)
-    || !isAccessCodeFormatValid(normalizeAccessCode(input.accessCode))
+    || (accessCode.length > 0 && !isAccessCodeFormatValid(normalizeAccessCode(accessCode)))
   ) {
     return { ok: false, reason: "invalid_input" };
   }
 
   try {
     return await (await resolveDatabase(database)).transaction(async (tx) => {
+      const [university] = await tx
+        .select({ visibility: schema.universities.visibility })
+        .from(schema.universities)
+        .where(eq(schema.universities.id, universityId))
+        .limit(1);
+      if (!university) return { ok: false, reason: "invalid_input" };
+
       const existingUsers = await tx
         .select({ id: schema.users.id })
         .from(schema.users)
@@ -80,18 +88,24 @@ export async function registerGoogleStudentWithCode(
         .limit(1);
       if (existingAccounts.length > 0) return { ok: false, reason: "account_taken" };
 
-      const accessCodes = await tx
-        .update(schema.accessCodes)
-        .set({ usesCount: sql`uses_count + 1` })
-        .where(and(
-          eq(schema.accessCodes.codeHash, hashAccessCode(input.accessCode)),
-          eq(schema.accessCodes.universityId, universityId),
-          isNull(schema.accessCodes.revokedAt),
-          gt(schema.accessCodes.expiresAt, now),
-          lt(schema.accessCodes.usesCount, schema.accessCodes.maxUses),
-        ))
-        .returning({ id: schema.accessCodes.id });
-      if (!(accessCodes.length > 0)) return { ok: false, reason: "invalid_code" };
+      let accessCodeId: string | null = null;
+      if (university.visibility !== "public") {
+        if (accessCode.length === 0) return { ok: false, reason: "invalid_code" };
+
+        const accessCodes = await tx
+          .update(schema.accessCodes)
+          .set({ usesCount: sql`uses_count + 1` })
+          .where(and(
+            eq(schema.accessCodes.codeHash, hashAccessCode(accessCode)),
+            eq(schema.accessCodes.universityId, universityId),
+            isNull(schema.accessCodes.revokedAt),
+            gt(schema.accessCodes.expiresAt, now),
+            lt(schema.accessCodes.usesCount, schema.accessCodes.maxUses),
+          ))
+          .returning({ id: schema.accessCodes.id });
+        if (!(accessCodes.length > 0)) return { ok: false, reason: "invalid_code" };
+        accessCodeId = accessCodes[0].id;
+      }
 
       const users = await tx
         .insert(schema.users)
@@ -101,7 +115,7 @@ export async function registerGoogleStudentWithCode(
           image,
           role: "student",
           universityId,
-          accessCodeId: accessCodes[0].id,
+          accessCodeId,
           emailVerified: now,
         })
         .returning({ id: schema.users.id });
