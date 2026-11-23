@@ -6,7 +6,7 @@ import { CONTRACT_VERSION } from "@/lib/partnership-contract.mjs";
 import { validatePartnershipInput } from "@/lib/partnership-validation.mjs";
 import { encryptPayoutNumberWithEnv } from "@/lib/payout-encryption.mjs";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
-import { completeUniversityPartnership, validateUniversitySlug } from "@tablino/db";
+import { completeUniversityPartnership, buildUniversitySlug } from "@tablino/db";
 
 export type PartnershipActionState = {
   status: "idle" | "error" | "success";
@@ -28,6 +28,8 @@ export async function completePartnershipAction(
 
   const operator = readStringField(formData, "operator");
   const acronym = readStringField(formData, "acronym").trim();
+  const localityInput = readStringField(formData, "locality").trim();
+  const visibility = readStringField(formData, "visibility");
   const holderName = readStringField(formData, "holderName");
   const phone = readStringField(formData, "phone");
   const acceptContract = formData.get("acceptContract");
@@ -41,8 +43,21 @@ export async function completePartnershipAction(
     const message = "L’acronyme de l’université est obligatoire (20 caractères maximum).";
     return { status: "error", message, errors: { acronym: message } };
   }
-  const slugValidation = validateUniversitySlug(acronym);
+  if (localityInput.length > 60) {
+    const message = "La localité est trop longue (60 caractères maximum).";
+    return { status: "error", message, errors: { locality: message } };
+  }
+  if (visibility !== "private" && visibility !== "public") {
+    const message = "Choisissez la visibilité de l’université.";
+    return { status: "error", message, errors: { visibility: message } };
+  }
+  const locality = localityInput || null;
+  const slugValidation = buildUniversitySlug(acronym, locality);
   if (!slugValidation.ok) {
+    if (slugValidation.reason === "invalid_locality") {
+      const message = "Cette localité ne permet pas de créer une adresse valide. Modifiez-la puis vérifiez l’aperçu.";
+      return { status: "error", message, errors: { locality: message } };
+    }
     const message = "Cet acronyme ne permet pas de créer une adresse valide. Modifiez-le puis vérifiez l’aperçu.";
     return { status: "error", message, errors: { acronym: message } };
   }
@@ -88,6 +103,8 @@ export async function completePartnershipAction(
       userId: user.id,
       universityId,
       acronym,
+      locality,
+      visibility,
       operator: validation.data.operator,
       holderName: validation.data.holderName,
       numberEncrypted,
@@ -110,7 +127,7 @@ export async function completePartnershipAction(
     if (result.reason === "slug_taken") {
       return {
         status: "error",
-        message: "Cette adresse est déjà utilisée. Choisissez un autre acronyme.",
+        message: "Cette adresse est déjà utilisée. Choisissez un autre acronyme ou une autre localité.",
         errors: { acronym: "Cette adresse est déjà utilisée." },
       };
     }

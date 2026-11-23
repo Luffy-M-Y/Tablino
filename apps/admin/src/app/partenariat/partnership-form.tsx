@@ -18,13 +18,18 @@ const initialState: PartnershipActionState = {
 
 export function PartnershipForm({
   initialAcronym,
+  initialLocality,
+  initialVisibility,
   initialPreview,
 }: {
   initialAcronym: string;
+  initialLocality: string;
+  initialVisibility: "private" | "public";
   initialPreview: UniversityHostnamePreview | null;
 }) {
   const [state, formAction, pending] = useActionState(completePartnershipAction, initialState);
   const [acronym, setAcronym] = useState(initialAcronym);
+  const [locality, setLocality] = useState(initialLocality);
   const [preview, setPreview] = useState(initialPreview);
   const [previewPending, setPreviewPending] = useState(false);
   const [holderName, setHolderName] = useState("");
@@ -32,7 +37,9 @@ export function PartnershipForm({
   const [accepted, setAccepted] = useState(false);
   const [addressesConfirmed, setAddressesConfirmed] = useState(false);
 
-  const previewIsCurrent = preview?.ok === true && preview.acronym === acronym.trim();
+  const previewIsCurrent = preview?.ok === true
+    && preview.acronym === acronym.trim()
+    && preview.locality === locality.trim();
 
   const isSubmitDisabled =
     pending ||
@@ -74,6 +81,64 @@ export function PartnershipForm({
         )}
       </div>
 
+      <div>
+        <label htmlFor="locality" className={labelClass}>
+          Localité (facultatif)
+        </label>
+        <input
+          id="locality"
+          name="locality"
+          type="text"
+          maxLength={60}
+          value={locality}
+          onChange={(event) => {
+            setLocality(event.target.value);
+            setAddressesConfirmed(false);
+          }}
+          className={inputClass}
+          aria-describedby="locality-help"
+        />
+        <p id="locality-help" className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">
+          Sert à distinguer les annexes (exemples : Ouaga, Bobo).
+        </p>
+        {state.errors?.locality && (
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-destructive-text)]">{state.errors.locality}</p>
+        )}
+      </div>
+
+      <div>
+        <p className={labelClass}>Visibilité de l’université</p>
+        <div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="visibility"
+              value="private"
+              defaultChecked={initialVisibility === "private"}
+              className="mt-1 h-4 w-4 rounded border-[color:var(--color-input-border)] text-[color:var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+            />
+            <span className="text-sm text-[color:var(--color-foreground)]">
+              Privée : un code d’accès est exigé à l’inscription.
+            </span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="visibility"
+              value="public"
+              defaultChecked={initialVisibility === "public"}
+              className="mt-1 h-4 w-4 rounded border-[color:var(--color-input-border)] text-[color:var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+            />
+            <span className="text-sm text-[color:var(--color-foreground)]">
+              Publique : compte étudiant obligatoire, sans code d’accès.
+            </span>
+          </label>
+        </div>
+        {state.errors?.visibility && (
+          <p className="mt-1 text-xs font-medium text-[color:var(--color-destructive-text)]">{state.errors.visibility}</p>
+        )}
+      </div>
+
       <div id="university-address-preview" className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-background)] p-4">
         <p className="font-semibold text-[color:var(--color-text)]">Adresses définitives</p>
         {previewIsCurrent ? (
@@ -100,7 +165,7 @@ export function PartnershipForm({
           onClick={async () => {
             setPreviewPending(true);
             try {
-              const nextPreview = await previewUniversitySlugAction(acronym);
+              const nextPreview = await previewUniversitySlugAction(acronym, locality);
               setPreview(nextPreview);
               setAddressesConfirmed(false);
             } finally {
