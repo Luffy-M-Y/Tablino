@@ -176,6 +176,13 @@
       "when": 1795281532335,
       "tag": "0024_round_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795432013001,
+      "tag": "0025_bored_frog_thor",
+      "breakpoints": true
     }
   ]
 }
