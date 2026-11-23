@@ -65,7 +65,7 @@ export {
   buildProgramSlug,
   buildSubjectSlug,
 } from "./structure-validation";
-export { validateUniversitySlug } from "./university-slug";
+export { validateUniversitySlug, buildUniversitySlug } from "./university-slug";
 export type {
   UniversitySlugFailureReason,
   UniversitySlugResult,

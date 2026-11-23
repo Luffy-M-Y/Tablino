@@ -1,7 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
-import { validateUniversitySlug } from "./university-slug";
+import { buildUniversitySlug } from "./university-slug";
 
 type UniversityPartnershipDatabase = typeof sharedDb;
 
@@ -14,6 +14,8 @@ export type UniversityPartnershipInfo = {
   acronym: string | null;
   status: "pending" | "approved" | "active";
   revenueShareBps: number;
+  locality: string | null;
+  visibility: "private" | "public";
 };
 
 export async function getUniversityPartnershipInfo(
@@ -31,6 +33,8 @@ export async function getUniversityPartnershipInfo(
       acronym: schema.universities.acronym,
       status: schema.universities.status,
       revenueShareBps: schema.universities.revenueShareBps,
+      locality: schema.universities.locality,
+      visibility: schema.universities.visibility,
     })
     .from(schema.universities)
     .where(eq(schema.universities.id, universityId.trim()))
@@ -43,6 +47,8 @@ export type CompleteUniversityPartnershipInput = {
   userId: string;
   universityId: string;
   acronym: string;
+  locality?: string | null;
+  visibility?: "private" | "public";
   operator: string;
   holderName: string;
   numberEncrypted: string;
@@ -74,13 +80,18 @@ export async function completeUniversityPartnership(
     || !input.numberEncrypted.trim()
     || typeof input.contractVersion !== "string"
     || !input.contractVersion.trim()
+    || (input.locality !== undefined && input.locality !== null && typeof input.locality !== "string")
+    || (input.visibility !== undefined && input.visibility !== "private" && input.visibility !== "public")
   ) {
     return { ok: false, reason: "invalid_input" };
   }
 
   const acronym = input.acronym.trim();
   if (!acronym || acronym.length > 20) return { ok: false, reason: "invalid_input" };
-  const slugResult = validateUniversitySlug(acronym);
+  const locality = input.locality?.trim() || null;
+  if (locality !== null && locality.length > 60) return { ok: false, reason: "invalid_input" };
+  const visibility = input.visibility ?? "private";
+  const slugResult = buildUniversitySlug(acronym, locality);
   if (!slugResult.ok) return { ok: false, reason: "invalid_input" };
 
   const dbInstance = await resolveDatabase(database);
@@ -142,6 +153,8 @@ export async function completeUniversityPartnership(
           acronym,
           slug: slugResult.slug,
           status: "active",
+          locality,
+          visibility,
         })
         .where(
           and(

@@ -25,3 +25,31 @@ export function validateUniversitySlug(acronym) {
 
   return { ok: true, slug };
 }
+
+/**
+ * Construit le slug d'une université à partir de son acronyme et, si fournie,
+ * de sa localité : acronyme-localite.
+ * @param {string} acronym
+ * @param {string | null | undefined} [locality]
+ * @returns {{ ok: true, slug: string } | { ok: false, reason: string }}
+ */
+export function buildUniversitySlug(acronym, locality) {
+  const acronymResult = validateUniversitySlug(acronym);
+  if (!acronymResult.ok) return acronymResult;
+
+  if (locality === null || locality === undefined) return acronymResult;
+  if (typeof locality === "string" && locality.trim().length === 0) return acronymResult;
+
+  const normalizedLocality = String(locality)
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (normalizedLocality.length === 0) {
+    return { ok: false, reason: "invalid_locality" };
+  }
+
+  return validateUniversitySlug(`${acronymResult.slug}-${normalizedLocality}`);
+}
