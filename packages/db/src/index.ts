@@ -363,6 +363,8 @@ export type {
 } from "./university-partnership";
 export { setUniversityVisibility } from "./university-visibility";
 export type { SetUniversityVisibilityResult } from "./university-visibility";
+export { searchActiveUniversitiesByAcronym } from "./university-search";
+export type { UniversitySearchResult, SearchUniversitiesByAcronymResult } from "./university-search";
 export {
   listActiveSuperAdmins,
   createAdminRevocationService,
