@@ -361,6 +361,8 @@ export type {
   CompleteUniversityPartnershipInput,
   CompleteUniversityPartnershipResult,
 } from "./university-partnership";
+export { setUniversityVisibility } from "./university-visibility";
+export type { SetUniversityVisibilityResult } from "./university-visibility";
 export {
   listActiveSuperAdmins,
   createAdminRevocationService,
