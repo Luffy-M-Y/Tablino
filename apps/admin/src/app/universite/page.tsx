@@ -1,3 +1,4 @@
+import { Image as ImageIcon } from "lucide-react";
 import { getUniversityLogoUpdatedAt } from "@tablino/db";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
@@ -15,6 +16,7 @@ export default async function UniversityLogoPage() {
 
   return (
     <AdminPage
+      icon={ImageIcon}
       title="Logo de l'université"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

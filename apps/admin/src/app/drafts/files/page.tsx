@@ -1,3 +1,4 @@
+import { FileText } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
@@ -12,6 +13,7 @@ export default async function DraftFilesPage() {
 
   return (
     <AdminPage
+      icon={FileText}
       title="Fichiers en brouillon"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

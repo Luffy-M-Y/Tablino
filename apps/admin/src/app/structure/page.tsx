@@ -1,3 +1,4 @@
+import { Layers } from "lucide-react";
 import { redirect } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
@@ -8,6 +9,7 @@ export default async function StructurePage() {
 
   return (
     <AdminPage
+      icon={Layers}
       title="Structure"
       breadcrumbs={[{ label: "Accueil", href: "/" }, { label: "Structure" }]}
     >

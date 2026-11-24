@@ -17,6 +17,45 @@ export function AdminCard({ children, className = "", ...props }: AdminCardProps
   );
 }
 
+/**
+ * État vide commun. « card » : carte autonome ; « inset » : encadré en
+ * pointillés à l'intérieur d'une carte existante.
+ */
+export function AdminEmptyState({
+  icon: Icon,
+  title,
+  description,
+  variant = "card",
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  variant?: "card" | "inset";
+  children?: ReactNode;
+}) {
+  const content = (
+    <>
+      <span className="flex size-12 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]">
+        <Icon size={22} aria-hidden="true" />
+      </span>
+      <p className="mt-4 font-semibold text-[color:var(--color-text)]">{title}</p>
+      {description ? (
+        <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">{description}</p>
+      ) : null}
+      {children}
+    </>
+  );
+  if (variant === "inset") {
+    return (
+      <div className="mt-4 flex flex-col items-center rounded-[var(--radius-rounded)] border border-dashed border-[color:var(--admin-card-border)] px-4 py-8 text-center">
+        {content}
+      </div>
+    );
+  }
+  return <AdminCard className="flex flex-col items-center py-10 text-center">{content}</AdminCard>;
+}
+
 export function AdminLinkCard({
   href,
   icon: Icon,

@@ -1,3 +1,4 @@
+import { FilePen } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
@@ -12,6 +13,7 @@ export default async function DraftProgramsPage() {
 
   return (
     <AdminPage
+      icon={FilePen}
       title="Filières en brouillon"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

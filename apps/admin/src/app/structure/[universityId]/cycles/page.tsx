@@ -1,5 +1,6 @@
+import { Layers } from "lucide-react";
 import AdminPage from "@/components/admin-page";
-import { AdminCard, adminFieldClass } from "@/components/admin-ui";
+import { AdminCard, AdminEmptyState, adminFieldClass } from "@/components/admin-ui";
 import { assertCurrentUniversity } from "@/lib/current-university";
 import { getStructureOverview } from "@/lib/structure-queries";
 import { createCycleAction, deleteCycleAction, renameCycleAction } from "../actions";
@@ -15,6 +16,7 @@ export default async function CyclesPage({
 
   return (
     <AdminPage
+      icon={Layers}
       title="Cycles"
       breadcrumbs={[
         { label: "Accueil", href: "/" },
@@ -25,7 +27,7 @@ export default async function CyclesPage({
       <AdminCard aria-labelledby="cycles-catalog-heading">
         <h2 id="cycles-catalog-heading" className="text-xl font-semibold">Cycles</h2>
         {overview.cycles.length === 0 ? (
-          <p>Aucun cycle.</p>
+          <AdminEmptyState variant="inset" icon={Layers} title="Aucun cycle" description="Ajoutez un premier cycle avec le formulaire ci-dessous." />
         ) : (
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {overview.cycles.map((cycle) => (

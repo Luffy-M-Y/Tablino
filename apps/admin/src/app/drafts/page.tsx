@@ -16,6 +16,7 @@ export default async function DraftsPage() {
 
   return (
     <AdminPage
+      icon={FilePen}
       title="Brouillons"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

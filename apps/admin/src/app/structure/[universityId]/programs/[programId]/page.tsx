@@ -1,7 +1,8 @@
+import { GraduationCap, Layers } from "lucide-react";
 import Link from "next/link";
 import { notFound, forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
-import { AdminCard, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
+import { AdminCard, AdminEmptyState, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
@@ -48,6 +49,7 @@ export default async function ProgramDetailPage({
 
   return (
     <AdminPage
+      icon={GraduationCap}
       title={program.name}
       breadcrumbs={[
         { label: "Accueil", href: "/" },
@@ -84,7 +86,7 @@ export default async function ProgramDetailPage({
       <AdminCard>
         <h2 className="mb-4 text-xl font-semibold">Cycles de la filière</h2>
         {program.cycles.length === 0 ? (
-          <p>Aucun cycle dans cette filière.</p>
+          <AdminEmptyState variant="inset" icon={Layers} title="Aucun cycle dans cette filière" />
         ) : (
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {program.cycles.map((cycle) => (

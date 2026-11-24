@@ -5,6 +5,7 @@ import { filterFiles, filterPrograms } from "@/lib/files-filter.mjs";
 import { FileText, Layers, Search, X } from "lucide-react";
 import {
   AdminCard,
+  AdminEmptyState,
   AdminLinkCard,
   adminFieldClass,
 } from "@/components/admin-ui";
@@ -89,15 +90,7 @@ function EmptyState({
   title: string;
   description: string;
 }) {
-  return (
-    <AdminCard className="flex flex-col items-center py-10 text-center">
-      <span className="flex size-12 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]">
-        <FileText size={22} aria-hidden="true" />
-      </span>
-      <h2 className="mt-4 font-semibold text-[color:var(--color-text)]">{title}</h2>
-      <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">{description}</p>
-    </AdminCard>
-  );
+  return <AdminEmptyState icon={FileText} title={title} description={description} />;
 }
 
 export function DraftProgramsList({

@@ -1,3 +1,4 @@
+import { GraduationCap } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { AdminCard } from "@/components/admin-ui";
@@ -13,6 +14,7 @@ export default async function NewProgramPage({
 
   return (
     <AdminPage
+      icon={GraduationCap}
       title="Ajouter une filière"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

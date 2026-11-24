@@ -1,6 +1,7 @@
+import { Layers, Pencil } from "lucide-react";
 import { forbidden, notFound } from "next/navigation";
 import AdminPage from "@/components/admin-page";
-import { AdminCard, adminFieldClass } from "@/components/admin-ui";
+import { AdminCard, AdminEmptyState, adminFieldClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
@@ -34,6 +35,7 @@ export default async function EditProgramPage({
 
   return (
     <AdminPage
+      icon={Pencil}
       title="Modifier la filière"
       breadcrumbs={[
         { label: "Accueil", href: "/" },
@@ -62,7 +64,7 @@ export default async function EditProgramPage({
       <AdminCard className="mt-6">
         <h2 className="mb-4 text-xl font-semibold">Cycles de la filière</h2>
         {program.cycles.length === 0 ? (
-          <p>Aucun cycle dans cette filière.</p>
+          <AdminEmptyState variant="inset" icon={Layers} title="Aucun cycle dans cette filière" />
         ) : (
           <ul className="space-y-4">
             {program.cycles.map((cycle) => (

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { GraduationCap, Search } from "lucide-react";
 import {
   AdminCard,
+  AdminEmptyState,
   adminFieldClass,
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
@@ -47,7 +49,7 @@ export function ProgramsSearch({ universityId, programs }: Props) {
   );
 
   if (programs.length === 0) {
-    return <p>Aucune filière.</p>;
+    return <AdminEmptyState variant="inset" icon={GraduationCap} title="Aucune filière" description="Ajoutez une première filière pour structurer vos cours." />;
   }
 
   return (
@@ -76,7 +78,7 @@ export function ProgramsSearch({ universityId, programs }: Props) {
         {matchingPrograms.length} {matchingPrograms.length === 1 ? "résultat" : "résultats"}
       </p>
       {matchingPrograms.length === 0 ? (
-        <p className="mt-4">Aucune filière trouvée.</p>
+        <AdminEmptyState variant="inset" icon={Search} title="Aucune filière trouvée" description="Essayez un autre mot-clé." />
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {matchingPrograms.map((program) => (
