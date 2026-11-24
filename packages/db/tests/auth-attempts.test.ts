@@ -194,6 +194,31 @@ test("RATE_LIMITS for login_ip allows 20 failures per 15 minutes then blocks for
   assert.equal(RATE_LIMITS.login_ip.blockMs, 900000);
 });
 
+test("RATE_LIMITS for search_ip allows 30 searches per 15 minutes then blocks for 15 minutes", () => {
+  assert.equal(RATE_LIMITS.search_ip.maxAttempts, 30);
+  assert.equal(RATE_LIMITS.search_ip.windowMs, 900000);
+  assert.equal(RATE_LIMITS.search_ip.blockMs, 900000);
+});
+
+test("hashAttemptKey HMACs search IP identifiers, separated from login IP, and requires the auth secret", () => {
+  const originalSecret = process.env.NEXTAUTH_SECRET;
+  process.env.NEXTAUTH_SECRET = "test-nextauth-secret-at-least-16";
+  try {
+    const hash = hashAttemptKey("search_ip", "203.0.113.10");
+    assert.equal(hash.length, 64);
+    assert.equal(hash, hashAttemptKey("search_ip", "203.0.113.10"));
+    assert.notEqual(hash, hashAttemptKey("login_ip", "203.0.113.10"));
+    delete process.env.NEXTAUTH_SECRET;
+    assert.throws(() => hashAttemptKey("search_ip", "203.0.113.10"));
+  } finally {
+    if (originalSecret === undefined) {
+      delete process.env.NEXTAUTH_SECRET;
+    } else {
+      process.env.NEXTAUTH_SECRET = originalSecret;
+    }
+  }
+});
+
 test("hashAttemptKey HMACs login IP identifiers and requires the auth secret", () => {
   const originalSecret = process.env.NEXTAUTH_SECRET;
   process.env.NEXTAUTH_SECRET = "test-nextauth-secret-at-least-16";

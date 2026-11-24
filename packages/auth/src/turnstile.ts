@@ -14,6 +14,7 @@ export const TURNSTILE_ACTIONS = [
   "admin_invitation_start",
   "admin_invitation_verify",
   "admin_invitation_resend",
+  "university_search",
 ] as const;
 
 export type TurnstileAction = (typeof TURNSTILE_ACTIONS)[number];
