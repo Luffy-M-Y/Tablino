@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkUniversityAddress } from "../src/university-address";
+import {
+  checkUniversityAddress,
+  findUniversityAddressConflict,
+  normalizeUniversityAddress,
+} from "../src/university-address";
 import * as schema from "../src/schema";
 
 type AddressRow = {
+  id?: string;
   acronym: string | null;
   locality: string | null;
   slug: string;
@@ -154,4 +159,33 @@ test("checkUniversityAddress ignores pending universities", async () => {
     ok: true,
     slug: "utm-bobo",
   });
+});
+
+test("findUniversityAddressConflict ignores the excluded university itself", async () => {
+  const selfRow: AddressRow = { id: "u-self", acronym: "IST", locality: "Ouaga", slug: "u-378590c5e623", status: "approved" };
+  const address = normalizeUniversityAddress("IST", "Ouaga");
+  assert.ok(address);
+
+  const withoutExclusion = createMemoryDatabase([selfRow]);
+  assert.equal(await findUniversityAddressConflict(withoutExclusion.database, address), "address_taken");
+
+  const withExclusion = createMemoryDatabase([selfRow]);
+  assert.equal(
+    await findUniversityAddressConflict(withExclusion.database, address, { excludeUniversityId: "u-self" }),
+    null,
+  );
+});
+
+test("findUniversityAddressConflict still sees other universities when one is excluded", async () => {
+  const address = normalizeUniversityAddress("IST", null);
+  assert.ok(address);
+
+  const fake = createMemoryDatabase([
+    { id: "u-self", acronym: "IST", locality: null, slug: "u-378590c5e623", status: "approved" },
+    { id: "u-other", acronym: "IST", locality: "Bobo", slug: "ist-bobo", status: "active" },
+  ]);
+  assert.equal(
+    await findUniversityAddressConflict(fake.database, address, { excludeUniversityId: "u-self" }),
+    "locality_required",
+  );
 });

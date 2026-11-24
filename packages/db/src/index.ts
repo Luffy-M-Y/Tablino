@@ -355,11 +355,14 @@ export type {
 export {
   getUniversityPartnershipInfo,
   completeUniversityPartnership,
+  updateUniversityRegistration,
 } from "./university-partnership";
 export type {
   UniversityPartnershipInfo,
   CompleteUniversityPartnershipInput,
   CompleteUniversityPartnershipResult,
+  UpdateUniversityRegistrationInput,
+  UpdateUniversityRegistrationResult,
 } from "./university-partnership";
 export { setUniversityVisibility } from "./university-visibility";
 export type { SetUniversityVisibilityResult } from "./university-visibility";

@@ -6,6 +6,7 @@ import { getUniversityPartnershipInfo } from "@tablino/db";
 import { linkClass } from "@/components/auth-ui";
 import { getUniversityHostnamePreview } from "@/lib/university-hostname-preview";
 import { PartnershipForm } from "./partnership-form";
+import { RegistrationForm } from "./registration-form";
 
 export default async function PartenariatPage() {
   const user = await requireApprovedUniversityAdmin();
@@ -22,6 +23,14 @@ export default async function PartenariatPage() {
     ? getUniversityHostnamePreview(info.acronym, info.locality ?? undefined)
     : null;
   const addressReady = addressPreview?.ok === true;
+  const studentRootDomain = process.env.STUDENT_ROOT_DOMAIN;
+  const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
+  const addressDomains = studentRootDomain && adminRootDomain
+    ? { studentRootDomain, adminRootDomain }
+    : null;
+  // Remonte le formulaire du contrat quand l'adresse change : la case de
+  // confirmation des adresses se décoche.
+  const addressKey = `${info.acronym ?? ""}|${info.locality ?? ""}`;
 
   return (
     <main className="min-h-screen bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6 sm:py-10"><div className="mx-auto max-w-2xl">
@@ -88,6 +97,12 @@ export default async function PartenariatPage() {
             Créées à la validation du contrat. Après la validation, reconnectez-vous sur la nouvelle adresse d&apos;administration.
           </p>
         </div>
+        <RegistrationForm
+          initialAcronym={info.acronym ?? ""}
+          initialLocality={info.locality ?? ""}
+          initialVisibility={info.visibility}
+          addressDomains={addressDomains}
+        />
       </section>
 
       <section className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-subtle)] sm:p-8">
@@ -130,7 +145,7 @@ export default async function PartenariatPage() {
         <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
           Coordonnées de versement Mobile Money
         </h2>
-        <PartnershipForm addressReady={addressReady} />
+        <PartnershipForm key={addressKey} addressReady={addressReady} />
       </section>
       </div>
     </main>

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   completeUniversityPartnership,
   getUniversityPartnershipInfo,
+  updateUniversityRegistration,
 } from "../src/university-partnership";
 
 type SelectQuery = {
@@ -207,6 +208,7 @@ test("completeUniversityPartnership activates university and upserts payout deta
       [{ id: "u-approved", status: "approved", revenueShareBps: 3500, acronym: "ISCOM", locality: null }],
       [],
       [],
+      [],
     ],
     updateResults: [[{ revenueShareBps: 3500 }]],
   });
@@ -295,6 +297,7 @@ test("completeUniversityPartnership refuses a slug collision before writing", as
       [{ id: "user-approved" }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
+      [],
       [{ id: "u-other" }],
     ],
   });
@@ -341,6 +344,7 @@ test("completeUniversityPartnership reports a unique constraint race and rolls b
     selectedRows: [
       [{ id: "user-approved" }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
+      [],
       [],
       [],
     ],
@@ -393,6 +397,7 @@ test("completeUniversityPartnership builds the final slug from the stored acrony
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
       [],
       [],
+      [],
     ],
     updateResults: [[{ revenueShareBps: 3000 }]],
   });
@@ -418,6 +423,7 @@ test("completeUniversityPartnership ignores acronym, locality and visibility sen
     selectedRows: [
       [{ id: "user-approved" }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
+      [],
       [],
       [],
     ],
@@ -448,6 +454,7 @@ test("completeUniversityPartnership reports slug_taken for an existing combined 
     selectedRows: [
       [{ id: "user-approved" }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
+      [],
       [],
       [{ id: "u-other" }],
     ],
@@ -489,4 +496,218 @@ test("getUniversityPartnershipInfo returns locality and visibility", async () =>
     locality: "Ouaga",
     visibility: "public",
   });
+});
+
+const CONTRACT_INPUT = {
+  userId: "user-approved",
+  universityId: "u-approved",
+  operator: "Moov Money",
+  holderName: "Titulaire",
+  numberEncrypted: "v1:enc",
+  contractVersion: "v1",
+};
+
+test("completeUniversityPartnership does not conflict with its own stored address", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved" }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "IST", locality: "Ouaga" }],
+      [],
+      [{ id: "u-approved", acronym: "IST", locality: "Ouaga", slug: "u-378590c5e623", status: "approved" }],
+      [],
+    ],
+    updateResults: [[{ revenueShareBps: 3000 }]],
+  });
+
+  const result = await completeUniversityPartnership(CONTRACT_INPUT, fake.database);
+
+  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000, slug: "ist-ouaga" });
+});
+
+test("completeUniversityPartnership requires a locality when another university uses the acronym", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved" }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
+      [],
+      [{ id: "u-other", acronym: "ISCOM", locality: "Bobo", slug: "iscom-bobo", status: "active" }],
+    ],
+  });
+
+  const result = await completeUniversityPartnership(CONTRACT_INPUT, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "locality_required" });
+  assert.equal(fake.updates.length, 0);
+  assert.equal(fake.inserts.length, 0);
+});
+
+test("completeUniversityPartnership refuses an address already planned by another approved university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved" }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
+      [],
+      [{ id: "u-other", acronym: "UTM", locality: "Ouaga", slug: "u-0123456789ab", status: "approved" }],
+    ],
+  });
+
+  const result = await completeUniversityPartnership(CONTRACT_INPUT, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "address_taken" });
+  assert.equal(fake.updates.length, 0);
+  assert.equal(fake.inserts.length, 0);
+});
+
+const REGISTRATION_INPUT = {
+  userId: "user-approved",
+  universityId: "u-approved",
+  acronym: " UTM ",
+  locality: " Ouaga ",
+  visibility: "public" as const,
+};
+
+test("updateUniversityRegistration validates input before starting a transaction", async () => {
+  const fake = createMemoryDatabase();
+
+  const invalidInputs = [
+    null as never,
+    { ...REGISTRATION_INPUT, userId: " " },
+    { ...REGISTRATION_INPUT, universityId: "" },
+    { ...REGISTRATION_INPUT, visibility: "hidden" as never },
+    { ...REGISTRATION_INPUT, acronym: "" },
+    { ...REGISTRATION_INPUT, acronym: "a".repeat(21) },
+    { ...REGISTRATION_INPUT, acronym: "U T M" },
+    { ...REGISTRATION_INPUT, locality: "a".repeat(61) },
+    { ...REGISTRATION_INPUT, acronym: "u", locality: "0123456789ab" },
+  ];
+
+  for (const input of invalidInputs) {
+    assert.deepEqual(await updateUniversityRegistration(input, fake.database), { ok: false, reason: "invalid_input" });
+  }
+  assert.equal(fake.transactionCount, 0);
+});
+
+test("updateUniversityRegistration refuses a user outside the university or revoked", async () => {
+  for (const userRows of [[], [{ id: "user-approved", revokedAt: new Date("2026-11-01T00:00:00.000Z") }]]) {
+    const fake = createMemoryDatabase({ selectedRows: [userRows] });
+
+    const result = await updateUniversityRegistration(REGISTRATION_INPUT, fake.database);
+
+    assert.deepEqual(result, { ok: false, reason: "not_authorized" });
+    assert.equal(fake.selects.length, 1);
+    assert.equal(fake.updates.length, 0);
+  }
+});
+
+test("updateUniversityRegistration refuses a university that is not approved", async () => {
+  for (const universityRows of [[], [{ id: "u-approved", status: "pending" }], [{ id: "u-approved", status: "active" }]]) {
+    const fake = createMemoryDatabase({
+      selectedRows: [[{ id: "user-approved", revokedAt: null }], universityRows],
+    });
+
+    const result = await updateUniversityRegistration(REGISTRATION_INPUT, fake.database);
+
+    assert.deepEqual(result, { ok: false, reason: "not_approved" });
+    assert.equal(fake.updates.length, 0);
+    assert.equal(fake.selects[1].lock, "update");
+  }
+});
+
+test("updateUniversityRegistration refuses changes after the contract", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved", revokedAt: null }],
+      [{ id: "u-approved", status: "approved" }],
+      [{ contractAcceptedAt: new Date("2026-01-01T00:00:00.000Z") }],
+    ],
+  });
+
+  const result = await updateUniversityRegistration(REGISTRATION_INPUT, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "already_completed" });
+  assert.equal(fake.updates.length, 0);
+});
+
+test("updateUniversityRegistration applies the address rule against other universities", async () => {
+  const cases = [
+    {
+      input: { ...REGISTRATION_INPUT, locality: "" },
+      rows: [{ id: "u-other", acronym: "UTM", locality: "Bobo", slug: "utm-bobo", status: "active" }],
+      reason: "locality_required",
+    },
+    {
+      input: REGISTRATION_INPUT,
+      rows: [{ id: "u-other", acronym: "UTM", locality: "Ouaga", slug: "u-0123456789ab", status: "approved" }],
+      reason: "address_taken",
+    },
+  ] as const;
+
+  for (const { input, rows, reason } of cases) {
+    const fake = createMemoryDatabase({
+      selectedRows: [
+        [{ id: "user-approved", revokedAt: null }],
+        [{ id: "u-approved", status: "approved" }],
+        [],
+        [...rows],
+      ],
+    });
+
+    const result = await updateUniversityRegistration(input, fake.database);
+
+    assert.deepEqual(result, { ok: false, reason });
+    assert.equal(fake.updates.length, 0);
+  }
+});
+
+test("updateUniversityRegistration writes the normalized acronym, locality and visibility", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved", revokedAt: null }],
+      [{ id: "u-approved", status: "approved" }],
+      [],
+      [{ id: "u-approved", acronym: "UTM", locality: "Ouaga", slug: "u-378590c5e623", status: "approved" }],
+    ],
+    updateResults: [[{ id: "u-approved" }]],
+  });
+
+  const result = await updateUniversityRegistration(REGISTRATION_INPUT, fake.database);
+
+  assert.deepEqual(result, { ok: true, slug: "utm-ouaga" });
+  assert.equal(fake.updates.length, 1);
+  assert.deepEqual(fake.updates[0].values, { acronym: "UTM", locality: "Ouaga", visibility: "public" });
+  assert.equal(fake.committedUpdates.length, 1);
+  assert.equal(fake.inserts.length, 0);
+});
+
+test("updateUniversityRegistration stores a null locality when it is left empty", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved", revokedAt: null }],
+      [{ id: "u-approved", status: "approved" }],
+      [],
+      [],
+    ],
+    updateResults: [[{ id: "u-approved" }]],
+  });
+
+  const result = await updateUniversityRegistration({ ...REGISTRATION_INPUT, locality: "  ", visibility: "private" }, fake.database);
+
+  assert.deepEqual(result, { ok: true, slug: "utm" });
+  assert.deepEqual(fake.updates[0].values, { acronym: "UTM", locality: null, visibility: "private" });
+});
+
+test("updateUniversityRegistration reports not_approved when the guarded update changes no row", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [
+      [{ id: "user-approved", revokedAt: null }],
+      [{ id: "u-approved", status: "approved" }],
+      [],
+      [],
+    ],
+    updateResults: [[]],
+  });
+
+  const result = await updateUniversityRegistration(REGISTRATION_INPUT, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "not_approved" });
 });
