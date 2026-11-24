@@ -21,7 +21,12 @@ import { Reveal } from "@/components/vitrine/Reveal";
 import { SiteFooter } from "@/components/vitrine/SiteFooter";
 import { SiteHeader } from "@/components/vitrine/SiteHeader";
 import { UniversityFinder, type FinderEntry } from "@/components/vitrine/UniversityFinder";
-import { buildAdminSignupUrl, buildUniversityStudentUrl, isRootSiteHost } from "@/lib/root-site.mjs";
+import {
+  buildAdminSignupUrl,
+  buildUniversityAdminLoginUrl,
+  buildUniversityStudentUrl,
+  isRootSiteHost,
+} from "@/lib/root-site.mjs";
 import { parseUniversityHostSlugMap } from "@/lib/university-host.mjs";
 
 const accentLinkClass = `inline-flex h-12 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-6 font-semibold text-[color:var(--color-on-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,black)] transition duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${focusRing}`;
@@ -138,16 +143,24 @@ export default async function VitrinePage() {
   });
 
   // Liste publique des universités actives, filtrée dans le navigateur.
+  // Même liste, deux destinations : connexion étudiante et connexion admin.
   let finderEntries: FinderEntry[] | null;
+  let adminFinderEntries: FinderEntry[] | null;
   try {
     const slugMap = parseUniversityHostSlugMap(process.env.UNIVERSITY_HOST_SLUG_MAP);
     const secure = process.env.NODE_ENV === "production";
-    finderEntries = (await listActiveUniversitiesForVitrine()).flatMap((university) => {
+    const universities = await listActiveUniversitiesForVitrine();
+    finderEntries = universities.flatMap((university) => {
       const url = buildUniversityStudentUrl({ slug: university.slug, rootDomain: process.env.ROOT_DOMAIN, slugMap, secure });
+      return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url }] : [];
+    });
+    adminFinderEntries = universities.flatMap((university) => {
+      const url = buildUniversityAdminLoginUrl({ slug: university.slug, adminRootDomain: process.env.ADMIN_ROOT_DOMAIN, secure });
       return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url }] : [];
     });
   } catch {
     finderEntries = null;
+    adminFinderEntries = null;
   }
 
   return (
@@ -294,10 +307,24 @@ export default async function VitrinePage() {
               <div className="rounded-[var(--radius-rounded)] bg-white p-6">
                 <h3 className="text-lg font-bold text-[color:var(--color-foreground)]">Je repr&eacute;sente une universit&eacute;</h3>
                 <p className="mb-4 mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-                  Cr&eacute;ez le compte de votre universit&eacute; et publiez vos cours sur Tablino.
+                  Votre universit&eacute; est d&eacute;j&agrave; sur Tablino ? Retrouvez-la pour acc&eacute;der &agrave; la connexion de son administration.
                 </p>
+                {adminFinderEntries === null ? (
+                  <p role="alert" className="text-sm text-[color:var(--color-muted-foreground)]">Recherche temporairement indisponible.</p>
+                ) : (
+                  <UniversityFinder
+                    universities={adminFinderEntries}
+                    inputId="recherche-universite-admin"
+                    linkHint="accéder à la connexion de l’administration"
+                  />
+                )}
+                <div className="my-6 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
+                  <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
+                  Pas encore de compte ?
+                  <span aria-hidden="true" className="h-px flex-1 bg-[color:var(--color-border)]" />
+                </div>
                 {signupUrl ? (
-                  <a href={signupUrl} className={accentLinkClass}>Cr&eacute;er le compte de mon universit&eacute;</a>
+                  <a href={signupUrl} className={`w-full ${accentLinkClass}`}>Cr&eacute;er le compte de mon universit&eacute;</a>
                 ) : (
                   <p className="text-sm text-[color:var(--color-muted-foreground)]">Inscription des universit&eacute;s bient&ocirc;t disponible.</p>
                 )}

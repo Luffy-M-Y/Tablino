@@ -15,9 +15,16 @@ export type FinderEntry = {
 
 // Recherche instantanée : filtre côté navigateur la liste publique des
 // universités actives, sans appel au serveur.
-export function UniversityFinder({ universities }: { universities: FinderEntry[] }) {
+export function UniversityFinder({
+  universities,
+  inputId = UNIVERSITY_FINDER_INPUT_ID,
+  linkHint = "accéder à l’espace étudiant",
+}: {
+  universities: FinderEntry[];
+  inputId?: string;
+  linkHint?: string;
+}) {
   const [query, setQuery] = useState("");
-  const inputId = UNIVERSITY_FINDER_INPUT_ID;
   const statusId = useId();
   const results = useMemo(() => filterUniversities(universities, query), [universities, query]);
   const hasQuery = query.trim().length > 0;
@@ -75,7 +82,7 @@ export function UniversityFinder({ universities }: { universities: FinderEntry[]
                   <span className="block truncate font-semibold text-[color:var(--color-foreground)]">{university.name}</span>
                   <span className="block text-sm text-[color:var(--color-muted-foreground)]">
                     {university.locality ? `${university.acronym}, ${university.locality}` : university.acronym}
-                    <span className="sr-only"> : accéder à l’espace étudiant</span>
+                    <span className="sr-only"> : {linkHint}</span>
                   </span>
                 </span>
                 <ArrowUpRight

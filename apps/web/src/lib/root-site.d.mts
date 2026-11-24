@@ -24,3 +24,9 @@ export function buildAdminSignupUrl(options: {
   adminRootDomain: string | undefined;
   secure: boolean;
 }): string | null;
+
+export function buildUniversityAdminLoginUrl(options: {
+  slug: string;
+  adminRootDomain: string | undefined;
+  secure: boolean;
+}): string | null;
