@@ -1,11 +1,17 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
+import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { registerGoogleAction } from "./actions";
 
-export function GoogleRegisterForm({ token }: { token: string }) {
+export function GoogleRegisterForm({
+  token,
+  requiresAccessCode,
+}: {
+  token: string;
+  requiresAccessCode: boolean;
+}) {
   const [state, action, pending] = useActionState(registerGoogleAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
 
@@ -23,19 +29,25 @@ export function GoogleRegisterForm({ token }: { token: string }) {
         onTokenChange={setTurnstileToken}
         resetKey={state}
       />
-      <div>
-        <label htmlFor="accessCode" className={labelClass}>
-          Code d&rsquo;acc&egrave;s
-        </label>
-        <input
-          id="accessCode"
-          name="accessCode"
-          type="text"
-          autoComplete="off"
-          required
-          className={inputClass}
-        />
-      </div>
+      {requiresAccessCode ? (
+        <div>
+          <label htmlFor="accessCode" className={labelClass}>
+            Code d&rsquo;acc&egrave;s
+          </label>
+          <input
+            id="accessCode"
+            name="accessCode"
+            type="text"
+            autoComplete="off"
+            required
+            className={inputClass}
+          />
+        </div>
+      ) : (
+        <p className={`text-sm ${mutedClass}`}>
+          Aucun code d&rsquo;acc&egrave;s n&rsquo;est n&eacute;cessaire pour cette universit&eacute;.
+        </p>
+      )}
       <button
         type="submit"
         disabled={pending || !turnstileToken}
