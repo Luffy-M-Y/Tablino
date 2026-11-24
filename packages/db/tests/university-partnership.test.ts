@@ -160,13 +160,12 @@ test("completeUniversityPartnership validates input strictly", async () => {
   const fake = createMemoryDatabase();
 
   const invalidInputs = [
-    { userId: "user-1", universityId: "", acronym: "ISCOM", operator: "Orange Money", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
-    { userId: "user-1", universityId: "u-1", acronym: "", operator: "Orange Money", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
-    { userId: "user-1", universityId: "u-1", acronym: "A".repeat(21), operator: "Orange Money", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
-    { userId: "user-1", universityId: "u-1", acronym: "ISCOM", operator: "", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
-    { userId: "user-1", universityId: "u-1", acronym: "ISCOM", operator: "Orange Money", holderName: " ", numberEncrypted: "v1:enc", contractVersion: "v1" },
-    { userId: "user-1", universityId: "u-1", acronym: "ISCOM", operator: "Orange Money", holderName: "Jean", numberEncrypted: "", contractVersion: "v1" },
-    { userId: "user-1", universityId: "u-1", acronym: "ISCOM", operator: "Orange Money", holderName: "Jean", numberEncrypted: "v1:enc", contractVersion: " " },
+    { userId: "", universityId: "u-1", operator: "Orange Money", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
+    { userId: "user-1", universityId: "", operator: "Orange Money", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
+    { userId: "user-1", universityId: "u-1", operator: "", holderName: "Jean Dupont", numberEncrypted: "v1:enc", contractVersion: "v1" },
+    { userId: "user-1", universityId: "u-1", operator: "Orange Money", holderName: " ", numberEncrypted: "v1:enc", contractVersion: "v1" },
+    { userId: "user-1", universityId: "u-1", operator: "Orange Money", holderName: "Jean", numberEncrypted: "", contractVersion: "v1" },
+    { userId: "user-1", universityId: "u-1", operator: "Orange Money", holderName: "Jean", numberEncrypted: "v1:enc", contractVersion: " " },
   ];
 
   for (const input of invalidInputs) {
@@ -186,7 +185,6 @@ test("completeUniversityPartnership returns not_approved when update returns 0 r
     {
       userId: "user-1",
       universityId: "u-not-approved",
-      acronym: "ISCOM",
       operator: "Orange Money",
       holderName: "Agent Comptable",
       numberEncrypted: "v1:enc",
@@ -206,7 +204,7 @@ test("completeUniversityPartnership activates university and upserts payout deta
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3500 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3500, acronym: "ISCOM", locality: null }],
       [],
       [],
     ],
@@ -217,7 +215,6 @@ test("completeUniversityPartnership activates university and upserts payout deta
     {
       userId: "user-approved",
       universityId: "u-approved",
-      acronym: "ISCOM",
       operator: "Moov Money",
       holderName: "Université Joseph Ki-Zerbo",
       numberEncrypted: "v1:iv:tag:cipher",
@@ -227,15 +224,12 @@ test("completeUniversityPartnership activates university and upserts payout deta
     now,
   );
 
-  assert.deepEqual(res, { ok: true, acceptedShareBps: 3500 });
+  assert.deepEqual(res, { ok: true, acceptedShareBps: 3500, slug: "iscom" });
   assert.equal(fake.transactionCount, 1);
   assert.equal(fake.updates.length, 1);
   assert.deepEqual(fake.updates[0].values, {
-    acronym: "ISCOM",
     slug: "iscom",
     status: "active",
-    locality: null,
-    visibility: "private",
   });
 
   assert.equal(fake.inserts.length, 1);
@@ -264,28 +258,42 @@ test("completeUniversityPartnership activates university and upserts payout deta
   assert.equal(fake.selects[1].lock, "update");
 });
 
-test("completeUniversityPartnership rejects an invalid acronym before starting a transaction", async () => {
-  const fake = createMemoryDatabase();
+for (const [label, acronym, locality] of [
+  ["a missing stored acronym", null, null],
+  ["an invalid stored acronym", "IS_COM", null],
+  ["a stored locality longer than 60 characters", "ISCOM", "a".repeat(61)],
+  ["a stored address shaped like a provisional slug", "u", "0123456789ab"],
+] as const) {
+  test(`completeUniversityPartnership refuses ${label} before writing`, async () => {
+    const fake = createMemoryDatabase({
+      selectedRows: [
+        [{ id: "user-approved" }],
+        [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym, locality }],
+        [],
+      ],
+    });
 
-  const result = await completeUniversityPartnership({
-    userId: "user-approved",
-    universityId: "u-approved",
-    acronym: "IS_COM",
-    operator: "Moov Money",
-    holderName: "Titulaire",
-    numberEncrypted: "v1:enc",
-    contractVersion: "v1",
-  }, fake.database);
+    const result = await completeUniversityPartnership({
+      userId: "user-approved",
+      universityId: "u-approved",
+      operator: "Moov Money",
+      holderName: "Titulaire",
+      numberEncrypted: "v1:enc",
+      contractVersion: "v1",
+    }, fake.database);
 
-  assert.deepEqual(result, { ok: false, reason: "invalid_input" });
-  assert.equal(fake.transactionCount, 0);
-});
+    assert.deepEqual(result, { ok: false, reason: "invalid_address" });
+    assert.equal(fake.selects.length, 3);
+    assert.equal(fake.updates.length, 0);
+    assert.equal(fake.inserts.length, 0);
+  });
+}
 
 test("completeUniversityPartnership refuses a slug collision before writing", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [{ id: "u-other" }],
     ],
@@ -294,7 +302,6 @@ test("completeUniversityPartnership refuses a slug collision before writing", as
   const result = await completeUniversityPartnership({
     userId: "user-approved",
     universityId: "u-approved",
-    acronym: "ISCOM",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",
@@ -310,7 +317,7 @@ test("completeUniversityPartnership does not change a previously accepted contra
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: null, locality: null }],
       [{ contractAcceptedAt: new Date("2026-01-01T00:00:00.000Z") }],
     ],
   });
@@ -318,7 +325,6 @@ test("completeUniversityPartnership does not change a previously accepted contra
   const result = await completeUniversityPartnership({
     userId: "user-approved",
     universityId: "u-approved",
-    acronym: "OTHER",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",
@@ -334,7 +340,7 @@ test("completeUniversityPartnership reports a unique constraint race and rolls b
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [],
     ],
@@ -348,7 +354,6 @@ test("completeUniversityPartnership reports a unique constraint race and rolls b
   const result = await completeUniversityPartnership({
     userId: "user-approved",
     universityId: "u-approved",
-    acronym: "ISCOM",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",
@@ -370,7 +375,6 @@ test("completeUniversityPartnership refuses a university outside the session uni
   const result = await completeUniversityPartnership({
     userId: "user-a",
     universityId: "u-from-another-account",
-    acronym: "ISCOM",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",
@@ -382,11 +386,11 @@ test("completeUniversityPartnership refuses a university outside the session uni
   assert.equal(fake.inserts.length, 0);
 });
 
-test("completeUniversityPartnership writes locality, visibility, and the combined slug", async () => {
+test("completeUniversityPartnership builds the final slug from the stored acronym and locality", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
       [],
       [],
     ],
@@ -396,30 +400,24 @@ test("completeUniversityPartnership writes locality, visibility, and the combine
   const result = await completeUniversityPartnership({
     userId: "user-approved",
     universityId: "u-approved",
-    acronym: "UTM",
-    locality: "Ouaga",
-    visibility: "public",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",
     contractVersion: "v1",
   }, fake.database);
 
-  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000 });
+  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000, slug: "utm-ouaga" });
   assert.deepEqual(fake.updates[0].values, {
-    acronym: "UTM",
     slug: "utm-ouaga",
     status: "active",
-    locality: "Ouaga",
-    visibility: "public",
   });
 });
 
-test("completeUniversityPartnership defaults locality to null and visibility to private", async () => {
+test("completeUniversityPartnership ignores acronym, locality and visibility sent in the input", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [],
     ],
@@ -429,64 +427,27 @@ test("completeUniversityPartnership defaults locality to null and visibility to 
   const result = await completeUniversityPartnership({
     userId: "user-approved",
     universityId: "u-approved",
-    acronym: "ISCOM",
+    acronym: "OTHER",
+    locality: "Bobo",
+    visibility: "public",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",
     contractVersion: "v1",
-  }, fake.database);
+  } as never, fake.database);
 
-  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000 });
+  assert.deepEqual(result, { ok: true, acceptedShareBps: 3000, slug: "iscom" });
   assert.deepEqual(fake.updates[0].values, {
-    acronym: "ISCOM",
     slug: "iscom",
     status: "active",
-    locality: null,
-    visibility: "private",
   });
-});
-
-test("completeUniversityPartnership rejects an invalid visibility before starting a transaction", async () => {
-  const fake = createMemoryDatabase();
-
-  const result = await completeUniversityPartnership({
-    userId: "user-approved",
-    universityId: "u-approved",
-    acronym: "ISCOM",
-    visibility: "hidden" as never,
-    operator: "Moov Money",
-    holderName: "Titulaire",
-    numberEncrypted: "v1:enc",
-    contractVersion: "v1",
-  }, fake.database);
-
-  assert.deepEqual(result, { ok: false, reason: "invalid_input" });
-  assert.equal(fake.transactionCount, 0);
-});
-
-test("completeUniversityPartnership rejects a locality longer than 60 characters", async () => {
-  const fake = createMemoryDatabase();
-
-  const result = await completeUniversityPartnership({
-    userId: "user-approved",
-    universityId: "u-approved",
-    acronym: "ISCOM",
-    locality: "a".repeat(61),
-    operator: "Moov Money",
-    holderName: "Titulaire",
-    numberEncrypted: "v1:enc",
-    contractVersion: "v1",
-  }, fake.database);
-
-  assert.deepEqual(result, { ok: false, reason: "invalid_input" });
-  assert.equal(fake.transactionCount, 0);
 });
 
 test("completeUniversityPartnership reports slug_taken for an existing combined slug", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
       [{ id: "user-approved" }],
-      [{ id: "u-approved", status: "approved", revenueShareBps: 3000 }],
+      [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
       [],
       [{ id: "u-other" }],
     ],
@@ -495,8 +456,6 @@ test("completeUniversityPartnership reports slug_taken for an existing combined 
   const result = await completeUniversityPartnership({
     userId: "user-approved",
     universityId: "u-approved",
-    acronym: "UTM",
-    locality: "Ouaga",
     operator: "Moov Money",
     holderName: "Titulaire",
     numberEncrypted: "v1:enc",

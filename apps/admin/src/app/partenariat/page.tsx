@@ -16,13 +16,12 @@ export default async function PartenariatPage() {
   }
 
   const contract = getContractClauses(info.revenueShareBps);
-  const initialAcronym = info.acronym ?? "";
-  const initialLocality = info.locality ?? "";
-  const initialPreview = initialAcronym
+  const addressPreview = info.acronym
     && process.env.STUDENT_ROOT_DOMAIN
     && process.env.ADMIN_ROOT_DOMAIN
-    ? getUniversityHostnamePreview(initialAcronym, initialLocality)
+    ? getUniversityHostnamePreview(info.acronym, info.locality ?? undefined)
     : null;
+  const addressReady = addressPreview?.ok === true;
 
   return (
     <main className="min-h-screen bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6 sm:py-10"><div className="mx-auto max-w-2xl">
@@ -40,7 +39,60 @@ export default async function PartenariatPage() {
 
       <section className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-subtle)] sm:p-8">
         <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
-          {info.name}
+          Récapitulatif de l&apos;inscription
+        </h2>
+        <dl className="space-y-2 text-sm text-[color:var(--color-foreground)]">
+          <div>
+            <dt className="inline font-semibold">Nom : </dt>
+            <dd className="inline">{info.name}</dd>
+          </div>
+          <div>
+            <dt className="inline font-semibold">Acronyme : </dt>
+            <dd className="inline">{info.acronym ?? "non renseigné"}</dd>
+          </div>
+          <div>
+            <dt className="inline font-semibold">Localité : </dt>
+            <dd className="inline">{info.locality ?? "aucune"}</dd>
+          </div>
+          <div>
+            <dt className="inline font-semibold">Visibilité : </dt>
+            <dd className="inline">
+              {info.visibility === "public"
+                ? "Publique : compte étudiant obligatoire, sans code d’accès."
+                : "Privée : un code d’accès est exigé à l’inscription."}
+            </dd>
+          </div>
+        </dl>
+        <div
+          id="university-address-preview"
+          className="mt-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-background)] p-4"
+        >
+          <p className="font-semibold text-[color:var(--color-text)]">Adresses définitives</p>
+          {addressPreview?.ok === true ? (
+            <dl className="mt-2 space-y-1 text-sm">
+              <div>
+                <dt className="inline">Étudiants : </dt>
+                <dd className="inline font-mono">{addressPreview.students}</dd>
+              </div>
+              <div>
+                <dt className="inline">Administration : </dt>
+                <dd className="inline font-mono">{addressPreview.admin}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)]">
+              Adresse indisponible : contactez l’équipe Tablino.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-[color:var(--color-muted-foreground)]">
+            Créées à la validation du contrat. Après la validation, reconnectez-vous sur la nouvelle adresse d&apos;administration.
+          </p>
+        </div>
+      </section>
+
+      <section className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-subtle)] sm:p-8">
+        <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
+          Clauses du contrat
         </h2>
         <div className="space-y-5 text-sm text-[color:var(--color-foreground)]">
           <div className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-background)] p-4">
@@ -78,12 +130,7 @@ export default async function PartenariatPage() {
         <h2 className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
           Coordonnées de versement Mobile Money
         </h2>
-        <PartnershipForm
-          initialAcronym={initialAcronym}
-          initialLocality={initialLocality}
-          initialVisibility={info.visibility}
-          initialPreview={initialPreview}
-        />
+        <PartnershipForm addressReady={addressReady} />
       </section>
       </div>
     </main>

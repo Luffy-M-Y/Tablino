@@ -1,7 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
-import { buildUniversitySlug } from "./university-slug";
+import { normalizeUniversityAddress } from "./university-address";
 
 type UniversityPartnershipDatabase = typeof sharedDb;
 
@@ -46,9 +46,6 @@ export async function getUniversityPartnershipInfo(
 export type CompleteUniversityPartnershipInput = {
   userId: string;
   universityId: string;
-  acronym: string;
-  locality?: string | null;
-  visibility?: "private" | "public";
   operator: string;
   holderName: string;
   numberEncrypted: string;
@@ -56,8 +53,11 @@ export type CompleteUniversityPartnershipInput = {
 };
 
 export type CompleteUniversityPartnershipResult =
-  | { ok: true; acceptedShareBps: number }
-  | { ok: false; reason: "invalid_input" | "not_authorized" | "not_approved" | "slug_taken" | "already_completed" };
+  | { ok: true; acceptedShareBps: number; slug: string }
+  | {
+    ok: false;
+    reason: "invalid_input" | "invalid_address" | "not_authorized" | "not_approved" | "slug_taken" | "already_completed";
+  };
 
 export async function completeUniversityPartnership(
   input: CompleteUniversityPartnershipInput,
@@ -71,7 +71,6 @@ export async function completeUniversityPartnership(
     || !input.userId.trim()
     || typeof input.universityId !== "string"
     || !input.universityId.trim()
-    || typeof input.acronym !== "string"
     || typeof input.operator !== "string"
     || !input.operator.trim()
     || typeof input.holderName !== "string"
@@ -80,19 +79,9 @@ export async function completeUniversityPartnership(
     || !input.numberEncrypted.trim()
     || typeof input.contractVersion !== "string"
     || !input.contractVersion.trim()
-    || (input.locality !== undefined && input.locality !== null && typeof input.locality !== "string")
-    || (input.visibility !== undefined && input.visibility !== "private" && input.visibility !== "public")
   ) {
     return { ok: false, reason: "invalid_input" };
   }
-
-  const acronym = input.acronym.trim();
-  if (!acronym || acronym.length > 20) return { ok: false, reason: "invalid_input" };
-  const locality = input.locality?.trim() || null;
-  if (locality !== null && locality.length > 60) return { ok: false, reason: "invalid_input" };
-  const visibility = input.visibility ?? "private";
-  const slugResult = buildUniversitySlug(acronym, locality);
-  if (!slugResult.ok) return { ok: false, reason: "invalid_input" };
 
   const dbInstance = await resolveDatabase(database);
 
@@ -116,6 +105,8 @@ export async function completeUniversityPartnership(
           id: schema.universities.id,
           status: schema.universities.status,
           revenueShareBps: schema.universities.revenueShareBps,
+          acronym: schema.universities.acronym,
+          locality: schema.universities.locality,
         })
         .from(schema.universities)
         .where(eq(schema.universities.id, input.universityId.trim()))
@@ -135,11 +126,17 @@ export async function completeUniversityPartnership(
         return { ok: false, reason: "already_completed" };
       }
 
+      // Adresse finale tirée des valeurs enregistrées à l'inscription.
+      const address = normalizeUniversityAddress(university.acronym, university.locality);
+      if (address === null) {
+        return { ok: false, reason: "invalid_address" };
+      }
+
       const slugCollisions = await tx
         .select({ id: schema.universities.id })
         .from(schema.universities)
         .where(and(
-          eq(schema.universities.slug, slugResult.slug),
+          eq(schema.universities.slug, address.slug),
           ne(schema.universities.id, input.universityId.trim()),
         ))
         .limit(1);
@@ -150,11 +147,8 @@ export async function completeUniversityPartnership(
       const updatedRows = await tx
         .update(schema.universities)
         .set({
-          acronym,
-          slug: slugResult.slug,
+          slug: address.slug,
           status: "active",
-          locality,
-          visibility,
         })
         .where(
           and(
@@ -194,7 +188,7 @@ export async function completeUniversityPartnership(
           },
         });
 
-      return { ok: true, acceptedShareBps: updatedUniversity.revenueShareBps };
+      return { ok: true, acceptedShareBps: updatedUniversity.revenueShareBps, slug: address.slug };
     });
   } catch (error) {
     if (

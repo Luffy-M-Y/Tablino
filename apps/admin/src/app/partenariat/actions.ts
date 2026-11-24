@@ -1,12 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { buildAdminLoginUrl } from "@/lib/admin-return-url.mjs";
 import { requireApprovedUniversityAdmin } from "@/lib/authorization";
 import { CONTRACT_VERSION } from "@/lib/partnership-contract.mjs";
 import { validatePartnershipInput } from "@/lib/partnership-validation.mjs";
 import { encryptPayoutNumberWithEnv } from "@/lib/payout-encryption.mjs";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
-import { completeUniversityPartnership, buildUniversitySlug } from "@tablino/db";
+import { completeUniversityPartnership } from "@tablino/db";
 
 export type PartnershipActionState = {
   status: "idle" | "error" | "success";
@@ -27,9 +28,6 @@ export async function completePartnershipAction(
   const universityId = user.universityId;
 
   const operator = readStringField(formData, "operator");
-  const acronym = readStringField(formData, "acronym").trim();
-  const localityInput = readStringField(formData, "locality").trim();
-  const visibility = readStringField(formData, "visibility");
   const holderName = readStringField(formData, "holderName");
   const phone = readStringField(formData, "phone");
   const acceptContract = formData.get("acceptContract");
@@ -38,28 +36,6 @@ export async function completePartnershipAction(
   if (confirmAddresses !== "on") {
     const message = "Vérifiez les adresses définitives avant de valider le contrat.";
     return { status: "error", message, errors: { confirmAddresses: message } };
-  }
-  if (!acronym || acronym.length > 20) {
-    const message = "L’acronyme de l’université est obligatoire (20 caractères maximum).";
-    return { status: "error", message, errors: { acronym: message } };
-  }
-  if (localityInput.length > 60) {
-    const message = "La localité est trop longue (60 caractères maximum).";
-    return { status: "error", message, errors: { locality: message } };
-  }
-  if (visibility !== "private" && visibility !== "public") {
-    const message = "Choisissez la visibilité de l’université.";
-    return { status: "error", message, errors: { visibility: message } };
-  }
-  const locality = localityInput || null;
-  const slugValidation = buildUniversitySlug(acronym, locality);
-  if (!slugValidation.ok) {
-    if (slugValidation.reason === "invalid_locality") {
-      const message = "Cette localité ne permet pas de créer une adresse valide. Modifiez-la puis vérifiez l’aperçu.";
-      return { status: "error", message, errors: { locality: message } };
-    }
-    const message = "Cet acronyme ne permet pas de créer une adresse valide. Modifiez-le puis vérifiez l’aperçu.";
-    return { status: "error", message, errors: { acronym: message } };
   }
 
   const validation = validatePartnershipInput({
@@ -102,9 +78,6 @@ export async function completePartnershipAction(
     result = await completeUniversityPartnership({
       userId: user.id,
       universityId,
-      acronym,
-      locality,
-      visibility,
       operator: validation.data.operator,
       holderName: validation.data.holderName,
       numberEncrypted,
@@ -127,23 +100,35 @@ export async function completePartnershipAction(
     if (result.reason === "slug_taken") {
       return {
         status: "error",
-        message: "Cette adresse est déjà utilisée. Choisissez un autre acronyme ou une autre localité.",
-        errors: { acronym: "Cette adresse est déjà utilisée." },
+        message: "Cette adresse est déjà utilisée par une autre université. Contactez l’équipe Tablino.",
+      };
+    }
+    if (result.reason === "invalid_address") {
+      return {
+        status: "error",
+        message: "L’acronyme ou la localité enregistrés ne permettent pas de créer une adresse valide. Contactez l’équipe Tablino.",
       };
     }
     if (result.reason === "already_completed") {
       return {
         status: "error",
-        message: "Le contrat a déjà été validé; l’acronyme et l’adresse ne peuvent plus être modifiés.",
+        message: "Le contrat a déjà été validé ; l’adresse ne peut plus être modifiée.",
       };
     }
     return {
       status: "error",
       message: result.reason === "invalid_input"
-        ? "Vérifiez l’acronyme et les informations du contrat."
+        ? "Vérifiez les informations du contrat."
         : "Impossible de valider le partenariat.",
     };
   }
 
-  redirect("/");
+  // La session est liée à l'hôte actuel (cookie sans domaine) : connexion
+  // à refaire sur la nouvelle adresse d'administration.
+  const loginUrl = buildAdminLoginUrl({
+    slug: result.slug,
+    adminRootDomain: process.env.ADMIN_ROOT_DOMAIN ?? "",
+    secure: process.env.NODE_ENV === "production",
+  });
+  redirect(loginUrl ?? "/");
 }
