@@ -1,7 +1,6 @@
 import { ScanLine } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
-import { AdminCard } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getStructureOverview } from "@/lib/structure-queries";
 import { ScanUploadForm } from "../upload/scan-upload-form";
@@ -20,13 +19,11 @@ export default async function ScanPage() {
         { label: "Scanner un document" },
       ]}
     >
-      <AdminCard>
-        <ScanUploadForm
-          universityId={university.id}
-          programs={overview.programs}
-          cycles={overview.cycles}
-        />
-      </AdminCard>
+      <ScanUploadForm
+        universityId={university.id}
+        programs={overview.programs}
+        cycles={overview.cycles}
+      />
     </AdminPage>
   );
 }

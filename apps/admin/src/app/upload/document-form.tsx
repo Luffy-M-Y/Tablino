@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { BookOpen, ClipboardList } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
+import { ArrowLeft, ArrowRight, BookOpen, ClipboardList } from "lucide-react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
 import { uploadFileAction } from "../structure/[universityId]/actions";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
@@ -9,6 +10,8 @@ import {
   AdminCard,
   adminFieldClass,
   adminLabelClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
 } from "@/components/admin-ui";
 
 export type Program = {
@@ -45,10 +48,33 @@ type Props = {
   buttonLabel?: string;
   onProgramChange?: () => void;
   titleRequired?: boolean;
+  /** Contrôle propre à l'étape « Fichier » : message d'erreur, ou null si l'étape est valide. */
+  validateFileStep?: () => string | null;
   children: ReactNode;
 };
 
+type WizardStep = 1 | 2 | 3;
+
+const WIZARD_STEPS: ReadonlyArray<{ step: WizardStep; title: string; description: string }> = [
+  { step: 1, title: "Destination", description: "Choisis le type et l’emplacement du fichier." },
+  { step: 2, title: "Fichier", description: "Ajoute le document à envoyer." },
+  { step: 3, title: "Publication", description: "Complète le titre et choisis quand publier." },
+];
+
+function WizardSubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className={adminPrimaryButtonClass}>
+      {pending ? "Enregistrement…" : label}
+    </button>
+  );
+}
+
 export const fieldClassName = adminFieldClass;
+
+const kindOptionClassName = "flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-[color:var(--color-text)] transition-[color,background-color,box-shadow] duration-200 hover:bg-white/70 hover:text-[color:var(--color-primary-text)] peer-checked:bg-[color:var(--color-primary)] peer-checked:text-white peer-checked:shadow-sm peer-checked:hover:bg-[color:var(--color-primary)] peer-checked:hover:text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none";
+const selectClassName = `${fieldClassName} h-11 text-sm`;
+const hintClassName = "mt-1 text-xs text-[color:var(--color-muted-foreground)]";
 
 export function DocumentForm({
   universityId,
@@ -58,6 +84,7 @@ export function DocumentForm({
   buttonLabel = "Envoyer le fichier",
   onProgramChange,
   titleRequired = false,
+  validateFileStep,
   children,
 }: Props) {
   const [kind, setKind] = useState<"resource" | "assignment">("resource");
@@ -65,6 +92,16 @@ export function DocumentForm({
   const [levelId, setLevelId] = useState("");
   const [academicYearLabel, setAcademicYearLabel] = useState("");
   const [subjectId, setSubjectId] = useState("");
+  const [step, setStep] = useState<WizardStep>(1);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const sectionRefs = useRef<Record<WizardStep, HTMLElement | null>>({ 1: null, 2: null, 3: null });
+  const headingRefs = useRef<Record<WizardStep, HTMLHeadingElement | null>>({ 1: null, 2: null, 3: null });
+  const hasNavigated = useRef(false);
+
+  useEffect(() => {
+    if (!hasNavigated.current) return;
+    headingRefs.current[step]?.focus();
+  }, [step]);
 
   const levels = cycles
     .flatMap((cycle) => cycle.levels
@@ -80,9 +117,39 @@ export function DocumentForm({
   ) ?? [];
   const hasNoSubjects = Boolean(levelId)
     && (academicYearLabels.length === 0 || (Boolean(academicYearLabel) && subjects.length === 0));
-  const isUploadLayout = !titleRequired;
-  const uploadFieldClassName = `${fieldClassName} h-11 text-sm`;
-  const typeControl = isUploadLayout ? (
+
+  function goToStep(target: WizardStep) {
+    hasNavigated.current = true;
+    setStepError(null);
+    setStep(target);
+  }
+
+  // Les champs natifs de l'étape d'abord, puis les contrôles que le navigateur ne voit pas
+  // (matière vide quand les listes sont désactivées, PDF du scan non créé).
+  function validateStep(target: WizardStep): boolean {
+    const section = sectionRefs.current[target];
+    if (section) {
+      const controls = section.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
+      for (const control of controls) {
+        if (!control.checkValidity()) {
+          control.reportValidity();
+          return false;
+        }
+      }
+    }
+    let message: string | null = null;
+    if (target === 1 && !subjectId) message = "Choisis une matière avant de continuer.";
+    if (target === 2 && validateFileStep) message = validateFileStep();
+    setStepError(message);
+    return message === null;
+  }
+
+  function goNext() {
+    if (step === 3 || !validateStep(step)) return;
+    goToStep(step === 1 ? 2 : 3);
+  }
+
+  const typeControl = (
     <fieldset>
       <legend className={`${adminLabelClass} mb-2`}>Type</legend>
       <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-page-background)] p-1 md:max-w-xs">
@@ -97,7 +164,7 @@ export function DocumentForm({
             required
             className="peer sr-only"
           />
-          <span className="flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-[color:var(--color-text)] transition-[color,background-color,box-shadow] duration-200 hover:bg-white/70 hover:text-[color:var(--color-primary-text)] peer-checked:bg-[color:var(--color-primary)] peer-checked:text-white peer-checked:shadow-sm peer-checked:hover:bg-[color:var(--color-primary)] peer-checked:hover:text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none">
+          <span className={kindOptionClassName}>
             <BookOpen size={18} aria-hidden="true" />
             Cours
           </span>
@@ -113,41 +180,24 @@ export function DocumentForm({
             required
             className="peer sr-only"
           />
-          <span className="flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-[color:var(--color-text)] transition-[color,background-color,box-shadow] duration-200 hover:bg-white/70 hover:text-[color:var(--color-primary-text)] peer-checked:bg-[color:var(--color-primary)] peer-checked:text-white peer-checked:shadow-sm peer-checked:hover:bg-[color:var(--color-primary)] peer-checked:hover:text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none">
+          <span className={kindOptionClassName}>
             <ClipboardList size={18} aria-hidden="true" />
             Devoir
           </span>
         </label>
       </div>
     </fieldset>
-  ) : (
-    <div>
-      <label htmlFor="upload-kind" className="mb-2 block">
-        Type
-      </label>
-      <select
-        id="upload-kind"
-        name="kind"
-        className={fieldClassName}
-        value={kind}
-        onChange={(event) =>
-          setKind(event.target.value === "assignment" ? "assignment" : "resource")}
-        required
-      >
-        <option value="resource">Cours</option>
-        <option value="assignment">Devoir</option>
-      </select>
-    </div>
   );
+
   const structureControls = (
-    <div className={isUploadLayout ? "grid grid-cols-1 gap-4 md:grid-cols-2" : "contents"}>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div>
-        <label htmlFor="upload-program" className={isUploadLayout ? adminLabelClass : "mb-2 block"}>
+        <label htmlFor="upload-program" className={adminLabelClass}>
           Filière
         </label>
         <select
           id="upload-program"
-          className={isUploadLayout ? uploadFieldClassName : fieldClassName}
+          className={selectClassName}
           value={programId}
           onChange={(event) => {
             setProgramId(event.target.value);
@@ -167,12 +217,12 @@ export function DocumentForm({
         </select>
       </div>
       <div>
-        <label htmlFor="upload-level" className={isUploadLayout ? adminLabelClass : "mb-2 block"}>
+        <label htmlFor="upload-level" className={adminLabelClass}>
           Niveau
         </label>
         <select
           id="upload-level"
-          className={isUploadLayout ? uploadFieldClassName : fieldClassName}
+          className={selectClassName}
           value={levelId}
           onChange={(event) => {
             setLevelId(event.target.value);
@@ -189,17 +239,15 @@ export function DocumentForm({
             </option>
           ))}
         </select>
-        {isUploadLayout && !programId ? (
-          <p className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">Choisis d’abord une filière.</p>
-        ) : null}
+        {!programId ? <p className={hintClassName}>Choisis d’abord une filière.</p> : null}
       </div>
       <div>
-        <label htmlFor="upload-academic-year" className={isUploadLayout ? adminLabelClass : "mb-2 block"}>
+        <label htmlFor="upload-academic-year" className={adminLabelClass}>
           Année académique
         </label>
         <select
           id="upload-academic-year"
-          className={isUploadLayout ? uploadFieldClassName : fieldClassName}
+          className={selectClassName}
           value={academicYearLabel}
           onChange={(event) => {
             setAcademicYearLabel(event.target.value);
@@ -215,20 +263,20 @@ export function DocumentForm({
             </option>
           ))}
         </select>
-        {isUploadLayout && !levelId ? (
-          <p className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">Choisis d’abord un niveau.</p>
-        ) : isUploadLayout && academicYearLabels.length === 0 ? (
-          <p className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">Aucune année académique disponible pour ce niveau.</p>
+        {!levelId ? (
+          <p className={hintClassName}>Choisis d’abord un niveau.</p>
+        ) : academicYearLabels.length === 0 ? (
+          <p className={hintClassName}>Aucune année académique disponible pour ce niveau.</p>
         ) : null}
       </div>
       <div>
-        <label htmlFor="upload-subject" className={isUploadLayout ? adminLabelClass : "mb-2 block"}>
+        <label htmlFor="upload-subject" className={adminLabelClass}>
           Matière
         </label>
         {hasNoSubjects && <p>Aucune matière. Ajoutez d'abord une matière.</p>}
         <select
           id="upload-subject"
-          className={isUploadLayout ? uploadFieldClassName : fieldClassName}
+          className={selectClassName}
           value={subjectId}
           onChange={(event) => setSubjectId(event.target.value)}
           disabled={!levelId || academicYearLabels.length === 0}
@@ -241,18 +289,19 @@ export function DocumentForm({
             </option>
           ))}
         </select>
-        {isUploadLayout && !levelId ? (
-          <p className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">Choisis d’abord un niveau.</p>
-        ) : isUploadLayout && academicYearLabels.length === 0 ? (
-          <p className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">Aucune année académique disponible.</p>
+        {!levelId ? (
+          <p className={hintClassName}>Choisis d’abord un niveau.</p>
+        ) : academicYearLabels.length === 0 ? (
+          <p className={hintClassName}>Aucune année académique disponible.</p>
         ) : null}
       </div>
     </div>
   );
+
   const publicationControls = (
     <>
       <div>
-        <label htmlFor="upload-title" className={isUploadLayout ? adminLabelClass : "mb-2 block"}>
+        <label htmlFor="upload-title" className={adminLabelClass}>
           {titleRequired ? "Titre" : "Titre (facultatif)"}
         </label>
         <input
@@ -260,88 +309,141 @@ export function DocumentForm({
           name="title"
           type="text"
           maxLength={255}
-          className={isUploadLayout ? uploadFieldClassName : fieldClassName}
+          className={selectClassName}
           required={titleRequired}
         />
         {!titleRequired && <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Sans titre, le nom du fichier est utilisé.</p>}
       </div>
-      {isUploadLayout ? (
-        <div className="flex items-center justify-between gap-4 rounded-xl bg-[color:var(--admin-page-background)] p-4">
-          <div>
-            <label htmlFor="upload-publish-now" className="text-sm font-semibold text-[color:var(--color-text)]">
-              Publier directement
-            </label>
-            <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Sans cocher, le fichier reste en brouillon.</p>
-          </div>
-          <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
-            <input
-              type="checkbox"
-              id="upload-publish-now"
-              name="publishNow"
-              className="peer sr-only"
-            />
-            <span aria-hidden="true" className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[color:var(--color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none" />
-            <span aria-hidden="true" className="pointer-events-none absolute left-1 size-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 motion-reduce:transition-none" />
-          </span>
-        </div>
-      ) : (
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-[color:var(--admin-page-background)] p-4">
         <div>
-          <input type="checkbox" id="upload-publish-now" name="publishNow" />
-          <label htmlFor="upload-publish-now">Publier directement</label>
-          <p className="text-sm">Sans cocher, le fichier reste en brouillon.</p>
+          <label htmlFor="upload-publish-now" className="text-sm font-semibold text-[color:var(--color-text)]">
+            Publier directement
+          </label>
+          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Sans cocher, le fichier reste en brouillon.</p>
         </div>
-      )}
+        <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+          <input
+            type="checkbox"
+            id="upload-publish-now"
+            name="publishNow"
+            className="peer sr-only"
+          />
+          <span aria-hidden="true" className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[color:var(--color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none" />
+          <span aria-hidden="true" className="pointer-events-none absolute left-1 size-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 motion-reduce:transition-none" />
+        </span>
+      </div>
     </>
   );
 
-  return (
-    isUploadLayout ? (
-      <AdminCard className="!p-0">
-        <StructureActionForm action={action} buttonLabel={buttonLabel}>
-          <input type="hidden" name="universityId" value={universityId} />
-          <input type="hidden" name="subjectId" value={subjectId} />
-          <section aria-labelledby="upload-destination-heading" className="space-y-5 p-4 sm:p-6">
-            <div className="flex items-start gap-3">
-              <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-sm font-bold text-[color:var(--admin-icon-color)]">1</span>
-              <div className="min-w-0">
-                <h2 id="upload-destination-heading" className="font-semibold text-[color:var(--color-text)]">Destination</h2>
-                <p className="text-sm text-[color:var(--color-muted-foreground)]">Choisis le type et l’emplacement du fichier.</p>
-              </div>
-            </div>
-            {typeControl}
-            {structureControls}
-          </section>
-          <section aria-labelledby="upload-file-heading" className="space-y-4 border-t border-[color:var(--admin-card-border)] p-4 sm:p-6">
-            <div className="flex items-start gap-3">
-              <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-sm font-bold text-[color:var(--admin-icon-color)]">2</span>
-              <div className="min-w-0">
-                <h2 id="upload-file-heading" className="font-semibold text-[color:var(--color-text)]">Fichier</h2>
-                <p className="text-sm text-[color:var(--color-muted-foreground)]">Ajoute le document à envoyer.</p>
-              </div>
-            </div>
-            {children}
-          </section>
-          <section aria-labelledby="upload-publication-heading" className="space-y-5 border-t border-[color:var(--admin-card-border)] p-4 sm:p-6">
-            <div className="flex items-start gap-3">
-              <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-sm font-bold text-[color:var(--admin-icon-color)]">3</span>
-              <div className="min-w-0">
-                <h2 id="upload-publication-heading" className="font-semibold text-[color:var(--color-text)]">Publication</h2>
-                <p className="text-sm text-[color:var(--color-muted-foreground)]">Complète le titre et choisis quand publier.</p>
-              </div>
-            </div>
-            {publicationControls}
-          </section>
-        </StructureActionForm>
-      </AdminCard>
-    ) : (
-      <StructureActionForm action={action} buttonLabel={buttonLabel}>
-        <input type="hidden" name="universityId" value={universityId} />
-        <input type="hidden" name="subjectId" value={subjectId} />
+  const stepContent: Record<WizardStep, ReactNode> = {
+    1: (
+      <>
         {typeControl}
         {structureControls}
-        {publicationControls}
-        {children}
+      </>
+    ),
+    2: children,
+    3: publicationControls,
+  };
+
+  return (
+    <AdminCard className="!p-0">
+      <StructureActionForm
+        action={action}
+        buttonLabel={buttonLabel}
+        hideSubmit
+        className="block"
+        messageClassName="mx-4 mb-4 sm:mx-6 sm:mb-6"
+        onSuccess={() => goToStep(1)}
+      >
+        <input type="hidden" name="universityId" value={universityId} />
+        <input type="hidden" name="subjectId" value={subjectId} />
+        <ol aria-label="Étapes" className="flex items-center gap-2 border-b border-[color:var(--admin-card-border)] px-4 py-3 sm:px-6">
+          {WIZARD_STEPS.map((item, index) => {
+            const isCurrent = item.step === step;
+            const isDone = item.step < step;
+            return (
+              <li key={item.step} aria-current={isCurrent ? "step" : undefined} className="flex min-w-0 items-center gap-2">
+                {index > 0 ? (
+                  <span aria-hidden="true" className={`h-px w-6 shrink-0 sm:w-10 ${isDone || isCurrent ? "bg-[color:var(--color-primary)]" : "bg-[color:var(--admin-card-border)]"}`} />
+                ) : null}
+                <span
+                  aria-hidden="true"
+                  className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isCurrent || isDone
+                    ? "bg-[color:var(--color-primary)] text-white"
+                    : "bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]"}`}
+                >
+                  {item.step}
+                </span>
+                <span className={`hidden truncate text-sm sm:inline ${isCurrent ? "font-semibold text-[color:var(--color-text)]" : "text-[color:var(--color-muted-foreground)]"}`}>
+                  {item.title}
+                </span>
+                <span className="sr-only">{`Étape ${item.step} : ${item.title}${isDone ? ", terminée" : isCurrent ? ", en cours" : ""}`}</span>
+              </li>
+            );
+          })}
+        </ol>
+        {/* Un champ invalide d'une étape masquée ramène à cette étape lors de l'envoi. */}
+        <div
+          onInvalidCapture={(event) => {
+            const owner = (event.target as HTMLElement).closest<HTMLElement>("[data-wizard-step]");
+            const owningStep = Number(owner?.dataset.wizardStep);
+            if (owningStep === 1 || owningStep === 2) {
+              if (owningStep < step) goToStep(owningStep);
+            }
+          }}
+        >
+          {WIZARD_STEPS.map((item) => (
+            <section
+              key={item.step}
+              ref={(element) => { sectionRefs.current[item.step] = element; }}
+              data-wizard-step={item.step}
+              hidden={item.step !== step}
+              aria-labelledby={`upload-step-${item.step}-heading`}
+              className="space-y-5 p-4 sm:p-6"
+            >
+              <div className="flex items-start gap-3">
+                <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-sm font-bold text-[color:var(--admin-icon-color)]">
+                  {item.step}
+                </span>
+                <div className="min-w-0">
+                  <h2
+                    id={`upload-step-${item.step}-heading`}
+                    ref={(element) => { headingRefs.current[item.step] = element; }}
+                    tabIndex={-1}
+                    className="font-semibold text-[color:var(--color-text)] outline-none"
+                  >
+                    {item.title}
+                  </h2>
+                  <p className="text-sm text-[color:var(--color-muted-foreground)]">{item.description}</p>
+                </div>
+              </div>
+              {stepContent[item.step]}
+            </section>
+          ))}
+        </div>
+        {stepError ? (
+          <p role="alert" className="mx-4 mb-4 rounded-[var(--radius-rounded)] bg-red-50 px-3 py-2 text-sm text-red-800 sm:mx-6">
+            {stepError}
+          </p>
+        ) : null}
+        <div className="flex items-center justify-between gap-3 border-t border-[color:var(--admin-card-border)] px-4 py-4 sm:px-6">
+          {step > 1 ? (
+            <button type="button" className={adminSecondaryButtonClass} onClick={() => goToStep(step === 3 ? 2 : 1)}>
+              <ArrowLeft size={16} aria-hidden="true" />
+              Précédent
+            </button>
+          ) : <span />}
+          {step < 3 ? (
+            <button type="button" className={adminPrimaryButtonClass} onClick={goNext}>
+              Suivant
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          ) : (
+            <WizardSubmitButton label={buttonLabel} />
+          )}
+        </div>
       </StructureActionForm>
-    )
+    </AdminCard>
   );
 }

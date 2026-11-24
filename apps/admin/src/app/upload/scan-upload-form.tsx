@@ -90,6 +90,7 @@ export function ScanUploadForm({ universityId, programs, cycles }: Props) {
       action={scanAction}
       buttonLabel="Envoyer le PDF"
       titleRequired
+      validateFileStep={() => (pdfFileRef.current === null ? "Créez d’abord le PDF." : null)}
     >
       <div className="basis-full">
         <ScanPages

@@ -13,6 +13,7 @@ export default async function UniversityStructurePage({
 
   return (
     <AdminPage
+      icon={Layers}
       title={university.name}
       breadcrumbs={[
         { label: "Accueil", href: "/" },
