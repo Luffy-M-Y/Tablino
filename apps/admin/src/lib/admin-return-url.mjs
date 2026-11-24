@@ -63,6 +63,21 @@ export function buildSuperAdminReturnUrl({ adminRootDomain, secure }) {
 }
 
 /**
+ * Construit l'URL de connexion admin université : https://{slug}-admin.{ADMIN_ROOT_DOMAIN}/login
+ *
+ * @param {{ slug: string, adminRootDomain: string, secure: boolean }} options
+ * @returns {string | null}
+ */
+export function buildAdminLoginUrl({ slug, adminRootDomain, secure }) {
+  const returnUrl = buildAdminReturnUrl({ slug, adminRootDomain, secure });
+  if (returnUrl === null) return null;
+
+  const url = new URL(returnUrl);
+  url.pathname = "/login";
+  return url.toString();
+}
+
+/**
  * Construit l'URL de connexion avec un jeton de compte Google existant.
  *
  * @param {{ slug: string, adminRootDomain: string, secure: boolean, token: string }} options

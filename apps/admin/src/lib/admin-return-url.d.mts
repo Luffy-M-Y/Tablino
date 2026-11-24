@@ -9,6 +9,12 @@ export function buildSuperAdminReturnUrl(options: {
   secure: boolean;
 }): string | null;
 
+export function buildAdminLoginUrl(options: {
+  slug: string;
+  adminRootDomain: string;
+  secure: boolean;
+}): string | null;
+
 export function buildAdminGoogleExistingAccountUrl(options: {
   slug: string;
   adminRootDomain: string;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAdminGoogleExistingAccountUrl,
+  buildAdminLoginUrl,
   buildAdminReturnUrl,
   buildAdminTransferRedirectUrl,
   buildSuperAdminGoogleExistingAccountUrl,
@@ -42,6 +43,26 @@ test("rejects malformed or URL-shaped admin root domains", () => {
       buildAdminReturnUrl({ slug: "iscom", adminRootDomain, secure: true }),
       null,
     );
+  }
+});
+
+test("login URL targets the validated university admin host", () => {
+  assert.equal(
+    buildAdminLoginUrl({ slug: "utm-ouaga", adminRootDomain: "ADMIN.TABLINO.COM", secure: true }),
+    "https://utm-ouaga-admin.admin.tablino.com/login",
+  );
+  assert.equal(
+    buildAdminLoginUrl({ slug: "utm", adminRootDomain: "localhost:3001", secure: false }),
+    "http://utm-admin.localhost:3001/login",
+  );
+});
+
+test("login URL refuses an invalid slug or admin root domain", () => {
+  for (const slug of ["", "UTM", "utm-", "-utm", "utm/../x", "a".repeat(58)]) {
+    assert.equal(buildAdminLoginUrl({ slug, adminRootDomain: "localhost:3001", secure: false }), null);
+  }
+  for (const adminRootDomain of ["", "https://admin.tablino.com", "admin.tablino.com/path", "user@admin.tablino.com"]) {
+    assert.equal(buildAdminLoginUrl({ slug: "utm", adminRootDomain, secure: true }), null);
   }
 });
 
