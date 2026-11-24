@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -194,8 +195,9 @@ export function AdminShell({
         <div className="flex items-center gap-4">
           <Link
             href="/"
-            className={`rounded-[var(--radius-rounded)] text-lg font-bold text-white ${headerFocusStyle}`}
+            className={`flex items-center gap-2 rounded-[var(--radius-rounded)] text-lg font-bold text-white ${headerFocusStyle}`}
           >
+            <Image src="/icons/icon-192.png" alt="" width={32} height={32} priority className="rounded-lg ring-1 ring-white/20" />
             Tablino
           </Link>
           <button
