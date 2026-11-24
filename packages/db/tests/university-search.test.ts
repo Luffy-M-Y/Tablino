@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { searchActiveUniversitiesByAcronym } from "../src/university-search";
+import { listActiveUniversitiesForVitrine, searchActiveUniversitiesByAcronym } from "../src/university-search";
 
 type SelectQuery = {
   from: (table: unknown) => SelectQuery;
@@ -157,4 +157,42 @@ test("searchActiveUniversitiesByAcronym trims surrounding spaces", async () => {
     ],
   });
   assert.equal(fake.selectCount, 1);
+});
+
+test("listActiveUniversitiesForVitrine returns the public fields of active universities", async () => {
+  const fake = createMemoryDatabase([
+    { name: "Institut Supérieur de la Communication", acronym: "ISCOM", locality: null, slug: "iscom", status: "active" },
+    { name: "Université Technologique", acronym: "UTM", locality: "Ouaga", slug: "utm-ouaga", status: "active" },
+  ]);
+  const res = await listActiveUniversitiesForVitrine(fake.database);
+  assert.deepEqual(res, [
+    { name: "Institut Supérieur de la Communication", acronym: "ISCOM", locality: null, slug: "iscom" },
+    { name: "Université Technologique", acronym: "UTM", locality: "Ouaga", slug: "utm-ouaga" },
+  ]);
+  assert.equal(fake.selectCount, 1);
+  assert.equal(fake.selects[0].limitCount, 500);
+});
+
+test("listActiveUniversitiesForVitrine drops non-active universities and missing acronyms", async () => {
+  const fake = createMemoryDatabase([
+    { name: "En attente", acronym: "ATT", locality: null, slug: "u-111111111111", status: "pending" },
+    { name: "Approuvée", acronym: "APP", locality: null, slug: "u-222222222222", status: "approved" },
+    { name: "Sans acronyme", acronym: null, locality: null, slug: "demo-universite", status: "active" },
+    { name: "Active", acronym: "ACT", locality: null, slug: "act", status: "active" },
+  ]);
+  const res = await listActiveUniversitiesForVitrine(fake.database);
+  assert.deepEqual(res.map((university) => university.slug), ["act"]);
+});
+
+test("listActiveUniversitiesForVitrine never exposes the status or other columns", async () => {
+  const fake = createMemoryDatabase([
+    { name: "Active", acronym: "ACT", locality: null, slug: "act", status: "active", phone: "+226 00 00 00 00" },
+  ]);
+  const [university] = await listActiveUniversitiesForVitrine(fake.database);
+  assert.deepEqual(Object.keys(university).sort(), ["acronym", "locality", "name", "slug"]);
+});
+
+test("listActiveUniversitiesForVitrine returns an empty list when nothing is active", async () => {
+  const fake = createMemoryDatabase([]);
+  assert.deepEqual(await listActiveUniversitiesForVitrine(fake.database), []);
 });

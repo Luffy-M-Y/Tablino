@@ -67,3 +67,19 @@ export function buildAdminSignupUrl({ adminRootDomain, secure }) {
   const scheme = secure ? "https" : "http";
   return `${scheme}://sup-admin.${adminRootDomain.toLowerCase()}/signup`;
 }
+
+const ADMIN_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,55}[a-z0-9])?$/;
+const RESERVED_ADMIN_SLUGS = new Set(["sup", "auth"]);
+
+/**
+ * Lien « connexion de mon université » : /login de l'hôte admin de l'université
+ * ({slug}-admin.{ADMIN_ROOT_DOMAIN}), comme buildAdminLoginUrl côté admin.
+ * @param {{ slug: string, adminRootDomain: string | undefined, secure: boolean }} options
+ * @returns {string | null}
+ */
+export function buildUniversityAdminLoginUrl({ slug, adminRootDomain, secure }) {
+  if (typeof slug !== "string" || !ADMIN_SLUG_PATTERN.test(slug) || RESERVED_ADMIN_SLUGS.has(slug)) return null;
+  if (typeof adminRootDomain !== "string" || !AUTHORITY_PATTERN.test(adminRootDomain)) return null;
+  const scheme = secure ? "https" : "http";
+  return `${scheme}://${slug}-admin.${adminRootDomain.toLowerCase()}/login`;
+}

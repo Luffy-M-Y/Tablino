@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAdminSignupUrl,
+  buildUniversityAdminLoginUrl,
   buildUniversityStudentUrl,
   getHostSlugForUniversity,
   getRootSiteTurnstileHostname,
@@ -73,4 +74,24 @@ test("buildAdminSignupUrl targets the super admin host and refuses invalid domai
   assert.equal(buildAdminSignupUrl({ adminRootDomain: "https://evil.com", secure: true }), null);
   assert.equal(buildAdminSignupUrl({ adminRootDomain: "evil.com/path", secure: true }), null);
   assert.equal(buildAdminSignupUrl({ adminRootDomain: "user@evil.com", secure: true }), null);
+});
+
+test("buildUniversityAdminLoginUrl targets the university admin login page", () => {
+  assert.equal(
+    buildUniversityAdminLoginUrl({ slug: "iscom", adminRootDomain: "localhost:3001", secure: false }),
+    "http://iscom-admin.localhost:3001/login",
+  );
+  assert.equal(
+    buildUniversityAdminLoginUrl({ slug: "utm-ouaga", adminRootDomain: "Admin.Tablino.bf", secure: true }),
+    "https://utm-ouaga-admin.admin.tablino.bf/login",
+  );
+});
+
+test("buildUniversityAdminLoginUrl refuses invalid slugs, reserved slugs and invalid domains", () => {
+  for (const slug of ["", "ISCOM", "-iscom", "iscom-", "is com", "iscom.evil", "x".repeat(58), "sup", "auth", null]) {
+    assert.equal(buildUniversityAdminLoginUrl({ slug, adminRootDomain: "localhost:3001", secure: false }), null, String(slug));
+  }
+  for (const adminRootDomain of [undefined, "", "https://evil.com", "evil.com/path", "user@evil.com"]) {
+    assert.equal(buildUniversityAdminLoginUrl({ slug: "iscom", adminRootDomain, secure: true }), null, String(adminRootDomain));
+  }
 });

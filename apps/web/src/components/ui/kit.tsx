@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ComponentType, ReactNode } from "react";
 
 export const focusRing =
@@ -8,11 +9,11 @@ export const labelClass =
 
 export const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 text-base text-[color:var(--color-text)] ${focusRing}`;
 
-export const primaryButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-primary)] px-4 font-semibold text-white transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
+export const primaryButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-primary)] px-4 font-semibold text-white transition duration-200 hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] motion-safe:hover:-translate-y-0.5 hover:shadow-md disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
 
-export const accentButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-4 font-semibold text-[color:var(--color-on-accent)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
+export const accentButtonClass = `h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-4 font-semibold text-[color:var(--color-on-accent)] transition duration-200 hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,black)] motion-safe:hover:-translate-y-0.5 hover:shadow-md disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`;
 
-export const secondaryButtonClass = `inline-flex h-11 w-full items-center justify-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-4 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`;
+export const secondaryButtonClass = `inline-flex h-11 w-full items-center justify-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-4 font-semibold text-[color:var(--color-text)] transition duration-200 hover:border-[color:var(--color-primary)] hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`;
 
 export const errorClass =
   "rounded-[var(--radius-rounded)] border border-[color:var(--color-destructive)] bg-[color:var(--color-surface)] px-3 py-2 text-sm font-medium text-[color:var(--color-destructive-text)]";
@@ -20,9 +21,9 @@ export const errorClass =
 export const linkClass = `inline-block px-1 py-3 font-semibold text-[color:var(--color-primary-text)] underline underline-offset-2 ${focusRing}`;
 
 export const authCardClass =
-  "rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6";
+  "rounded-[1.25rem] border border-[color:var(--color-border)] bg-white p-5 shadow-[0_24px_60px_-28px_rgb(15_42_94/35%)] sm:px-6";
 
-export const cardClass = `rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 transition-all duration-200 motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none ${focusRing}`;
+export const cardClass = `rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-5 transition duration-300 motion-safe:hover:-translate-y-1 hover:shadow-[0_18px_40px_-20px_rgb(15_42_94/40%)] motion-reduce:transition-none ${focusRing}`;
 
 export const mutedClass = "text-[color:var(--color-muted-foreground)]";
 
@@ -61,20 +62,21 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex items-center justify-center px-4 py-6">
+    <div className="tbl-reveal mx-auto flex items-center justify-center px-4 py-4 sm:py-6">
       <div className={`w-full ${wide ? "max-w-md" : "max-w-sm"}`}>
-        <p className="mb-3 text-center text-sm font-bold uppercase tracking-widest text-[color:var(--color-band)]">
+        <p className="mb-2 flex items-center justify-center gap-2 text-base font-bold text-[color:var(--color-brand)]">
+          <Image src="/icons/icon-192.png" alt="" width={32} height={32} priority className="rounded-lg" />
           Tablino
         </p>
         <h1
-          className={`text-center text-xl font-bold text-[color:var(--color-text)] sm:text-2xl ${
-            subtitle ? "" : "mb-5"
+          className={`text-center text-xl font-bold text-[color:var(--color-text)] ${
+            subtitle ? "" : "mb-4"
           }`}
         >
           {title}
         </h1>
         {subtitle ? (
-          <p className="mb-5 mt-1 text-center text-sm text-[color:var(--color-muted-foreground)]">
+          <p className="mb-4 mt-1 text-center text-sm text-[color:var(--color-muted-foreground)]">
             {subtitle}
           </p>
         ) : null}
@@ -106,22 +108,23 @@ export function PageHero({
   const isDevoirs = variant === "devoirs";
   return (
     <section
-      className={`rounded-[var(--radius-rounded)] p-6 mb-6 flex items-center gap-4 ${
+      className={`tbl-reveal relative mb-6 flex items-center gap-4 overflow-hidden rounded-[1.25rem] p-6 text-white shadow-[0_24px_60px_-28px_rgb(15_42_94/55%)] sm:p-8 ${
         isDevoirs
-          ? "bg-[#9a3412] text-white"
-          : "bg-[color:var(--color-primary)] text-white"
+          ? "bg-[linear-gradient(135deg,#9a3412,color-mix(in_srgb,#9a3412_80%,black))]"
+          : "bg-[linear-gradient(135deg,var(--color-brand),var(--color-primary))]"
       }`}
     >
+      <Image src="/icons/icon-512.png" alt="" width={200} height={200} className="pointer-events-none absolute -right-8 -top-8 hidden rotate-12 rounded-[2.5rem] opacity-15 blur-[2px] sm:block" />
       <div
-        className={`flex items-center justify-center w-14 h-14 rounded-[var(--radius-rounded)] shrink-0 ${
+        className={`relative flex items-center justify-center w-14 h-14 rounded-[var(--radius-rounded)] shrink-0 ${
           isDevoirs ? "bg-black/15" : "bg-white/15"
         }`}
       >
         <Icon size={28} aria-hidden={true} />
       </div>
-      <div>
-        <h1 className="text-2xl font-bold">{title}</h1>
-        {subtitle ? <p className="text-sm">{subtitle}</p> : null}
+      <div className="relative">
+        <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
+        {subtitle ? <p className="mt-1 text-sm text-white/90">{subtitle}</p> : null}
       </div>
     </section>
   );

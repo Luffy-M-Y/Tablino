@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db, schema } from "@tablino/db";
-import { getPublishedSearchCatalog, searchCatalog, type SearchScope } from "@tablino/db";
+import { getPublishedSearchCatalog, type SearchCatalog } from "@tablino/db";
 import { eq, and, count, sql, getTableColumns, desc } from "drizzle-orm";
 import { requireStudentUniversityAccess } from "@/lib/authorization";
 
@@ -374,8 +374,9 @@ export async function getAssignmentsBySubject(universityId: string, subjectId: s
     .orderBy(schema.assignments.dueDate);
 }
 
-export async function searchPublishedCatalog(universityId: string, query: string, scope: SearchScope) {
+// Index de recherche chargé une fois à l'ouverture de la loupe, puis filtré
+// dans le navigateur. Même contrôle d'accès que les pages du catalogue.
+export async function getStudentSearchIndex(universityId: string): Promise<SearchCatalog> {
   await requireStudentUniversityAccess(universityId);
-  const catalog = await getPublishedSearchCatalog(universityId);
-  return searchCatalog(catalog, query, scope);
+  return await getPublishedSearchCatalog(universityId);
 }

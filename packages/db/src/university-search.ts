@@ -67,3 +67,39 @@ export async function searchActiveUniversitiesByAcronym(
 
   return { ok: true, universities };
 }
+
+export type ActiveUniversityListing = UniversitySearchResult;
+
+const ACTIVE_UNIVERSITY_LISTING_LIMIT = 500;
+
+// Liste publique de la vitrine : universités actives dotées d'un acronyme.
+// Le statut et l'acronyme sont aussi contrôlés en JS (le harnais de test
+// n'exécute pas le where).
+export async function listActiveUniversitiesForVitrine(
+  database?: UniversitySearchDatabase,
+): Promise<ActiveUniversityListing[]> {
+  const dbInstance = await resolveDatabase(database);
+  const rows = await dbInstance
+    .select({
+      name: schema.universities.name,
+      acronym: schema.universities.acronym,
+      locality: schema.universities.locality,
+      slug: schema.universities.slug,
+      status: schema.universities.status,
+    })
+    .from(schema.universities)
+    .where(and(
+      eq(schema.universities.status, "active"),
+      isNotNull(schema.universities.acronym),
+    ))
+    .orderBy(asc(schema.universities.acronym), asc(schema.universities.slug))
+    .limit(ACTIVE_UNIVERSITY_LISTING_LIMIT);
+
+  const universities: ActiveUniversityListing[] = [];
+  for (const row of rows) {
+    if (row.status !== "active" || row.acronym === null) continue;
+    universities.push({ name: row.name, acronym: row.acronym, locality: row.locality, slug: row.slug });
+    if (universities.length === ACTIVE_UNIVERSITY_LISTING_LIMIT) break;
+  }
+  return universities;
+}

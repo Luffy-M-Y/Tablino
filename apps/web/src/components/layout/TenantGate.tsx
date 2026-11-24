@@ -12,12 +12,9 @@ export async function TenantGate({ children }: { children: ReactNode }) {
     return children;
   }
   // En-tête posé par le proxy seulement (supprimé de la requête entrante).
+  // La vitrine rend elle-même son en-tête, son <main> et son pied de page.
   if (requestHeaders.get(ROOT_SITE_ROUTE_HEADER) === "1") {
-    return (
-      <main id="main-content" className="flex-1">
-        {children}
-      </main>
-    );
+    return children;
   }
 
   let universityId: string | null;

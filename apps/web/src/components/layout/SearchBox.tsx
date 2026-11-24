@@ -1,26 +1,50 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
-import { searchAction } from "@/app/recherche/actions";
-import type { SearchResult } from "@tablino/db";
+import { loadSearchIndexAction } from "@/app/recherche/actions";
+import type { SearchCatalog } from "@tablino/db";
+import { searchCatalog } from "@tablino/db/search-catalog";
 
 type Scope = "all" | "program" | "subject";
+type IndexState =
+  | { status: "idle" | "loading" | "error" }
+  | { status: "ready"; catalog: SearchCatalog };
 
 export function SearchBox() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<Scope>("all");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [truncated, setTruncated] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const counter = useRef(0);
+  const [index, setIndex] = useState<IndexState>({ status: "idle" });
+  const loadCounter = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // Filtrage local, sans appel au serveur à chaque frappe.
+  const search = useMemo(
+    () => (index.status === "ready" ? searchCatalog(index.catalog, query, scope) : { results: [], truncated: false }),
+    [index, query, scope],
+  );
+  const results = search.results;
+  const truncated = search.truncated;
+  const searched = index.status === "ready" && query.trim().length >= 2;
+
+  // Index rechargé à chaque ouverture : il reste à jour.
+  function loadIndex() {
+    loadCounter.current += 1;
+    const current = loadCounter.current;
+    setIndex({ status: "loading" });
+    loadSearchIndexAction().then(
+      (catalog) => {
+        if (current === loadCounter.current) setIndex({ status: "ready", catalog });
+      },
+      () => {
+        if (current === loadCounter.current) setIndex({ status: "error" });
+      },
+    );
+  }
 
   useEffect(function () {
     if (!open) {
@@ -42,31 +66,6 @@ export function SearchBox() {
     };
   }, [open]);
 
-  function run(nextQuery: string, nextScope: Scope) {
-    if (timer.current !== null) {
-      clearTimeout(timer.current);
-    }
-    counter.current += 1;
-    if (nextQuery.trim().length < 2) {
-      setResults([]);
-      setTruncated(false);
-      setSearched(false);
-      return;
-    }
-
-    const current = counter.current;
-    timer.current = setTimeout(function () {
-      startTransition(async function () {
-        const response = await searchAction(nextQuery, nextScope);
-        if (current === counter.current) {
-          setResults(response.results);
-          setTruncated(response.truncated);
-          setSearched(true);
-        }
-      });
-    }, 300);
-  }
-
   return (
     <>
       <button
@@ -75,11 +74,12 @@ export function SearchBox() {
         aria-label="Rechercher"
         aria-expanded={open}
         aria-controls="search-panel"
-        className="flex items-center justify-center rounded-lg p-2 text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+        className="flex items-center justify-center rounded-lg p-2 text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-background)] hover:text-[color:var(--color-primary-text)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring)]"
         onClick={function () {
           const nextOpen = !open;
           setOpen(nextOpen);
           if (nextOpen) {
+            loadIndex();
             setTimeout(function () {
               inputRef.current?.focus();
             }, 0);
@@ -94,7 +94,7 @@ export function SearchBox() {
           id="search-panel"
           ref={panelRef}
           role="search"
-          className="absolute top-full left-0 right-0 z-50 border-t border-white/10 bg-[color:var(--color-band)] p-3 shadow-md"
+          className="absolute top-full left-0 right-0 z-50 border-t border-[color:var(--color-border)] bg-white p-3 shadow-md"
           onKeyDown={function (event) {
             if (event.key === "Escape") {
               setOpen(false);
@@ -114,16 +114,15 @@ export function SearchBox() {
               maxLength={100}
               value={query}
               placeholder="Rechercher…"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[color:var(--color-on-band)] placeholder:text-[color:var(--color-on-band-muted)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+              className="w-full rounded-lg border border-[color:var(--color-input-border)] bg-white px-3 py-2 text-sm text-[color:var(--color-foreground)] placeholder:text-[color:var(--color-muted-foreground)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring)]"
               onChange={function (event) {
                 const nextValue = event.target.value;
                 setQuery(nextValue);
-                run(nextValue, scope);
               }}
             />
             <button
               type="button"
-              className="flex items-center justify-center rounded-lg p-2 text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+              className="flex items-center justify-center rounded-lg p-2 text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-background)] hover:text-[color:var(--color-primary-text)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring)]"
               aria-label="Fermer la recherche"
               onClick={function () {
                 setOpen(false);
@@ -148,13 +147,12 @@ export function SearchBox() {
                   aria-pressed={active}
                   className={
                     active
-                      ? "rounded-lg bg-white/15 px-3 py-1.5 text-xs font-medium text-[color:var(--color-on-band)]"
-                      : "rounded-lg px-3 py-1.5 text-xs font-medium text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)]"
+                      ? "rounded-lg bg-[color:var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-foreground)]"
+                      : "rounded-lg px-3 py-1.5 text-xs font-medium text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-background)] hover:text-[color:var(--color-primary-text)]"
                   }
                   onClick={function () {
                     const nextScope = item.value as Scope;
                     setScope(nextScope);
-                    run(query, nextScope);
                   }}
                 >
                   {item.label}
@@ -164,10 +162,12 @@ export function SearchBox() {
           </div>
 
           <div aria-live="polite" className="mt-3 max-h-[70vh] overflow-y-auto">
-            {isPending ? (
-              <p className="text-sm text-[color:var(--color-on-band-muted)]">Recherche…</p>
+            {index.status === "loading" ? (
+              <p className="text-sm text-[color:var(--color-muted-foreground)]">Pr&eacute;paration de la recherche…</p>
+            ) : index.status === "error" ? (
+              <p role="alert" className="text-sm text-[color:var(--color-destructive-text)]">Recherche indisponible. Ferme puis rouvre la recherche.</p>
             ) : searched && results.length === 0 ? (
-              <p className="text-sm text-[color:var(--color-on-band-muted)]">Aucun r&eacute;sultat.</p>
+              <p className="text-sm text-[color:var(--color-muted-foreground)]">Aucun r&eacute;sultat.</p>
             ) : (
               <ul className="space-y-1">
                 {results.map(function (result, index) {
@@ -175,13 +175,13 @@ export function SearchBox() {
                     <li key={result.href + "_" + String(index)}>
                       <Link
                         href={result.href}
-                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-background)] hover:text-[color:var(--color-primary-text)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring)]"
                         onClick={function () {
                           setOpen(false);
                         }}
                       >
-                        <span className="font-medium text-[color:var(--color-on-band)]">{result.segments[0]}</span>
-                        <span className="text-[color:var(--color-on-band-muted)]">{result.segments.slice(1).join(" / ")}</span>
+                        <span className="font-medium text-[color:var(--color-foreground)]">{result.segments[0]}</span>
+                        <span className="text-[color:var(--color-muted-foreground)]">{result.segments.slice(1).join(" / ")}</span>
                       </Link>
                     </li>
                   );
@@ -190,7 +190,7 @@ export function SearchBox() {
             )}
 
             {truncated ? (
-              <p className="mt-2 text-xs text-[color:var(--color-on-band-muted)]">R&eacute;sultats limit&eacute;s aux 50 premiers. Pr&eacute;cise ta recherche.</p>
+              <p className="mt-2 text-xs text-[color:var(--color-muted-foreground)]">R&eacute;sultats limit&eacute;s aux 50 premiers. Pr&eacute;cise ta recherche.</p>
             ) : null}
           </div>
         </div>
