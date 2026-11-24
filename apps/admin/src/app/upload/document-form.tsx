@@ -191,7 +191,7 @@ export function DocumentForm({
   );
 
   const structureControls = (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2 lg:grid-cols-4">
       <div>
         <label htmlFor="upload-program" className={adminLabelClass}>
           Filière
@@ -421,10 +421,9 @@ export function DocumentForm({
                 id={`upload-step-${item.step}-heading`}
                 ref={(element) => { headingRefs.current[item.step] = element; }}
                 tabIndex={-1}
-                className="text-sm text-[color:var(--color-muted-foreground)] outline-none"
+                className="sr-only"
               >
-                <span className="sr-only">{`Étape ${item.step} : ${item.title}. `}</span>
-                {item.description}
+                {`Étape ${item.step} : ${item.title}. ${item.description}`}
               </h2>
               {stepContent[item.step]}
             </section>
