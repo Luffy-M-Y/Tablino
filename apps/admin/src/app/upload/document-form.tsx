@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { ArrowLeft, ArrowRight, BookOpen, ClipboardList } from "lucide-react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
@@ -190,7 +191,7 @@ export function DocumentForm({
   );
 
   const structureControls = (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div>
         <label htmlFor="upload-program" className={adminLabelClass}>
           Filière
@@ -208,13 +209,22 @@ export function DocumentForm({
           }}
           required
         >
-          <option value="">Choisir une filière</option>
+          <option value="">{programs.length === 0 ? "Aucune filière" : "Choisir une filière"}</option>
           {programs.map((program) => (
             <option key={program.id} value={program.id}>
               {program.name}
             </option>
           ))}
         </select>
+        {programs.length === 0 ? (
+          <p className={hintClassName}>
+            Aucune filière.{" "}
+            <Link href="/structure" className="font-medium text-[color:var(--color-primary-text)] underline underline-offset-2">
+              Ajoutez-en une dans Structure
+            </Link>
+            .
+          </p>
+        ) : null}
       </div>
       <div>
         <label htmlFor="upload-level" className={adminLabelClass}>
@@ -232,14 +242,18 @@ export function DocumentForm({
           disabled={!programId}
           required
         >
-          <option value="">Choisir un niveau</option>
+          <option value="">{programId && levels.length === 0 ? "Aucun niveau" : "Choisir un niveau"}</option>
           {levels.map((level) => (
             <option key={level.id} value={level.id}>
               {level.name} ({level.cycleName})
             </option>
           ))}
         </select>
-        {!programId ? <p className={hintClassName}>Choisis d’abord une filière.</p> : null}
+        {!programId ? (
+          <p className={hintClassName}>Choisis d’abord une filière.</p>
+        ) : levels.length === 0 ? (
+          <p className={hintClassName}>Aucun niveau pour cette filière.</p>
+        ) : null}
       </div>
       <div>
         <label htmlFor="upload-academic-year" className={adminLabelClass}>
@@ -256,7 +270,7 @@ export function DocumentForm({
           disabled={!levelId || academicYearLabels.length === 0}
           required
         >
-          <option value="">Choisir une année académique</option>
+          <option value="">{levelId && academicYearLabels.length === 0 ? "Aucune année académique" : "Choisir une année académique"}</option>
           {academicYearLabels.map((label) => (
             <option key={label} value={label}>
               {label}
@@ -273,7 +287,6 @@ export function DocumentForm({
         <label htmlFor="upload-subject" className={adminLabelClass}>
           Matière
         </label>
-        {hasNoSubjects && <p>Aucune matière. Ajoutez d'abord une matière.</p>}
         <select
           id="upload-subject"
           className={selectClassName}
@@ -282,7 +295,7 @@ export function DocumentForm({
           disabled={!levelId || academicYearLabels.length === 0}
           required
         >
-          <option value="">Choisir une matière</option>
+          <option value="">{hasNoSubjects ? "Aucune matière" : "Choisir une matière"}</option>
           {subjects.map((subject) => (
             <option key={subject.id} value={subject.id}>
               {subject.name}
@@ -291,8 +304,10 @@ export function DocumentForm({
         </select>
         {!levelId ? (
           <p className={hintClassName}>Choisis d’abord un niveau.</p>
-        ) : academicYearLabels.length === 0 ? (
-          <p className={hintClassName}>Aucune année académique disponible.</p>
+        ) : hasNoSubjects ? (
+          <p className={hintClassName}>Aucune matière. Ajoutez-en une dans la filière.</p>
+        ) : !academicYearLabel ? (
+          <p className={hintClassName}>Choisis d’abord une année académique.</p>
         ) : null}
       </div>
     </div>
@@ -400,24 +415,17 @@ export function DocumentForm({
               data-wizard-step={item.step}
               hidden={item.step !== step}
               aria-labelledby={`upload-step-${item.step}-heading`}
-              className="space-y-5 p-4 sm:p-6"
+              className="space-y-4 px-4 py-4 sm:px-6"
             >
-              <div className="flex items-start gap-3">
-                <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-sm font-bold text-[color:var(--admin-icon-color)]">
-                  {item.step}
-                </span>
-                <div className="min-w-0">
-                  <h2
-                    id={`upload-step-${item.step}-heading`}
-                    ref={(element) => { headingRefs.current[item.step] = element; }}
-                    tabIndex={-1}
-                    className="font-semibold text-[color:var(--color-text)] outline-none"
-                  >
-                    {item.title}
-                  </h2>
-                  <p className="text-sm text-[color:var(--color-muted-foreground)]">{item.description}</p>
-                </div>
-              </div>
+              <h2
+                id={`upload-step-${item.step}-heading`}
+                ref={(element) => { headingRefs.current[item.step] = element; }}
+                tabIndex={-1}
+                className="text-sm text-[color:var(--color-muted-foreground)] outline-none"
+              >
+                <span className="sr-only">{`Étape ${item.step} : ${item.title}. `}</span>
+                {item.description}
+              </h2>
               {stepContent[item.step]}
             </section>
           ))}
@@ -427,7 +435,7 @@ export function DocumentForm({
             {stepError}
           </p>
         ) : null}
-        <div className="flex items-center justify-between gap-3 border-t border-[color:var(--admin-card-border)] px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3 border-t border-[color:var(--admin-card-border)] px-4 py-3 sm:px-6">
           {step > 1 ? (
             <button type="button" className={adminSecondaryButtonClass} onClick={() => goToStep(step === 3 ? 2 : 1)}>
               <ArrowLeft size={16} aria-hidden="true" />
