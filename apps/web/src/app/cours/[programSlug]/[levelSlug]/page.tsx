@@ -54,7 +54,7 @@ export default async function CoursAnneesPage({
       </p>
 
       {years.length === 0 ? (
-        <p className={`text-sm ${mutedClass} py-8 text-center`}>
+        <p className={`rounded-[1.25rem] border-2 border-dashed border-[color:var(--color-border)] bg-white/60 px-6 py-12 text-center text-sm ${mutedClass}`}>
           Aucune ann&eacute;e disponible pour ce niveau.
         </p>
       ) : (

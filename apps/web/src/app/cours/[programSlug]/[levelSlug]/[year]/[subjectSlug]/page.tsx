@@ -78,7 +78,7 @@ export default async function CoursRessourcesPage({
       </p>
 
       {resources.length === 0 ? (
-        <p className={`text-sm ${mutedClass} py-8 text-center`}>
+        <p className={`rounded-[1.25rem] border-2 border-dashed border-[color:var(--color-border)] bg-white/60 px-6 py-12 text-center text-sm ${mutedClass}`}>
           Aucune ressource disponible pour cette mati&egrave;re.
         </p>
       ) : (

@@ -21,7 +21,7 @@ export async function UserMenu({ universityId }: { universityId: string }) {
     return (
       <Link
         href="/connexion"
-        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-on-band-muted)] hover:bg-white/10 hover:text-[color:var(--color-on-band)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring-on-band)]"
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-background)] hover:text-[color:var(--color-primary-text)] focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring)]"
       >
         <User size={16} aria-hidden="true" />
         <span className="sr-only sm:not-sr-only">Connexion</span>

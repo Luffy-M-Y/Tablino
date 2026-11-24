@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import { mutedClass, variantStyles } from "@/components/ui/kit";
 
 export interface Step {
@@ -15,11 +14,13 @@ interface StepIndicatorProps {
 export function StepIndicator({ steps, currentStep, variant = "cours" }: StepIndicatorProps) {
   const activeClass = variantStyles[variant].activeStep;
   const doneClass = variantStyles[variant].doneStep;
+  const ringClass = variant === "devoirs" ? "shadow-[0_0_0_4px_rgb(234_88_12/18%)]" : "shadow-[0_0_0_4px_rgb(37_99_235/15%)]";
+  const lineDoneClass = variant === "devoirs" ? "bg-[color:var(--color-accent)]" : "bg-[color:var(--color-primary)]";
   const todoClass = `bg-white border-[color:var(--color-input-border)] ${mutedClass}`;
 
   return (
-    <nav aria-label="\u00c9tapes de navigation" className="mb-6">
-      <ol className="flex items-center gap-0 overflow-x-auto pb-1">
+    <nav aria-label="\u00c9tapes de navigation" className="mb-8">
+      <ol className="flex items-center gap-0 overflow-x-auto rounded-[1.25rem] border border-[color:var(--color-border)] bg-white px-4 py-3 shadow-sm">
         {steps.map((step, i) => {
           const num = i + 1;
           const isActive = num === currentStep;
@@ -30,8 +31,8 @@ export function StepIndicator({ steps, currentStep, variant = "cours" }: StepInd
               <div className="flex items-center gap-1.5">
                 <span
                   aria-current={isActive ? "step" : undefined}
-                  className={`flex items-center justify-center w-7 h-7 rounded-full border-2 text-xs font-bold transition-colors ${
-                    isActive ? activeClass : isDone ? doneClass : todoClass
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${
+                    isActive ? `${activeClass} ${ringClass}` : isDone ? doneClass : todoClass
                   }`}
                 >
                   {num}
@@ -45,10 +46,11 @@ export function StepIndicator({ steps, currentStep, variant = "cours" }: StepInd
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <ChevronRight
-                  size={14}
+                <span
                   aria-hidden="true"
-                  className={`mx-1 shrink-0 ${mutedClass}`}
+                  className={`mx-2 h-0.5 w-6 shrink-0 rounded-full sm:w-10 ${
+                    isDone ? lineDoneClass : "bg-[color:var(--color-border)]"
+                  }`}
                 />
               )}
             </li>

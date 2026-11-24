@@ -20,25 +20,27 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
   const backHref = [...items].reverse().find((item) => item.href)?.href ?? "/";
 
   return (
-    <div className="flex items-center gap-3 mb-4">
+    <div className="mb-5 flex flex-wrap items-center gap-3">
       {/* Bouton Retour */}
       {showBack && (
         <Link
           href={backHref}
           aria-label="Retour à la page précédente"
-          className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-[color:var(--color-surface)] px-3 font-semibold text-[color:var(--color-text)] transition-colors hover:bg-[color:var(--color-page-background)] motion-reduce:transition-none ${focusRing}`}
+          className={`group inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-white py-1 pl-1 pr-4 text-sm font-semibold text-[color:var(--color-text)] shadow-sm transition duration-200 hover:border-[color:var(--color-primary)] hover:text-[color:var(--color-primary-text)] hover:shadow-md motion-reduce:transition-none ${focusRing}`}
         >
-          <ArrowLeft size={16} aria-hidden="true" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-brand)] text-white transition duration-200 group-hover:-translate-x-0.5 group-hover:bg-[color:var(--color-primary)] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0">
+            <ArrowLeft size={16} aria-hidden="true" />
+          </span>
           <span>Retour</span>
         </Link>
       )}
 
       {/* Fil d'Ariane */}
-      <nav aria-label="Fil d'Ariane" className={`flex items-center gap-1 text-sm ${mutedClass} flex-wrap`}>
+      <nav aria-label="Fil d'Ariane" className={`flex min-h-11 flex-wrap items-center gap-1 rounded-full border border-[color:var(--color-border)] bg-white/70 px-4 py-2 text-sm backdrop-blur ${mutedClass}`}>
         <Link
           href="/"
           aria-label="Accueil"
-          className="flex items-center text-[color:var(--color-primary-text)] hover:underline transition-colors"
+          className={`flex items-center rounded text-[color:var(--color-primary-text)] transition-transform hover:scale-110 motion-reduce:transition-none ${focusRing}`}
         >
           <Home size={14} aria-hidden="true" />
         </Link>
@@ -49,7 +51,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
             {item.href ? (
               <Link
                 href={item.href}
-                className="text-[color:var(--color-primary-text)] underline underline-offset-2 transition-colors"
+                className={`rounded text-[color:var(--color-primary-text)] underline-offset-2 hover:underline ${focusRing}`}
               >
                 {item.label}
               </Link>

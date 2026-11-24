@@ -63,24 +63,24 @@ button:not(:disabled),
 }
 
 .tbl-reveal {
-  animation: tbl-fade-up 0.4s ease-out both;
+  animation: tbl-fade-up 0.4s ease-out backwards;
   animation-delay: calc(var(--tbl-i, 0) * 60ms);
 }
 
 /* Vitrine : animation unique du classeur (chemin puis fiches). */
 .vt-step {
-  animation: tbl-fade-up 0.45s ease-out both;
+  animation: tbl-fade-up 0.45s ease-out backwards;
   animation-delay: calc(200ms + var(--vt-i, 0) * 220ms);
 }
 
 .vt-file {
-  animation: tbl-fade-up 0.5s ease-out both;
+  animation: tbl-fade-up 0.5s ease-out backwards;
   animation-delay: calc(1.2s + var(--vt-i, 0) * 140ms);
 }
 
 /* Vitrine : résultats de recherche un à un. */
 .vt-result {
-  animation: tbl-fade-up 0.3s ease-out both;
+  animation: tbl-fade-up 0.3s ease-out backwards;
   animation-delay: calc(var(--vt-i, 0) * 50ms);
 }
 
