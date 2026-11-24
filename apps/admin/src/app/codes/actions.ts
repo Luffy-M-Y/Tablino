@@ -1,8 +1,14 @@
 "use server";
 
-import { createAccessCode, revokeAccessCode } from "@tablino/db";
+import {
+  createAccessCode,
+  getUniversityPartnershipInfo,
+  revokeAccessCode,
+  setUniversityVisibility,
+} from "@tablino/db";
 import { revalidatePath } from "next/cache";
 import { forbidden } from "next/navigation";
+import { requireAdminAccess } from "@/lib/authorization";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { isUuid, readIntegerField, readStringField } from "@/lib/structure-action-utils.mjs";
 
@@ -25,6 +31,12 @@ export async function createCodeAction(
 
   const maxUses = readIntegerField(formData, "maxUses");
   if (maxUses === null) return { message: "Plafond invalide (1 à 5000).", code: null, expiresAt: null };
+
+  // Université publique : inscription sans code, génération désactivée.
+  const info = await getUniversityPartnershipInfo(university.id);
+  if (info?.visibility === "public") {
+    return { message: "Université publique : aucun code d’accès n’est nécessaire.", code: null, expiresAt: null };
+  }
 
   const result = await createAccessCode(university.id, maxUses);
   if (result.ok) {
@@ -54,4 +66,60 @@ export async function revokeCodeAction(
     return { message: "Code révoqué." };
   }
   return { message: "Code introuvable." };
+}
+
+export type VisibilityState = {
+  status: "idle" | "error" | "success";
+  message: string | null;
+};
+
+export async function setVisibilityAction(
+  _previousState: VisibilityState,
+  formData: FormData,
+): Promise<VisibilityState> {
+  const user = await requireAdminAccess();
+  const university = await getCurrentUniversity();
+  if (!university || user.role !== "university_admin") forbidden();
+
+  const visibility = readStringField(formData, "visibility");
+  if (visibility !== "private" && visibility !== "public") {
+    return { status: "error", message: "Choisissez la visibilité de l’université." };
+  }
+
+  const info = await getUniversityPartnershipInfo(university.id);
+  if (!info) forbidden();
+  // Passage public vers privé : tous les codes actifs seront révoqués.
+  if (info.visibility === "public" && visibility === "private" && formData.get("confirmRevoke") !== "on") {
+    return {
+      status: "error",
+      message: "Confirmez la révocation des codes actifs avant de passer l’université en privée.",
+    };
+  }
+
+  let result;
+  try {
+    result = await setUniversityVisibility({ userId: user.id, universityId: university.id, visibility });
+  } catch {
+    return { status: "error", message: "Modification impossible. Réessaie." };
+  }
+
+  if (!result.ok) {
+    return {
+      status: "error",
+      message: result.reason === "not_active"
+        ? "La visibilité ne se modifie qu’après la validation du contrat de partenariat."
+        : "Modification impossible.",
+    };
+  }
+
+  revalidatePath("/codes");
+  if (result.visibility === "public") {
+    return { status: "success", message: "Université publique : les étudiants s’inscrivent sans code d’accès." };
+  }
+  return {
+    status: "success",
+    message: result.revokedCodes > 0
+      ? `Université privée : ${result.revokedCodes} code(s) révoqué(s). Générez de nouveaux codes.`
+      : "Université privée : un code d’accès est exigé à l’inscription.",
+  };
 }

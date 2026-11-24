@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listAccessCodes, type AccessCodeStatus } from "@tablino/db";
+import { getUniversityPartnershipInfo, listAccessCodes, type AccessCodeStatus } from "@tablino/db";
 import { KeyRound } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
@@ -7,6 +7,7 @@ import { AdminCard, adminSecondaryButtonClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { CreateCodeForm } from "./create-code-form";
 import { RevokeCodeForm } from "./revoke-code-form";
+import { VisibilityForm } from "./visibility-form";
 
 const statusLabels: Record<AccessCodeStatus, string> = {
   usable: "Actif",
@@ -30,6 +31,8 @@ export default async function CodesPage({
   const university = await getCurrentUniversity();
   if (!university) forbidden();
 
+  const info = await getUniversityPartnershipInfo(university.id);
+  const visibility = info?.visibility ?? "private";
   const params = await searchParams;
   const showInactive = params.inactifs === "1";
   const accessCodes = await listAccessCodes(university.id);
@@ -46,7 +49,17 @@ export default async function CodesPage({
       ]}
     >
       <div className="space-y-6">
-        <CreateCodeForm />
+        <VisibilityForm currentVisibility={visibility} />
+        {visibility === "public" ? (
+          <AdminCard className="!p-4 border-amber-200 bg-amber-50">
+            <p className="text-sm text-amber-900">
+              Université publique : les étudiants s’inscrivent avec un compte, sans code d’accès.
+              Les codes ne servent pas ; la génération est désactivée.
+            </p>
+          </AdminCard>
+        ) : (
+          <CreateCodeForm />
+        )}
         {inactiveCodes.length > 0 ? (
           <div className="flex justify-end">
             <form action="/codes" method="get">
