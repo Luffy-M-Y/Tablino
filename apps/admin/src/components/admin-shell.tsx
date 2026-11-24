@@ -57,6 +57,11 @@ const MENU_ICONS = {
   ImageIcon,
 };
 
+const HEADER_SHORTCUTS = [
+  { href: "/upload", label: "Uploader", Icon: Upload },
+  { href: "/scan", label: "Scanner", Icon: ScanLine },
+] as const;
+
 type AdminProfile = {
   email: string | null;
   name: string | null;
@@ -204,7 +209,24 @@ export function AdminShell({
           </button>
         </div>
 
-        {profile.role !== "super_admin_lector" && <AdminSearchBox />}
+        <div className="flex items-center gap-2">
+          {profile.role !== "super_admin_lector" && <AdminSearchBox />}
+          {profile.role === "university_admin" && (
+            <nav aria-label="Raccourcis" className="hidden items-center gap-2 sm:flex">
+              {HEADER_SHORTCUTS.map(({ href, label, Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={pathname === href ? "page" : undefined}
+                  className={`flex h-10 items-center gap-2 rounded-[var(--radius-rounded)] border border-white/25 px-3 text-sm font-medium text-white transition-colors hover:bg-white/10 motion-reduce:transition-none ${headerFocusStyle}`}
+                >
+                  <Icon size={18} aria-hidden="true" />
+                  <span>{label}</span>
+                </Link>
+              ))}
+            </nav>
+          )}
+        </div>
         {accountLabel === null ? (
           <button
             type="button"
