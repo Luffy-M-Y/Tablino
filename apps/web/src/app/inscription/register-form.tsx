@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
+import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { registerAction } from "./actions";
 
-export function RegisterForm() {
+export function RegisterForm({ requiresAccessCode }: { requiresAccessCode: boolean }) {
   const [state, action, pending] = useActionState(registerAction, { message: null });
   const [turnstileToken, setTurnstileToken] = useState("");
 
@@ -89,19 +89,25 @@ export function RegisterForm() {
           className={inputClass}
         />
       </div>
-      <div>
-        <label htmlFor="accessCode" className={labelClass}>
-          Code d&rsquo;acc&egrave;s
-        </label>
-        <input
-          id="accessCode"
-          name="accessCode"
-          type="text"
-          autoComplete="off"
-          required
-          className={inputClass}
-        />
-      </div>
+      {requiresAccessCode ? (
+        <div>
+          <label htmlFor="accessCode" className={labelClass}>
+            Code d&rsquo;acc&egrave;s
+          </label>
+          <input
+            id="accessCode"
+            name="accessCode"
+            type="text"
+            autoComplete="off"
+            required
+            className={inputClass}
+          />
+        </div>
+      ) : (
+        <p className={`text-sm ${mutedClass}`}>
+          Aucun code d&rsquo;acc&egrave;s n&rsquo;est n&eacute;cessaire pour cette universit&eacute;.
+        </p>
+      )}
       <TurnstileField
         action="signup"
         onTokenChange={setTurnstileToken}
