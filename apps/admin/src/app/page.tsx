@@ -15,6 +15,7 @@ import {
   BookOpen,
   ClipboardList,
   FilePen,
+  Image as ImageIcon,
   Layers,
   ScanLine,
   Upload,
@@ -46,6 +47,7 @@ const HOME_CARD_ICONS = {
   drafts: FilePen,
   resources: BookOpen,
   assignments: ClipboardList,
+  university: ImageIcon,
 } satisfies Record<(typeof ADMIN_HOME_CARDS)[number]["id"], typeof Layers>;
 
 export default async function HomePage() {

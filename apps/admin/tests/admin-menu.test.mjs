@@ -46,6 +46,7 @@ test("does not change university_admin navigation", () => {
       { label: "Cours", href: "/resources" },
       { label: "Devoirs", href: "/assignments" },
       { label: "Codes d'accès", href: "/codes" },
+      { label: "Université", href: "/universite" },
     ],
   );
 });
@@ -66,6 +67,7 @@ test("super-admin entries never point to university-only pages", () => {
     "/resources",
     "/assignments",
     "/codes",
+    "/universite",
   ];
   for (const role of ["super_admin", "super_admin_editor", "super_admin_lector"]) {
     const items = getAdminMenuItems(role);

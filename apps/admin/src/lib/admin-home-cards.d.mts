@@ -1,6 +1,6 @@
 export type AdminHomeCard =
   | {
-      id: "structure" | "upload" | "scanner" | "drafts" | "resources" | "assignments";
+      id: "structure" | "upload" | "scanner" | "drafts" | "resources" | "assignments" | "university";
       title: string;
       description: string;
       href: string;

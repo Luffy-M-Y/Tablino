@@ -54,6 +54,7 @@ const MENU_ICONS = {
   ClipboardList,
   KeyRound,
   DollarSign,
+  ImageIcon,
 };
 
 type AdminProfile = {
