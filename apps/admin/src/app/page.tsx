@@ -12,9 +12,11 @@ import { requireAdminAccess, requireRoleOnHost } from "@/lib/authorization";
 import { getAvatarInitial, getRoleLabel } from "@/lib/admin-profile.mjs";
 import Link from "next/link";
 import {
+  ArrowRight,
   BookOpen,
   ClipboardList,
   FilePen,
+  Image as ImageIcon,
   Layers,
   ScanLine,
   Upload,
@@ -25,12 +27,26 @@ import { AdminLinkCard } from "@/components/admin-ui";
 import { getServerSession } from "next-auth/next";
 import { createAuthOptions, getCurrentUniversityId } from "@tablino/auth";
 
-const COUNT_LABELS = [
-  ["programs", "Filières"],
-  ["cycles", "Cycles"],
-  ["subjects", "Matières"],
-  ["resources", "Ressources publiées"],
-  ["assignments", "Devoirs publiés"],
+const COUNT_GROUPS = [
+  {
+    id: "structure",
+    title: "Structure",
+    Icon: Layers,
+    rows: [
+      { key: "programs", label: "Filières", href: "/structure" },
+      { key: "cycles", label: "Cycles", href: "/structure" },
+      { key: "subjects", label: "Matières", href: "/structure" },
+    ],
+  },
+  {
+    id: "published",
+    title: "Contenus publiés",
+    Icon: BookOpen,
+    rows: [
+      { key: "resources", label: "Ressources", href: "/resources" },
+      { key: "assignments", label: "Devoirs", href: "/assignments" },
+    ],
+  },
 ] as const;
 
 const STATUS_LABELS: Record<string, string> = {
@@ -46,6 +62,7 @@ const HOME_CARD_ICONS = {
   drafts: FilePen,
   resources: BookOpen,
   assignments: ClipboardList,
+  university: ImageIcon,
 } satisfies Record<(typeof ADMIN_HOME_CARDS)[number]["id"], typeof Layers>;
 
 export default async function HomePage() {
@@ -67,6 +84,7 @@ export default async function HomePage() {
       role: authorizedLector.role,
       universityName: null,
       universityAcronym: null,
+      universityLogoUrl: null,
     };
 
     return (
@@ -291,7 +309,7 @@ export default async function HomePage() {
       profile={profile}
     >
         <section aria-label="Fonctionnalités d’administration">
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {activeHomeCards.map((card) => (
             <li key={card.id}>
               <AdminLinkCard
@@ -300,6 +318,7 @@ export default async function HomePage() {
                 title={card.title}
                 description={card.description}
                 accent={card.id === "scanner"}
+                compact
               />
             </li>
           ))}
@@ -311,19 +330,40 @@ export default async function HomePage() {
             <h2 id="dashboard-counts-heading" className="mb-4 text-xl font-semibold">
               Indicateurs clés
             </h2>
-            <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-            {COUNT_LABELS.map(([key, label]) => (
-              <div
-                key={key}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {COUNT_GROUPS.map(({ id, title, Icon, rows }) => (
+              <section
+                key={id}
+                aria-labelledby={`dashboard-counts-${id}`}
                 className="rounded-[var(--radius-rounded)] border border-[color:var(--admin-card-border)] bg-[color:var(--admin-card-background)] p-4 shadow-[var(--admin-card-shadow)]"
               >
-                <dt className="text-sm text-[color:var(--color-muted-foreground)]">{label}</dt>
-                <dd className="mt-2 text-2xl font-semibold text-[color:var(--color-text)]">
-                  {counts[key]}
-                </dd>
-              </div>
+                <h3 id={`dashboard-counts-${id}`} className="mb-2 flex items-center gap-2 text-sm font-semibold text-[color:var(--color-text)]">
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]">
+                    <Icon size={16} aria-hidden="true" />
+                  </span>
+                  {title}
+                </h3>
+                <ul className="divide-y divide-[color:var(--admin-card-border)]">
+                  {rows.map(({ key, label, href }) => (
+                    <li key={key}>
+                      <Link
+                        href={href}
+                        className="group flex items-center gap-3 rounded-md px-2 py-2.5 text-sm hover:bg-[color:var(--admin-icon-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-primary)]"
+                      >
+                        <span className="flex-1 text-[color:var(--color-muted-foreground)]">{label}</span>
+                        <span className="text-lg font-semibold tabular-nums text-[color:var(--color-text)]">{counts[key]}</span>
+                        <ArrowRight
+                          size={16}
+                          aria-hidden="true"
+                          className="shrink-0 text-[color:var(--admin-icon-color)] motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5"
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-            </dl>
+            </div>
           </section>
         ) : (
           <p className="mt-8 text-sm text-[color:var(--color-muted-foreground)]">

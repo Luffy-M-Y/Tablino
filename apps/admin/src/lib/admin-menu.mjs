@@ -4,7 +4,7 @@ import {
 } from "./admin-permissions.mjs";
 
 /**
- * @typedef {{ id: string, label: string, href: string, icon: "LayoutDashboard" | "UserCheck" | "UserPlus" | "DollarSign" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound", disabled: false, roles?: readonly string[], permission?: string } | { id: string, label: string, icon: "LayoutDashboard" | "UserCheck" | "UserPlus" | "DollarSign" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound", disabled: true, availabilityLabel: string, roles?: readonly string[] }} AdminMenuEntry
+ * @typedef {{ id: string, label: string, href: string, icon: "LayoutDashboard" | "UserCheck" | "UserPlus" | "DollarSign" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound" | "ImageIcon", disabled: false, roles?: readonly string[], permission?: string } | { id: string, label: string, icon: "LayoutDashboard" | "UserCheck" | "UserPlus" | "DollarSign" | "Layers" | "ScanLine" | "Upload" | "FilePen" | "BookOpen" | "ClipboardList" | "KeyRound" | "ImageIcon", disabled: true, availabilityLabel: string, roles?: readonly string[] }} AdminMenuEntry
  */
 
 /** @type {readonly AdminMenuEntry[]} */
@@ -21,6 +21,7 @@ export const ADMIN_MENU_ITEMS = Object.freeze([
   Object.freeze({ id: "resources", label: "Cours", href: "/resources", icon: "BookOpen", disabled: false, roles: Object.freeze(["university_admin"]) }),
   Object.freeze({ id: "assignments", label: "Devoirs", href: "/assignments", icon: "ClipboardList", disabled: false, roles: Object.freeze(["university_admin"]) }),
   Object.freeze({ id: "codes", label: "Codes d'accès", href: "/codes", icon: "KeyRound", disabled: false, roles: Object.freeze(["university_admin"]) }),
+  Object.freeze({ id: "university", label: "Université", href: "/universite", icon: "ImageIcon", disabled: false, roles: Object.freeze(["university_admin"]) }),
 ]);
 
 /**

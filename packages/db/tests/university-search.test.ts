@@ -161,13 +161,13 @@ test("searchActiveUniversitiesByAcronym trims surrounding spaces", async () => {
 
 test("listActiveUniversitiesForVitrine returns the public fields of active universities", async () => {
   const fake = createMemoryDatabase([
-    { name: "Institut Supérieur de la Communication", acronym: "ISCOM", locality: null, slug: "iscom", status: "active" },
-    { name: "Université Technologique", acronym: "UTM", locality: "Ouaga", slug: "utm-ouaga", status: "active" },
+    { id: "uni-1", name: "Institut Supérieur de la Communication", acronym: "ISCOM", locality: null, slug: "iscom", status: "active" },
+    { id: "uni-2", name: "Université Technologique", acronym: "UTM", locality: "Ouaga", slug: "utm-ouaga", status: "active" },
   ]);
   const res = await listActiveUniversitiesForVitrine(fake.database);
   assert.deepEqual(res, [
-    { name: "Institut Supérieur de la Communication", acronym: "ISCOM", locality: null, slug: "iscom" },
-    { name: "Université Technologique", acronym: "UTM", locality: "Ouaga", slug: "utm-ouaga" },
+    { id: "uni-1", name: "Institut Supérieur de la Communication", acronym: "ISCOM", locality: null, slug: "iscom" },
+    { id: "uni-2", name: "Université Technologique", acronym: "UTM", locality: "Ouaga", slug: "utm-ouaga" },
   ]);
   assert.equal(fake.selectCount, 1);
   assert.equal(fake.selects[0].limitCount, 500);
@@ -186,10 +186,10 @@ test("listActiveUniversitiesForVitrine drops non-active universities and missing
 
 test("listActiveUniversitiesForVitrine never exposes the status or other columns", async () => {
   const fake = createMemoryDatabase([
-    { name: "Active", acronym: "ACT", locality: null, slug: "act", status: "active", phone: "+226 00 00 00 00" },
+    { id: "uni-1", name: "Active", acronym: "ACT", locality: null, slug: "act", status: "active", phone: "+226 00 00 00 00" },
   ]);
   const [university] = await listActiveUniversitiesForVitrine(fake.database);
-  assert.deepEqual(Object.keys(university).sort(), ["acronym", "locality", "name", "slug"]);
+  assert.deepEqual(Object.keys(university).sort(), ["acronym", "id", "locality", "name", "slug"]);
 });
 
 test("listActiveUniversitiesForVitrine returns an empty list when nothing is active", async () => {

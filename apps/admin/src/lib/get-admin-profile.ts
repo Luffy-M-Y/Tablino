@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { createAuthOptions, getCurrentUniversityId } from "@tablino/auth";
+import { getUniversityLogoUpdatedAt } from "@tablino/db";
 import { getAvatarInitial, getRoleLabel } from "./admin-profile.mjs";
 import { requireAdminAccess } from "./authorization";
 
@@ -11,6 +12,7 @@ export type AdminProfile = {
   role: string;
   universityName: string | null;
   universityAcronym: string | null;
+  universityLogoUrl: string | null;
 };
 
 export async function getAdminProfile(): Promise<AdminProfile> {
@@ -22,6 +24,16 @@ export async function getAdminProfile(): Promise<AdminProfile> {
 
   const email = session?.user?.email ?? null;
   const name = session?.user?.name ?? null;
+  // Logo servi par /universite/logo (hôte de l'université) ; version = date de mise à jour.
+  let universityLogoUrl: string | null = null;
+  if (authorizedUser.role === "university_admin" && authorizedUser.universityId) {
+    try {
+      const updatedAt = await getUniversityLogoUpdatedAt(authorizedUser.universityId);
+      if (updatedAt) universityLogoUrl = `/universite/logo?v=${updatedAt.getTime()}`;
+    } catch {
+      universityLogoUrl = null;
+    }
+  }
   return {
     email,
     name,
@@ -30,5 +42,6 @@ export async function getAdminProfile(): Promise<AdminProfile> {
     role: authorizedUser.role,
     universityName: authorizedUser.universityName ?? null,
     universityAcronym: authorizedUser.universityAcronym ?? null,
+    universityLogoUrl,
   };
 }

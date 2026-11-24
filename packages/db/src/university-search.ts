@@ -68,7 +68,8 @@ export async function searchActiveUniversitiesByAcronym(
   return { ok: true, universities };
 }
 
-export type ActiveUniversityListing = UniversitySearchResult;
+// id : serveur seulement (versions de logo), jamais envoyé au navigateur par la vitrine.
+export type ActiveUniversityListing = UniversitySearchResult & { id: string };
 
 const ACTIVE_UNIVERSITY_LISTING_LIMIT = 500;
 
@@ -81,6 +82,7 @@ export async function listActiveUniversitiesForVitrine(
   const dbInstance = await resolveDatabase(database);
   const rows = await dbInstance
     .select({
+      id: schema.universities.id,
       name: schema.universities.name,
       acronym: schema.universities.acronym,
       locality: schema.universities.locality,
@@ -98,7 +100,7 @@ export async function listActiveUniversitiesForVitrine(
   const universities: ActiveUniversityListing[] = [];
   for (const row of rows) {
     if (row.status !== "active" || row.acronym === null) continue;
-    universities.push({ name: row.name, acronym: row.acronym, locality: row.locality, slug: row.slug });
+    universities.push({ id: row.id, name: row.name, acronym: row.acronym, locality: row.locality, slug: row.slug });
     if (universities.length === ACTIVE_UNIVERSITY_LISTING_LIMIT) break;
   }
   return universities;

@@ -11,6 +11,7 @@ export type FinderEntry = {
   acronym: string;
   locality: string | null;
   url: string;
+  logoUrl: string | null;
 };
 
 // Recherche instantanée : filtre côté navigateur la liste publique des
@@ -75,9 +76,21 @@ export function UniversityFinder({
                 href={university.url}
                 className={`group flex items-center gap-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[color:var(--color-primary)] hover:bg-white hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${focusRing}`}
               >
-                <span className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-brand)] px-2 text-xs font-bold text-white">
-                  {university.acronym}
-                </span>
+                {university.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- logo déjà réencodé en 256 px par le serveur
+                  <img
+                    src={university.logoUrl}
+                    alt=""
+                    width={44}
+                    height={44}
+                    loading="lazy"
+                    className="h-11 w-11 shrink-0 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white object-cover"
+                  />
+                ) : (
+                  <span className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-brand)] px-2 text-xs font-bold text-white">
+                    {university.acronym}
+                  </span>
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-[color:var(--color-foreground)]">{university.name}</span>
                   <span className="block text-sm text-[color:var(--color-muted-foreground)]">

@@ -1,5 +1,5 @@
 /**
- * @typedef {{ id: "structure" | "upload" | "scanner" | "drafts" | "resources" | "assignments", title: string, description: string, href: string, active: true, disabled: false } | { id: "scanner", title: string, active: false, disabled: true, availabilityLabel: string }} AdminHomeCard
+ * @typedef {{ id: "structure" | "upload" | "scanner" | "drafts" | "resources" | "assignments" | "university", title: string, description: string, href: string, active: true, disabled: false } | { id: "scanner", title: string, active: false, disabled: true, availabilityLabel: string }} AdminHomeCard
  */
 
 /** @type {readonly AdminHomeCard[]} */
@@ -49,6 +49,14 @@ export const ADMIN_HOME_CARDS = Object.freeze([
     title: "Devoirs",
     description: "Voir et supprimer les devoirs",
     href: "/assignments",
+    active: true,
+    disabled: false,
+  }),
+  Object.freeze({
+    id: "university",
+    title: "Logo de l'université",
+    description: "Ajouter ou changer le logo affiché dans les recherches",
+    href: "/universite",
     active: true,
     disabled: false,
   }),

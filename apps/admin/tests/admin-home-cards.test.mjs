@@ -69,3 +69,15 @@ test("enables assignments card", () => {
     disabled: false,
   });
 });
+
+test("enables university logo card", () => {
+  assert.deepEqual(ADMIN_HOME_CARDS[6], {
+    id: "university",
+    title: "Logo de l'université",
+    description: "Ajouter ou changer le logo affiché dans les recherches",
+    href: "/universite",
+    active: true,
+    disabled: false,
+  });
+  assert.equal(ADMIN_HOME_CARDS.length, 7);
+});

@@ -12,7 +12,8 @@ export type AdminMenuEntry =
         | "drafts"
         | "resources"
         | "assignments"
-        | "codes";
+        | "codes"
+        | "university";
       label: string;
       href: string;
       icon: string;
