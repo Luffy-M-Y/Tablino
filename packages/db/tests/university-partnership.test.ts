@@ -179,7 +179,7 @@ test("completeUniversityPartnership validates input strictly", async () => {
 
 test("completeUniversityPartnership returns not_approved when update returns 0 rows (no upsert)", async () => {
   const fake = createMemoryDatabase({
-    selectedRows: [[{ id: "user-1" }], []],
+    selectedRows: [[{ id: "user-1", revokedAt: null }], []],
   });
 
   const res = await completeUniversityPartnership(
@@ -204,7 +204,7 @@ test("completeUniversityPartnership activates university and upserts payout deta
   const now = new Date("2026-11-03T12:00:00.000Z");
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3500, acronym: "ISCOM", locality: null }],
       [],
       [],
@@ -269,7 +269,7 @@ for (const [label, acronym, locality] of [
   test(`completeUniversityPartnership refuses ${label} before writing`, async () => {
     const fake = createMemoryDatabase({
       selectedRows: [
-        [{ id: "user-approved" }],
+        [{ id: "user-approved", revokedAt: null }],
         [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym, locality }],
         [],
       ],
@@ -294,7 +294,7 @@ for (const [label, acronym, locality] of [
 test("completeUniversityPartnership refuses a slug collision before writing", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [],
@@ -319,7 +319,7 @@ test("completeUniversityPartnership refuses a slug collision before writing", as
 test("completeUniversityPartnership does not change a previously accepted contract", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: null, locality: null }],
       [{ contractAcceptedAt: new Date("2026-01-01T00:00:00.000Z") }],
     ],
@@ -342,7 +342,7 @@ test("completeUniversityPartnership does not change a previously accepted contra
 test("completeUniversityPartnership reports a unique constraint race and rolls back writes", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [],
@@ -390,10 +390,30 @@ test("completeUniversityPartnership refuses a university outside the session uni
   assert.equal(fake.inserts.length, 0);
 });
 
+test("completeUniversityPartnership refuses a revoked university admin before reading the university", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ id: "user-approved", revokedAt: new Date("2026-11-01T00:00:00.000Z") }]],
+  });
+
+  const result = await completeUniversityPartnership({
+    userId: "user-approved",
+    universityId: "u-approved",
+    operator: "Moov Money",
+    holderName: "Titulaire",
+    numberEncrypted: "v1:enc",
+    contractVersion: "v1",
+  }, fake.database);
+
+  assert.deepEqual(result, { ok: false, reason: "not_authorized" });
+  assert.equal(fake.selects.length, 1);
+  assert.equal(fake.updates.length, 0);
+  assert.equal(fake.inserts.length, 0);
+});
+
 test("completeUniversityPartnership builds the final slug from the stored acronym and locality", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
       [],
       [],
@@ -421,7 +441,7 @@ test("completeUniversityPartnership builds the final slug from the stored acrony
 test("completeUniversityPartnership ignores acronym, locality and visibility sent in the input", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [],
@@ -452,7 +472,7 @@ test("completeUniversityPartnership ignores acronym, locality and visibility sen
 test("completeUniversityPartnership reports slug_taken for an existing combined slug", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
       [],
       [],
@@ -510,7 +530,7 @@ const CONTRACT_INPUT = {
 test("completeUniversityPartnership does not conflict with its own stored address", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "IST", locality: "Ouaga" }],
       [],
       [{ id: "u-approved", acronym: "IST", locality: "Ouaga", slug: "u-378590c5e623", status: "approved" }],
@@ -527,7 +547,7 @@ test("completeUniversityPartnership does not conflict with its own stored addres
 test("completeUniversityPartnership requires a locality when another university uses the acronym", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "ISCOM", locality: null }],
       [],
       [{ id: "u-other", acronym: "ISCOM", locality: "Bobo", slug: "iscom-bobo", status: "active" }],
@@ -544,7 +564,7 @@ test("completeUniversityPartnership requires a locality when another university 
 test("completeUniversityPartnership refuses an address already planned by another approved university", async () => {
   const fake = createMemoryDatabase({
     selectedRows: [
-      [{ id: "user-approved" }],
+      [{ id: "user-approved", revokedAt: null }],
       [{ id: "u-approved", status: "approved", revenueShareBps: 3000, acronym: "UTM", locality: "Ouaga" }],
       [],
       [{ id: "u-other", acronym: "UTM", locality: "Ouaga", slug: "u-0123456789ab", status: "approved" }],
