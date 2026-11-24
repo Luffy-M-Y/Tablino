@@ -96,7 +96,7 @@ export async function completeUniversityPartnership(
   try {
     return await dbInstance.transaction(async (tx) => {
       const sessionUsers = await tx
-        .select({ id: schema.users.id })
+        .select({ id: schema.users.id, revokedAt: schema.users.revokedAt })
         .from(schema.users)
         .where(and(
           eq(schema.users.id, input.userId.trim()),
@@ -104,7 +104,8 @@ export async function completeUniversityPartnership(
           eq(schema.users.role, "university_admin"),
         ))
         .limit(1);
-      if (sessionUsers.length === 0) {
+      // Compte révoqué : contrôlé en JavaScript pour rester testable.
+      if (sessionUsers.length === 0 || sessionUsers[0].revokedAt !== null) {
         return { ok: false, reason: "not_authorized" };
       }
 
