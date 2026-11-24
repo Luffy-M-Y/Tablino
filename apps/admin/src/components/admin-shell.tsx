@@ -197,7 +197,7 @@ export function AdminShell({
             href="/"
             className={`flex items-center gap-2 rounded-[var(--radius-rounded)] text-lg font-bold text-white ${headerFocusStyle}`}
           >
-            <Image src="/icons/icon-192.png" alt="" width={32} height={32} priority className="rounded-lg ring-1 ring-white/20" />
+            <Image src="/icons/icon-192.png" alt="" width={32} height={32} priority unoptimized className="rounded-lg ring-1 ring-white/20" />
             Tablino
           </Link>
           <button
