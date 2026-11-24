@@ -294,7 +294,7 @@ export default async function HomePage() {
       profile={profile}
     >
         <section aria-label="Fonctionnalités d’administration">
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {activeHomeCards.map((card) => (
             <li key={card.id}>
               <AdminLinkCard
@@ -303,6 +303,7 @@ export default async function HomePage() {
                 title={card.title}
                 description={card.description}
                 accent={card.id === "scanner"}
+                compact
               />
             </li>
           ))}

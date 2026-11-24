@@ -23,6 +23,7 @@ export function AdminLinkCard({
   title,
   description,
   accent = false,
+  compact = false,
   children,
 }: {
   href: string;
@@ -30,17 +31,18 @@ export function AdminLinkCard({
   title: string;
   description: string;
   accent?: boolean;
+  compact?: boolean;
   children?: ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className={`group relative flex min-w-0 items-center gap-4 rounded-[var(--radius-rounded)] border border-[color:var(--admin-card-border)] bg-[color:var(--admin-card-background)] p-4 text-[color:var(--color-text)] shadow-[var(--admin-card-shadow)] outline-none motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[var(--admin-card-shadow-hover)] motion-safe:focus-visible:-translate-y-1 motion-safe:focus-visible:shadow-[var(--admin-card-shadow-hover)] motion-reduce:transition-colors ${accent
+      className={`group relative flex min-w-0 items-center ${compact ? "gap-3 p-3" : "gap-4 p-4"} rounded-[var(--radius-rounded)] border border-[color:var(--admin-card-border)] bg-[color:var(--admin-card-background)] text-[color:var(--color-text)] shadow-[var(--admin-card-shadow)] outline-none motion-safe:transition-[transform,box-shadow,border-color] motion-safe:duration-200 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[var(--admin-card-shadow-hover)] motion-safe:focus-visible:-translate-y-1 motion-safe:focus-visible:shadow-[var(--admin-card-shadow-hover)] motion-reduce:transition-colors ${accent
         ? "hover:border-[color:var(--admin-action)] focus-visible:border-[color:var(--admin-action)]"
         : "hover:border-[color:var(--color-primary)] focus-visible:border-[color:var(--color-primary)]"}`}
     >
       <span
-        className={`flex size-12 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 motion-safe:group-hover:scale-105 motion-safe:group-focus-visible:scale-105 motion-reduce:transition-none ${accent
+        className={`flex ${compact ? "size-10" : "size-12"} shrink-0 items-center justify-center rounded-xl transition-transform duration-200 motion-safe:group-hover:scale-105 motion-safe:group-focus-visible:scale-105 motion-reduce:transition-none ${accent
           ? "bg-[color:var(--admin-action-soft)] text-[color:var(--admin-action)]"
           : "bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]"}`}
       >
