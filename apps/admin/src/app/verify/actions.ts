@@ -17,7 +17,10 @@ import {
 import { sendVerificationEmail } from "@tablino/email";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAdminHostContext } from "@/lib/admin-host-context";
 import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
+import { getUniversityAdminAccount, getUniversityAdminLoginUrl } from "@/lib/university-admin-account";
+import { resolveUniversityAdminHost } from "@/lib/university-admin-host.mjs";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
 export type VerificationActionState = { message: string | null };
@@ -69,10 +72,25 @@ export async function verifyCodeAction(
 
   await resetAttempts("verify_code", userId);
   await notifySuperAdminOfPendingUniversity(userId);
-  const session = await createStudentSession(userId);
-  const sessionCookieConfig = getSessionCookieConfig("admin");
   const verificationCookieConfig = getEmailVerificationCookieConfig();
   const cookieStore = await cookies();
+
+  // Admin d'université vérifié hors de son hôte (inscription sur sup-admin) :
+  // aucune session ici, connexion à faire sur l'hôte de son université.
+  const account = await getUniversityAdminAccount(userId);
+  if (account !== null && resolveUniversityAdminHost(account, await getAdminHostContext()) === "other_host") {
+    const loginUrl = getUniversityAdminLoginUrl(account);
+    if (loginUrl !== null) {
+      cookieStore.set(verificationCookieConfig.name, "", {
+        ...verificationCookieConfig.options,
+        maxAge: 0,
+      });
+      redirect(loginUrl);
+    }
+  }
+
+  const session = await createStudentSession(userId);
+  const sessionCookieConfig = getSessionCookieConfig("admin");
   cookieStore.set(sessionCookieConfig.name, session.sessionToken, {
     ...sessionCookieConfig.options,
     expires: session.expires,
