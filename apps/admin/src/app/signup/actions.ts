@@ -10,6 +10,8 @@ export type SignupActionState = {
   message: string | null;
   universityName: string;
   acronym: string;
+  locality: string;
+  visibility: "private" | "public";
   phone: string;
   email: string;
 };
@@ -25,14 +27,21 @@ export async function signupAction(
 ): Promise<SignupActionState> {
   const universityName = readStringField(formData, "universityName");
   const acronym = readStringField(formData, "acronym");
+  const locality = readStringField(formData, "locality");
+  const visibilityField = readStringField(formData, "visibility");
   const phone = readStringField(formData, "phone");
   const email = readStringField(formData, "email").trim().toLowerCase();
   const password = readStringField(formData, "password");
   const passwordConfirmation = readStringField(formData, "passwordConfirmation");
 
-  const state = { universityName, acronym, phone, email };
+  const visibility: "private" | "public" = visibilityField === "public" ? "public" : "private";
+  const state = { universityName, acronym, locality, visibility, phone, email };
   if (!(await verifyTurnstileForm(formData, "signup"))) {
     return { ...state, message: TURNSTILE_ERROR_MESSAGE };
+  }
+
+  if (visibilityField !== "private" && visibilityField !== "public") {
+    return { ...state, message: "Choisissez la visibilité de l'université." };
   }
 
   if (password !== passwordConfirmation) {
@@ -60,6 +69,8 @@ export async function signupAction(
   const result = await registerUniversityAdminWithPassword({
     universityName,
     acronym: trimmedAcronym,
+    locality: locality.trim() || null,
+    visibility,
     phone: phoneValidation.phone,
     email,
     name: universityName,
@@ -70,7 +81,7 @@ export async function signupAction(
       case "invalid_input":
         return {
           ...state,
-          message: "Informations invalides. Vérifiez le nom, l'acronyme, le téléphone, l'adresse e-mail et le mot de passe.",
+          message: "Informations invalides. Vérifiez le nom, l'acronyme, la localité, le téléphone, l'adresse e-mail et le mot de passe.",
         };
       case "email_taken":
         return { ...state, message: "Cette adresse est déjà utilisée." };

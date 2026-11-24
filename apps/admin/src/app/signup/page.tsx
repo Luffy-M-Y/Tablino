@@ -3,10 +3,16 @@ import { AuthShell, authCardClass, linkClass } from "@/components/auth-ui";
 import { SignupForm } from "./signup-form";
 
 export default function SignupPage() {
+  const studentRootDomain = process.env.STUDENT_ROOT_DOMAIN;
+  const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
+  const addressDomains = studentRootDomain && adminRootDomain
+    ? { studentRootDomain, adminRootDomain }
+    : null;
+
   return (
     <AuthShell title="Inscription de votre universit&eacute;" wide>
       <section className={authCardClass}>
-        <SignupForm />
+        <SignupForm addressDomains={addressDomains} />
         <p className="mt-3 text-center text-sm text-[color:var(--color-muted-foreground)]">
           D&eacute;j&agrave; un compte ?{" "}
           <Link href="/login" className={linkClass}>
