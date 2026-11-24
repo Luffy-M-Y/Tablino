@@ -3,12 +3,21 @@ import { headers } from "next/headers";
 import { Footer } from "./Footer";
 import { Navbar } from "./Navbar";
 import { AUTH_CENTRAL_ROUTE_HEADER } from "@/lib/auth-central-host.mjs";
+import { ROOT_SITE_ROUTE_HEADER } from "@/lib/root-site.mjs";
 import { getCurrentUniversityIdOrNull } from "@/lib/university";
 
 export async function TenantGate({ children }: { children: ReactNode }) {
   const requestHeaders = await headers();
   if (requestHeaders.get(AUTH_CENTRAL_ROUTE_HEADER) === "1") {
     return children;
+  }
+  // En-tête posé par le proxy seulement (supprimé de la requête entrante).
+  if (requestHeaders.get(ROOT_SITE_ROUTE_HEADER) === "1") {
+    return (
+      <main id="main-content" className="flex-1">
+        {children}
+      </main>
+    );
   }
 
   let universityId: string | null;

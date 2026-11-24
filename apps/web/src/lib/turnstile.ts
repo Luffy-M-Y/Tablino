@@ -1,6 +1,7 @@
 import { verifyTurnstileToken, type TurnstileAction } from "@tablino/auth";
 import { headers } from "next/headers";
 import { getCurrentUniversityIdOrNull } from "./university";
+import { getRootSiteTurnstileHostname } from "./root-site.mjs";
 import { getTurnstileExpectedHostname } from "./turnstile-host.mjs";
 import { parseUniversityHostSlugMap } from "./university-host.mjs";
 
@@ -14,13 +15,15 @@ export async function verifyTurnstileForm(
   const value = formData.get("turnstileToken");
   const token = typeof value === "string" ? value : "";
   const host = (await headers()).get("host");
-  const universityId = await getCurrentUniversityIdOrNull();
-  const expectedHostname = getTurnstileExpectedHostname(
-    host,
-    process.env.ROOT_DOMAIN ?? "",
-    universityId,
-    parseUniversityHostSlugMap(process.env.UNIVERSITY_HOST_SLUG_MAP),
-  );
+  // Recherche de la vitrine : domaine racine seul. Autres actions : hôte d'une université seul.
+  const expectedHostname = action === "university_search"
+    ? getRootSiteTurnstileHostname(host, process.env.ROOT_DOMAIN)
+    : getTurnstileExpectedHostname(
+      host,
+      process.env.ROOT_DOMAIN ?? "",
+      await getCurrentUniversityIdOrNull(),
+      parseUniversityHostSlugMap(process.env.UNIVERSITY_HOST_SLUG_MAP),
+    );
 
   if (!expectedHostname) {
     console.warn(JSON.stringify({
