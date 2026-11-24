@@ -1,4 +1,4 @@
-import { inArray } from "drizzle-orm";
+import { and, inArray, ne } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 import { buildUniversitySlug, validateUniversitySlug } from "./university-slug";
@@ -50,18 +50,28 @@ export function normalizeUniversityAddress(
 export async function findUniversityAddressConflict(
   reader: UniversityAddressReader,
   address: NormalizedUniversityAddress,
+  options: { excludeUniversityId?: string } = {},
 ): Promise<UniversityAddressConflict | null> {
+  const { excludeUniversityId } = options;
+  const blockingStatus = inArray(schema.universities.status, [...BLOCKING_UNIVERSITY_STATUSES]);
   const rows = await reader
     .select({
+      id: schema.universities.id,
       acronym: schema.universities.acronym,
       locality: schema.universities.locality,
       slug: schema.universities.slug,
       status: schema.universities.status,
     })
     .from(schema.universities)
-    .where(inArray(schema.universities.status, [...BLOCKING_UNIVERSITY_STATUSES]));
+    .where(excludeUniversityId === undefined
+      ? blockingStatus
+      : and(blockingStatus, ne(schema.universities.id, excludeUniversityId)));
 
-  const blockingRows = rows.filter((row) => row.status === "approved" || row.status === "active");
+  // L'université qui modifie sa propre adresse ne se bloque pas elle-même.
+  const blockingRows = rows.filter((row) => (
+    (row.status === "approved" || row.status === "active")
+    && (excludeUniversityId === undefined || row.id !== excludeUniversityId)
+  ));
 
   const acronymUsed = blockingRows.some((row) => {
     if (row.acronym === null) return false;

@@ -1,7 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
-import { normalizeUniversityAddress } from "./university-address";
+import { findUniversityAddressConflict, normalizeUniversityAddress } from "./university-address";
 
 type UniversityPartnershipDatabase = typeof sharedDb;
 
@@ -56,7 +56,15 @@ export type CompleteUniversityPartnershipResult =
   | { ok: true; acceptedShareBps: number; slug: string }
   | {
     ok: false;
-    reason: "invalid_input" | "invalid_address" | "not_authorized" | "not_approved" | "slug_taken" | "already_completed";
+    reason:
+      | "invalid_input"
+      | "invalid_address"
+      | "not_authorized"
+      | "not_approved"
+      | "slug_taken"
+      | "already_completed"
+      | "locality_required"
+      | "address_taken";
   };
 
 export async function completeUniversityPartnership(
@@ -132,6 +140,13 @@ export async function completeUniversityPartnership(
         return { ok: false, reason: "invalid_address" };
       }
 
+      const addressConflict = await findUniversityAddressConflict(tx, address, {
+        excludeUniversityId: input.universityId.trim(),
+      });
+      if (addressConflict !== null) {
+        return { ok: false, reason: addressConflict };
+      }
+
       const slugCollisions = await tx
         .select({ id: schema.universities.id })
         .from(schema.universities)
@@ -203,4 +218,105 @@ export async function completeUniversityPartnership(
     }
     throw error;
   }
+}
+
+export type UpdateUniversityRegistrationInput = {
+  userId: string;
+  universityId: string;
+  acronym: string;
+  locality?: string | null;
+  visibility: "private" | "public";
+};
+
+export type UpdateUniversityRegistrationResult =
+  | { ok: true; slug: string }
+  | {
+    ok: false;
+    reason:
+      | "invalid_input"
+      | "not_authorized"
+      | "not_approved"
+      | "already_completed"
+      | "locality_required"
+      | "address_taken";
+  };
+
+/**
+ * Modifie l'acronyme, la localité et la visibilité enregistrés à l'inscription,
+ * tant que le contrat de partenariat n'est pas validé.
+ */
+export async function updateUniversityRegistration(
+  input: UpdateUniversityRegistrationInput,
+  database?: UniversityPartnershipDatabase,
+): Promise<UpdateUniversityRegistrationResult> {
+  if (
+    typeof input !== "object"
+    || input === null
+    || typeof input.userId !== "string"
+    || !input.userId.trim()
+    || typeof input.universityId !== "string"
+    || !input.universityId.trim()
+    || (input.visibility !== "private" && input.visibility !== "public")
+  ) {
+    return { ok: false, reason: "invalid_input" };
+  }
+  const address = normalizeUniversityAddress(input.acronym, input.locality);
+  if (address === null) return { ok: false, reason: "invalid_input" };
+
+  const universityId = input.universityId.trim();
+  const dbInstance = await resolveDatabase(database);
+
+  return dbInstance.transaction(async (tx) => {
+    const sessionUsers = await tx
+      .select({ id: schema.users.id, revokedAt: schema.users.revokedAt })
+      .from(schema.users)
+      .where(and(
+        eq(schema.users.id, input.userId.trim()),
+        eq(schema.users.universityId, universityId),
+        eq(schema.users.role, "university_admin"),
+      ))
+      .limit(1);
+    const sessionUser = sessionUsers[0];
+    if (!sessionUser || sessionUser.revokedAt !== null) {
+      return { ok: false, reason: "not_authorized" };
+    }
+
+    const universityRows = await tx
+      .select({ id: schema.universities.id, status: schema.universities.status })
+      .from(schema.universities)
+      .where(eq(schema.universities.id, universityId))
+      .for("update")
+      .limit(1);
+    if (universityRows[0]?.status !== "approved") {
+      return { ok: false, reason: "not_approved" };
+    }
+
+    const acceptedContracts = await tx
+      .select({ contractAcceptedAt: schema.universityPayoutDetails.contractAcceptedAt })
+      .from(schema.universityPayoutDetails)
+      .where(eq(schema.universityPayoutDetails.universityId, universityId))
+      .limit(1);
+    if (acceptedContracts.length > 0) {
+      return { ok: false, reason: "already_completed" };
+    }
+
+    const addressConflict = await findUniversityAddressConflict(tx, address, { excludeUniversityId: universityId });
+    if (addressConflict !== null) {
+      return { ok: false, reason: addressConflict };
+    }
+
+    const updatedRows = await tx
+      .update(schema.universities)
+      .set({ acronym: address.acronym, locality: address.locality, visibility: input.visibility })
+      .where(and(
+        eq(schema.universities.id, universityId),
+        eq(schema.universities.status, "approved"),
+      ))
+      .returning({ id: schema.universities.id });
+    if (updatedRows.length === 0) {
+      return { ok: false, reason: "not_approved" };
+    }
+
+    return { ok: true, slug: address.slug };
+  });
 }

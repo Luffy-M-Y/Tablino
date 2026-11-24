@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { buildAdminLoginUrl } from "@/lib/admin-return-url.mjs";
 import { requireApprovedUniversityAdmin } from "@/lib/authorization";
@@ -7,7 +8,7 @@ import { CONTRACT_VERSION } from "@/lib/partnership-contract.mjs";
 import { validatePartnershipInput } from "@/lib/partnership-validation.mjs";
 import { encryptPayoutNumberWithEnv } from "@/lib/payout-encryption.mjs";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
-import { completeUniversityPartnership } from "@tablino/db";
+import { completeUniversityPartnership, updateUniversityRegistration } from "@tablino/db";
 
 export type PartnershipActionState = {
   status: "idle" | "error" | "success";
@@ -100,13 +101,25 @@ export async function completePartnershipAction(
     if (result.reason === "slug_taken") {
       return {
         status: "error",
-        message: "Cette adresse est déjà utilisée par une autre université. Contactez l’équipe Tablino.",
+        message: "Cette adresse est déjà utilisée par une autre université. Modifiez l’acronyme ou la localité.",
       };
     }
     if (result.reason === "invalid_address") {
       return {
         status: "error",
-        message: "L’acronyme ou la localité enregistrés ne permettent pas de créer une adresse valide. Contactez l’équipe Tablino.",
+        message: "L’acronyme ou la localité enregistrés ne permettent pas de créer une adresse valide. Modifiez-les.",
+      };
+    }
+    if (result.reason === "locality_required") {
+      return {
+        status: "error",
+        message: "Une université avec cet acronyme existe déjà. Précisez la localité.",
+      };
+    }
+    if (result.reason === "address_taken") {
+      return {
+        status: "error",
+        message: "Une université avec cet acronyme et cette localité existe déjà. Modifiez l’acronyme ou la localité.",
       };
     }
     if (result.reason === "already_completed") {
@@ -131,4 +144,66 @@ export async function completePartnershipAction(
     secure: process.env.NODE_ENV === "production",
   });
   redirect(loginUrl ?? "/");
+}
+
+export type RegistrationActionState = {
+  status: "idle" | "error" | "success";
+  message: string | null;
+  acronym: string;
+  locality: string;
+  visibility: "private" | "public";
+};
+
+export async function updateRegistrationAction(
+  previousState: RegistrationActionState,
+  formData: FormData,
+): Promise<RegistrationActionState> {
+  const user = await requireApprovedUniversityAdmin();
+
+  const acronym = readStringField(formData, "acronym");
+  const locality = readStringField(formData, "locality");
+  const visibilityField = readStringField(formData, "visibility");
+  if (visibilityField !== "private" && visibilityField !== "public") {
+    return {
+      acronym,
+      locality,
+      visibility: previousState.visibility,
+      status: "error",
+      message: "Choisissez la visibilité de l’université.",
+    };
+  }
+  const values: Pick<RegistrationActionState, "acronym" | "locality" | "visibility"> = {
+    acronym,
+    locality,
+    visibility: visibilityField,
+  };
+
+  let result;
+  try {
+    result = await updateUniversityRegistration({
+      userId: user.id,
+      universityId: user.universityId,
+      acronym,
+      locality: locality.trim() || null,
+      visibility: visibilityField,
+    });
+  } catch {
+    return { ...values, status: "error", message: "Une erreur est survenue lors de l'enregistrement." };
+  }
+
+  if (!result.ok) {
+    if (result.reason === "not_authorized" || result.reason === "not_approved") {
+      redirect("/");
+    }
+    const message = {
+      invalid_input: "Vérifiez l’acronyme (20 caractères maximum) et la localité (60 caractères maximum).",
+      already_completed: "Le contrat a déjà été validé ; l’adresse ne peut plus être modifiée.",
+      locality_required: "Une université avec cet acronyme existe déjà. Précisez la localité.",
+      address_taken: "Une université avec cet acronyme et cette localité existe déjà.",
+    }[result.reason];
+    return { ...values, status: "error", message };
+  }
+
+  revalidatePath("/partenariat");
+  return { ...values, status: "success", message: "Modifications enregistrées." };
 }
