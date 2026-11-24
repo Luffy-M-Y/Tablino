@@ -5,7 +5,7 @@ import {
   buildSignupAddressPreview,
   type SignupAddressDomains,
 } from "@/lib/signup-address-preview.mjs";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import {
   errorClass,
   inputClass,
@@ -52,7 +52,16 @@ export function SignupForm({ addressDomains }: { addressDomains: SignupAddressDo
     !turnstileToken;
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      onSubmit={(event) => {
+        // Envoi sans l'attribut action : React 19 ne réinitialise pas le
+        // formulaire, les champs et la visibilité restent après une erreur.
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        startTransition(() => formAction(formData));
+      }}
+      className="space-y-4"
+    >
       <div>
         <label htmlFor="universityName" className={labelClass}>
           Nom complet de l'universit&eacute;
