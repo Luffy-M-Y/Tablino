@@ -17,6 +17,8 @@ import { isAdminPasswordLoginAllowed } from "@/lib/admin-host.mjs";
 import { runStartAdminGoogleSignIn } from "@/lib/auth-admin-google-start.mjs";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
+import { getUniversityAdminAccount, getUniversityAdminLoginUrl } from "@/lib/university-admin-account";
+import { resolveUniversityAdminHost } from "@/lib/university-admin-host.mjs";
 
 export type LoginActionState = {
   message: string | null;
@@ -89,6 +91,17 @@ export async function loginAction(
   }
 
   await resetAttempts("login", email);
+
+  // Admin d'université hors de son hôte : aucune session ici, connexion à
+  // refaire sur l'hôte de son université (même règle que /verify).
+  if (result.role === "university_admin") {
+    const account = await getUniversityAdminAccount(result.userId);
+    if (account !== null && resolveUniversityAdminHost(account, hostContext) === "other_host") {
+      const loginUrl = getUniversityAdminLoginUrl(account);
+      if (loginUrl !== null) redirect(loginUrl);
+      return { message: "Connectez-vous depuis l'adresse d'administration de votre université.", email };
+    }
+  }
 
   const session = await createStudentSession(result.userId);
   const cookieConfig = getSessionCookieConfig("admin");
