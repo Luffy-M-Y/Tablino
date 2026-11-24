@@ -81,6 +81,10 @@ export async function signupAction(
           ...state,
           message: "La création de l'université est temporairement indisponible. Réessayez.",
         };
+      case "locality_required":
+        return { ...state, message: "Une université avec cet acronyme existe déjà. Précisez la localité." };
+      case "address_taken":
+        return { ...state, message: "Une université avec cet acronyme et cette localité existe déjà." };
     }
   }
 

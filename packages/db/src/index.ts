@@ -365,6 +365,8 @@ export { setUniversityVisibility } from "./university-visibility";
 export type { SetUniversityVisibilityResult } from "./university-visibility";
 export { searchActiveUniversitiesByAcronym } from "./university-search";
 export type { UniversitySearchResult, SearchUniversitiesByAcronymResult } from "./university-search";
+export { checkUniversityAddress } from "./university-address";
+export type { CheckUniversityAddressResult } from "./university-address";
 export {
   listActiveSuperAdmins,
   createAdminRevocationService,

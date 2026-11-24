@@ -4,6 +4,7 @@ import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 import { hashPassword, isPasswordValid } from "./password";
 import { buildProgramSlug } from "./structure-validation";
+import { findUniversityAddressConflict, normalizeUniversityAddress } from "./university-address";
 
 type UniversityPasswordSignupDatabase = typeof sharedDb;
 
@@ -17,23 +18,28 @@ export type RegisterUniversityAdminWithPasswordResult =
   | { ok: true; universityId: string; userId: string }
   | {
       ok: false;
-      reason: "invalid_input" | "email_taken" | "account_taken" | "slug_unavailable";
+      reason:
+        | "invalid_input"
+        | "email_taken"
+        | "account_taken"
+        | "slug_unavailable"
+        | "locality_required"
+        | "address_taken";
     };
 
 const UNIVERSITY_SLUG_ATTEMPTS = 5;
 const UNIVERSITY_SLUG_SUFFIX_LENGTH = 12;
 
-function createUniversitySlug(base: string): string {
-  const suffix = randomBytes(UNIVERSITY_SLUG_SUFFIX_LENGTH / 2).toString("hex");
-  const maxBaseLength = 100 - suffix.length - 1;
-  const truncatedBase = base.slice(0, maxBaseLength).replace(/-+$/g, "");
-  return truncatedBase + "-" + suffix;
+function createProvisionalUniversitySlug(): string {
+  return "u-" + randomBytes(UNIVERSITY_SLUG_SUFFIX_LENGTH / 2).toString("hex");
 }
 
 export async function registerUniversityAdminWithPassword(
   input: {
     universityName: string;
-    acronym: string | null;
+    acronym: string;
+    locality?: string | null;
+    visibility?: "private" | "public";
     phone: string | null;
     email: string;
     name: string;
@@ -46,7 +52,9 @@ export async function registerUniversityAdminWithPassword(
     typeof input !== "object"
     || input === null
     || typeof input.universityName !== "string"
-    || (input.acronym !== null && typeof input.acronym !== "string")
+    || typeof input.acronym !== "string"
+    || (input.locality !== undefined && input.locality !== null && typeof input.locality !== "string")
+    || (input.visibility !== undefined && input.visibility !== "private" && input.visibility !== "public")
     || (input.phone !== null && typeof input.phone !== "string")
     || typeof input.email !== "string"
     || typeof input.name !== "string"
@@ -56,7 +64,8 @@ export async function registerUniversityAdminWithPassword(
 
   const universityName = input.universityName.trim();
   const baseSlug = buildProgramSlug(universityName);
-  const acronym = input.acronym?.trim() || null;
+  const address = normalizeUniversityAddress(input.acronym, input.locality);
+  const visibility = input.visibility ?? "private";
   const phone = input.phone?.trim() || null;
   const email = input.email.trim().toLowerCase();
   const separator = email.indexOf("@");
@@ -65,7 +74,7 @@ export async function registerUniversityAdminWithPassword(
     universityName.length < 1
     || universityName.length > 255
     || baseSlug.length < 1
-    || (acronym !== null && acronym.length > 20)
+    || address === null
     || (phone !== null && phone.length > 32)
     || email.length < 3
     || email.length > 255
@@ -88,14 +97,19 @@ export async function registerUniversityAdminWithPassword(
         .limit(1);
       if (existingUsers.length > 0) return { ok: false, reason: "email_taken" };
 
+      const addressConflict = await findUniversityAddressConflict(tx, address);
+      if (addressConflict !== null) return { ok: false, reason: addressConflict };
+
       let universityId: string | null = null;
       for (let attempt = 0; attempt < UNIVERSITY_SLUG_ATTEMPTS; attempt++) {
         const universities = await tx
           .insert(schema.universities)
           .values({
             name: universityName,
-            slug: createUniversitySlug(baseSlug),
-            acronym,
+            slug: createProvisionalUniversitySlug(),
+            acronym: address.acronym,
+            locality: address.locality,
+            visibility,
             phone,
             status: "pending",
             revenueShareBps: 0,
