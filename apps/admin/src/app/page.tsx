@@ -67,6 +67,7 @@ export default async function HomePage() {
       role: authorizedLector.role,
       universityName: null,
       universityAcronym: null,
+      universityLogoUrl: null,
     };
 
     return (

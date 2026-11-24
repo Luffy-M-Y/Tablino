@@ -16,6 +16,7 @@ import {
   ClipboardList,
   DollarSign,
   FilePen,
+  Image as ImageIcon,
   KeyRound,
   Layers,
   LayoutDashboard,
@@ -63,6 +64,7 @@ type AdminProfile = {
   role?: string;
   universityName?: string | null;
   universityAcronym?: string | null;
+  universityLogoUrl?: string | null;
 };
 
 export function AdminShell({
@@ -223,9 +225,20 @@ export function AdminShell({
               className={`flex items-center justify-center rounded-full bg-[color:var(--color-primary)] text-sm font-semibold text-[color:var(--color-on-band)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring-on-band)] ${profile.role === "university_admin" ? "h-12 max-w-[min(38rem,65vw)] gap-2 px-1.5" : "h-10 w-10"}`}
             >
               {profile.role === "university_admin" ? (
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/40">
-                  <User size={20} aria-hidden="true" />
-                </span>
+                profile.universityLogoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- image servie par l'hôte admin, déjà en 256 px
+                  <img
+                    src={profile.universityLogoUrl}
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 shrink-0 rounded-full border border-white/40 bg-white object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/40">
+                    <User size={20} aria-hidden="true" />
+                  </span>
+                )
               ) : (
                 profile.initial
               )}
@@ -259,7 +272,17 @@ export function AdminShell({
                   ) : null}
                   <p className="truncate text-sm text-[color:var(--color-muted-foreground)]">{profile.roleLabel}</p>
                 </div>
-                <div className="mt-4 border-t border-[color:var(--color-border)] pt-3">
+                <div className="mt-4 space-y-1 border-t border-[color:var(--color-border)] pt-3">
+                  {profile.role === "university_admin" ? (
+                    <Link
+                      href="/universite"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                      className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+                    >
+                      <ImageIcon size={16} aria-hidden="true" />
+                      <span>Logo de l&apos;universit&eacute;</span>
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {

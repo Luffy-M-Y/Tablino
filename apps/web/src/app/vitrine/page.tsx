@@ -14,7 +14,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { focusRing } from "@/components/ui/kit";
-import { listActiveUniversitiesForVitrine } from "@tablino/db";
+import { listActiveUniversitiesForVitrine, listUniversityLogoVersions } from "@tablino/db";
 import { BinderHero } from "@/components/vitrine/BinderHero";
 import { FindUniversityLink } from "@/components/vitrine/FindUniversityLink";
 import { Reveal } from "@/components/vitrine/Reveal";
@@ -150,13 +150,24 @@ export default async function VitrinePage() {
     const slugMap = parseUniversityHostSlugMap(process.env.UNIVERSITY_HOST_SLUG_MAP);
     const secure = process.env.NODE_ENV === "production";
     const universities = await listActiveUniversitiesForVitrine();
+    // Logo facultatif : version = date de mise à jour (cache de longue durée).
+    let logoVersions = new Map<string, Date>();
+    try {
+      logoVersions = await listUniversityLogoVersions(universities.map((university) => university.id));
+    } catch {
+      logoVersions = new Map();
+    }
+    const logoUrlOf = (university: { id: string; slug: string }) => {
+      const version = logoVersions.get(university.id);
+      return version ? `/api/logo-universite/${encodeURIComponent(university.slug)}?v=${version.getTime()}` : null;
+    };
     finderEntries = universities.flatMap((university) => {
       const url = buildUniversityStudentUrl({ slug: university.slug, rootDomain: process.env.ROOT_DOMAIN, slugMap, secure });
-      return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url }] : [];
+      return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url, logoUrl: logoUrlOf(university) }] : [];
     });
     adminFinderEntries = universities.flatMap((university) => {
       const url = buildUniversityAdminLoginUrl({ slug: university.slug, adminRootDomain: process.env.ADMIN_ROOT_DOMAIN, secure });
-      return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url }] : [];
+      return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url, logoUrl: logoUrlOf(university) }] : [];
     });
   } catch {
     finderEntries = null;

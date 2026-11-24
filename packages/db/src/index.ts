@@ -365,6 +365,16 @@ export type {
   UpdateUniversityRegistrationResult,
 } from "./university-partnership";
 export { setUniversityVisibility } from "./university-visibility";
+export {
+  getActiveUniversityLogoBySlug,
+  getUniversityLogo,
+  getUniversityLogoUpdatedAt,
+  isWebpImage,
+  listUniversityLogoVersions,
+  setUniversityLogo,
+  UNIVERSITY_LOGO_MAX_BYTES,
+} from "./university-logo";
+export type { SetUniversityLogoResult } from "./university-logo";
 export type { SetUniversityVisibilityResult } from "./university-visibility";
 export { listActiveUniversitiesForVitrine, searchActiveUniversitiesByAcronym } from "./university-search";
 export type {

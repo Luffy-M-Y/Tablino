@@ -1,6 +1,6 @@
 import {
   pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean,
-  unique, uniqueIndex, index, foreignKey, check, primaryKey,
+  unique, uniqueIndex, index, foreignKey, check, primaryKey, customType,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -38,6 +38,25 @@ export const universities = pgTable("universities", {
   check("universities_revenue_share_check", sql.raw("revenue_share_bps >= 0 AND revenue_share_bps <= 10000")),
   check("universities_active_slug_format_check", sql.raw("status <> 'active' OR slug ~ '^[a-z0-9]([a-z0-9-]{0,55}[a-z0-9])?$'")),
   check("universities_locality_not_blank_check", sql.raw("locality IS NULL OR length(btrim(locality)) > 0")),
+]).enableRLS();
+
+// Octets bruts (PostgreSQL bytea).
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+// Logo facultatif d'une université : WebP réencodé côté serveur (256 px, sans
+// métadonnées). Table séparée pour ne jamais charger les octets avec l'université.
+export const universityLogos = pgTable("university_logos", {
+  universityId: uuid("university_id")
+    .primaryKey()
+    .references(() => universities.id, { onDelete: "cascade" }),
+  image: bytea("image").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, () => [
+  check("university_logos_image_size_check", sql.raw("octet_length(image) BETWEEN 1 AND 262144")),
 ]).enableRLS();
 
 export const universityPayoutDetails = pgTable("university_payout_details", {
