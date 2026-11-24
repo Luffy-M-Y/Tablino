@@ -1,12 +1,10 @@
 "use server";
 
 import { getCurrentUniversityId } from "@/lib/university";
-import { searchPublishedCatalog } from "@/lib/queries";
-import type { SearchResult } from "@tablino/db";
+import { getStudentSearchIndex } from "@/lib/queries";
+import type { SearchCatalog } from "@tablino/db";
 
-export async function searchAction(query: string, scope: string): Promise<{ results: SearchResult[]; truncated: boolean }> {
+export async function loadSearchIndexAction(): Promise<SearchCatalog> {
   const universityId = await getCurrentUniversityId();
-  const safeQuery = typeof query === "string" ? query.slice(0, 100) : "";
-  const safeScope = scope === "program" ? "program" : scope === "subject" ? "subject" : "all";
-  return await searchPublishedCatalog(universityId, safeQuery, safeScope);
+  return await getStudentSearchIndex(universityId);
 }

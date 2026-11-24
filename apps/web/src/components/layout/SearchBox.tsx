@@ -1,26 +1,50 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
-import { searchAction } from "@/app/recherche/actions";
-import type { SearchResult } from "@tablino/db";
+import { loadSearchIndexAction } from "@/app/recherche/actions";
+import type { SearchCatalog } from "@tablino/db";
+import { searchCatalog } from "@tablino/db/search-catalog";
 
 type Scope = "all" | "program" | "subject";
+type IndexState =
+  | { status: "idle" | "loading" | "error" }
+  | { status: "ready"; catalog: SearchCatalog };
 
 export function SearchBox() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<Scope>("all");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [truncated, setTruncated] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const counter = useRef(0);
+  const [index, setIndex] = useState<IndexState>({ status: "idle" });
+  const loadCounter = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // Filtrage local, sans appel au serveur à chaque frappe.
+  const search = useMemo(
+    () => (index.status === "ready" ? searchCatalog(index.catalog, query, scope) : { results: [], truncated: false }),
+    [index, query, scope],
+  );
+  const results = search.results;
+  const truncated = search.truncated;
+  const searched = index.status === "ready" && query.trim().length >= 2;
+
+  // Index rechargé à chaque ouverture : il reste à jour.
+  function loadIndex() {
+    loadCounter.current += 1;
+    const current = loadCounter.current;
+    setIndex({ status: "loading" });
+    loadSearchIndexAction().then(
+      (catalog) => {
+        if (current === loadCounter.current) setIndex({ status: "ready", catalog });
+      },
+      () => {
+        if (current === loadCounter.current) setIndex({ status: "error" });
+      },
+    );
+  }
 
   useEffect(function () {
     if (!open) {
@@ -42,31 +66,6 @@ export function SearchBox() {
     };
   }, [open]);
 
-  function run(nextQuery: string, nextScope: Scope) {
-    if (timer.current !== null) {
-      clearTimeout(timer.current);
-    }
-    counter.current += 1;
-    if (nextQuery.trim().length < 2) {
-      setResults([]);
-      setTruncated(false);
-      setSearched(false);
-      return;
-    }
-
-    const current = counter.current;
-    timer.current = setTimeout(function () {
-      startTransition(async function () {
-        const response = await searchAction(nextQuery, nextScope);
-        if (current === counter.current) {
-          setResults(response.results);
-          setTruncated(response.truncated);
-          setSearched(true);
-        }
-      });
-    }, 300);
-  }
-
   return (
     <>
       <button
@@ -80,6 +79,7 @@ export function SearchBox() {
           const nextOpen = !open;
           setOpen(nextOpen);
           if (nextOpen) {
+            loadIndex();
             setTimeout(function () {
               inputRef.current?.focus();
             }, 0);
@@ -118,7 +118,6 @@ export function SearchBox() {
               onChange={function (event) {
                 const nextValue = event.target.value;
                 setQuery(nextValue);
-                run(nextValue, scope);
               }}
             />
             <button
@@ -154,7 +153,6 @@ export function SearchBox() {
                   onClick={function () {
                     const nextScope = item.value as Scope;
                     setScope(nextScope);
-                    run(query, nextScope);
                   }}
                 >
                   {item.label}
@@ -164,8 +162,10 @@ export function SearchBox() {
           </div>
 
           <div aria-live="polite" className="mt-3 max-h-[70vh] overflow-y-auto">
-            {isPending ? (
-              <p className="text-sm text-[color:var(--color-muted-foreground)]">Recherche…</p>
+            {index.status === "loading" ? (
+              <p className="text-sm text-[color:var(--color-muted-foreground)]">Pr&eacute;paration de la recherche…</p>
+            ) : index.status === "error" ? (
+              <p role="alert" className="text-sm text-[color:var(--color-destructive-text)]">Recherche indisponible. Ferme puis rouvre la recherche.</p>
             ) : searched && results.length === 0 ? (
               <p className="text-sm text-[color:var(--color-muted-foreground)]">Aucun r&eacute;sultat.</p>
             ) : (

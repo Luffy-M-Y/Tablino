@@ -1,56 +1,51 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { adminSearchAction } from "@/app/admin-search/actions";
-import type { AdminSearchResult } from "@/lib/admin-search.mjs";
+import { loadAdminSearchIndexAction, type AdminSearchIndex } from "@/app/admin-search/actions";
+import { searchAdminCatalog } from "@/lib/admin-search.mjs";
 
 const headerFocusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 const panelFocusStyle = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900";
 
+type IndexState =
+  | { status: "idle" | "loading" | "error" }
+  | { status: "ready"; index: AdminSearchIndex };
+
 export default function AdminSearchBox() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<AdminSearchResult[]>([]);
-  const [truncated, setTruncated] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const counter = useRef(0);
+  const [indexState, setIndexState] = useState<IndexState>({ status: "idle" });
+  const loadCounter = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
-  function run(nextQuery: string) {
-    if (timer.current !== null) {
-      clearTimeout(timer.current);
-    }
-    counter.current += 1;
-    if (nextQuery.trim().length < 2) {
-      setResults([]);
-      setTruncated(false);
-      setSearched(false);
-      return;
-    }
+  // Filtrage local, sans appel au serveur à chaque frappe.
+  const search = useMemo(() => {
+    if (indexState.status !== "ready" || indexState.index === null) return { results: [], truncated: false };
+    return searchAdminCatalog(indexState.index.data, query, indexState.index.universityId);
+  }, [indexState, query]);
+  const results = search.results;
+  const truncated = search.truncated;
+  const searched = indexState.status === "ready" && query.trim().length >= 2;
 
-    const current = counter.current;
-    timer.current = setTimeout(function () {
-      startTransition(async function () {
-        const response = await adminSearchAction(nextQuery);
-        if (current === counter.current) {
-          setResults(response.results);
-          setTruncated(response.truncated);
-          setSearched(true);
-        }
-      });
-    }, 300);
+  // Index rechargé à chaque ouverture : il reste à jour.
+  function loadIndex() {
+    loadCounter.current += 1;
+    const current = loadCounter.current;
+    setIndexState({ status: "loading" });
+    loadAdminSearchIndexAction().then(
+      (index) => {
+        if (current === loadCounter.current) setIndexState({ status: "ready", index });
+      },
+      () => {
+        if (current === loadCounter.current) setIndexState({ status: "error" });
+      },
+    );
   }
 
-  useEffect(() => () => {
-    if (timer.current !== null) clearTimeout(timer.current);
-  }, []);
-
   return (
-    <>
+    <div className="relative">
       <button
         ref={buttonRef}
         type="button"
@@ -62,6 +57,7 @@ export default function AdminSearchBox() {
           const nextOpen = !open;
           setOpen(nextOpen);
           if (nextOpen) {
+            loadIndex();
             setTimeout(() => inputRef.current?.focus(), 0);
           }
         }}
@@ -75,7 +71,7 @@ export default function AdminSearchBox() {
         <div
           id="admin-search-panel"
           role="search"
-          className="absolute left-0 right-0 top-full z-50 border-t border-slate-200 bg-white p-4 text-slate-900 shadow-md"
+          className="fixed inset-x-2 top-16 z-50 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-[0_24px_60px_-24px_rgb(15_42_94/45%)] sm:absolute sm:inset-x-auto sm:left-0 sm:top-full sm:mt-3 sm:w-[min(36rem,calc(100vw-22rem))]"
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               setOpen(false);
@@ -92,16 +88,16 @@ export default function AdminSearchBox() {
             maxLength={100}
             autoComplete="off"
             placeholder="Rechercher une filière, un cours ou un devoir"
-            className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + panelFocusStyle}
+            className="h-11 w-full rounded-xl border border-slate-400 px-4 text-sm focus-visible:border-blue-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/15"
             onChange={(event) => {
-              const nextQuery = event.target.value;
-              setQuery(nextQuery);
-              run(nextQuery);
+              setQuery(event.target.value);
             }}
           />
           <div aria-live="polite" className="mt-3 max-h-[70vh] overflow-y-auto">
-            {isPending ? (
-              <p className="text-sm text-slate-600">Recherche…</p>
+            {indexState.status === "loading" ? (
+              <p className="text-sm text-slate-600">Préparation de la recherche…</p>
+            ) : indexState.status === "error" ? (
+              <p role="alert" className="text-sm text-red-700">Recherche indisponible. Ferme puis rouvre la recherche.</p>
             ) : searched && results.length === 0 ? (
               <p className="text-sm text-slate-600">Aucun résultat</p>
             ) : (
@@ -128,6 +124,6 @@ export default function AdminSearchBox() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

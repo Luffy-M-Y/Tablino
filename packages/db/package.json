@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./search-catalog": "./src/search-catalog.ts",
     "./university-slug": "./src/university-slug.mjs"
   },
   "scripts": {
