@@ -3,7 +3,7 @@ import { getUniversityPartnershipInfo, listAccessCodes, type AccessCodeStatus } 
 import { KeyRound } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
-import { AdminCard, adminSecondaryButtonClass } from "@/components/admin-ui";
+import { AdminCard, AdminEmptyState, adminSecondaryButtonClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { CreateCodeForm } from "./create-code-form";
 import { RevokeCodeForm } from "./revoke-code-form";
@@ -42,6 +42,7 @@ export default async function CodesPage({
 
   return (
     <AdminPage
+      icon={KeyRound}
       title="Codes d'accès"
       breadcrumbs={[
         { label: "Accueil", href: "/" },
@@ -78,18 +79,13 @@ export default async function CodesPage({
           </div>
         ) : null}
         {visibleCodes.length === 0 ? (
-          <AdminCard className="flex flex-col items-center py-10 text-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]">
-              <KeyRound size={22} aria-hidden="true" />
-            </span>
-            <h2 className="mt-4 font-semibold text-[color:var(--color-text)]">
-              {showInactive ? "Aucun code d'accès" : "Aucun code actif"}
-            </h2>
-            <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-              {showInactive
-                ? "Les codes générés pour cette université apparaîtront ici."
-                : "Les codes actifs générés pour cette université apparaîtront ici."}
-            </p>
+          <AdminEmptyState
+            icon={KeyRound}
+            title={showInactive ? "Aucun code d'accès" : "Aucun code actif"}
+            description={showInactive
+              ? "Les codes générés pour cette université apparaîtront ici."
+              : "Les codes actifs générés pour cette université apparaîtront ici."}
+          >
             {!showInactive && inactiveCodes.length > 0 ? (
               <Link
                 href="/codes?inactifs=1"
@@ -98,7 +94,7 @@ export default async function CodesPage({
                 Afficher les codes inactifs ({inactiveCodes.length})
               </Link>
             ) : null}
-          </AdminCard>
+          </AdminEmptyState>
         ) : (
           <AdminCard className="overflow-x-auto !p-0">
             <table className="w-full min-w-[760px] divide-y divide-[color:var(--color-border)] text-left">

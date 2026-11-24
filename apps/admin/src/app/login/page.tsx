@@ -1,3 +1,4 @@
+import { AuthBrand } from "@/components/auth-ui";
 import { LoginForm } from "./login-form";
 import { getAdminHostContext } from "@/lib/admin-host-context";
 import {
@@ -30,9 +31,7 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6">
       <div className="w-full max-w-sm">
-        <p className="mb-3 text-center text-sm font-bold uppercase tracking-widest text-[color:var(--color-admin-header)]">
-          Tablino
-        </p>
+        <AuthBrand />
         <h1 className="text-center text-xl font-bold text-[color:var(--color-text)] sm:text-2xl">
           Connexion admin
         </h1>

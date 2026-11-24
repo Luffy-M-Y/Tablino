@@ -1,3 +1,4 @@
+import { ScanLine } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { AdminCard } from "@/components/admin-ui";
@@ -12,6 +13,7 @@ export default async function ScanPage() {
 
   return (
     <AdminPage
+      icon={ScanLine}
       title="Scanner un document"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

@@ -1,3 +1,4 @@
+import { GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
@@ -17,6 +18,7 @@ export default async function ProgramsPage({
 
   return (
     <AdminPage
+      icon={GraduationCap}
       title="Filières"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

@@ -1,3 +1,4 @@
+import { Upload } from "lucide-react";
 import { forbidden } from "next/navigation";
 import AdminPage from "@/components/admin-page";
 import { getCurrentUniversity } from "@/lib/current-university";
@@ -12,6 +13,7 @@ export default async function UploadPage() {
 
   return (
     <AdminPage
+      icon={Upload}
       title="Envoyer un fichier"
       breadcrumbs={[
         { label: "Accueil", href: "/" },

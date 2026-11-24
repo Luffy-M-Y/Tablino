@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 export const focusRing =
@@ -22,6 +23,16 @@ export const linkClass = `inline-block px-1 py-3 font-semibold text-[color:var(-
 export const authCardClass =
   "rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-5 sm:p-6";
 
+/** Logo et nom Tablino en tête des pages de connexion (image servie sans optimiseur). */
+export function AuthBrand() {
+  return (
+    <p className="mb-4 flex items-center justify-center gap-2 text-lg font-bold text-[color:var(--color-admin-header)]">
+      <Image src="/icons/icon-192.png" alt="" width={40} height={40} priority unoptimized className="rounded-xl shadow-[var(--shadow-subtle)]" />
+      Tablino
+    </p>
+  );
+}
+
 export function AuthShell({
   title,
   subtitle,
@@ -36,9 +47,7 @@ export function AuthShell({
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--color-page-background)] px-4 py-6 sm:px-6">
       <div className={`w-full ${wide ? "max-w-md" : "max-w-sm"}`}>
-        <p className="mb-3 text-center text-sm font-bold uppercase tracking-widest text-[color:var(--color-admin-header)]">
-          Tablino
-        </p>
+        <AuthBrand />
         <h1
           className={`text-center text-xl font-bold text-[color:var(--color-text)] sm:text-2xl ${
             subtitle ? "" : "mb-5"
