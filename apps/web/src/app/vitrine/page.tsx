@@ -14,14 +14,19 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { focusRing } from "@/components/ui/kit";
+import { listActiveUniversitiesForVitrine } from "@tablino/db";
 import { BinderHero } from "@/components/vitrine/BinderHero";
+import { FindUniversityLink } from "@/components/vitrine/FindUniversityLink";
+import { Reveal } from "@/components/vitrine/Reveal";
 import { SiteFooter } from "@/components/vitrine/SiteFooter";
 import { SiteHeader } from "@/components/vitrine/SiteHeader";
-import { buildAdminSignupUrl, isRootSiteHost } from "@/lib/root-site.mjs";
-import { UniversitySearchForm } from "./search-form";
+import { UniversityFinder, type FinderEntry } from "@/components/vitrine/UniversityFinder";
+import { buildAdminSignupUrl, buildUniversityStudentUrl, isRootSiteHost } from "@/lib/root-site.mjs";
+import { parseUniversityHostSlugMap } from "@/lib/university-host.mjs";
 
-const accentLinkClass = `inline-flex h-12 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-6 font-semibold text-[color:var(--color-on-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,black)] ${focusRing}`;
-const outlineLinkClass = `inline-flex h-12 items-center justify-center rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-6 font-semibold text-[color:var(--color-foreground)] hover:bg-[color:var(--color-background)] ${focusRing}`;
+const accentLinkClass = `inline-flex h-12 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-accent)] px-6 font-semibold text-[color:var(--color-on-accent)] hover:bg-[color-mix(in_srgb,var(--color-accent)_90%,black)] transition duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${focusRing}`;
+const outlineLinkClass = `inline-flex h-12 items-center justify-center rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-6 font-semibold text-[color:var(--color-foreground)] hover:border-[color:var(--color-primary)] transition duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${focusRing}`;
+const cardHoverClass = "transition duration-300 hover:-translate-y-1 hover:border-[color:var(--color-primary)] hover:shadow-[0_18px_40px_-20px_rgb(15_42_94/40%)] motion-reduce:transition-none motion-reduce:hover:translate-y-0";
 
 function Section({
   id,
@@ -42,21 +47,21 @@ function Section({
       aria-labelledby={`${id}-titre`}
       className={`scroll-mt-20 ${tone === "white" ? "bg-white" : "bg-[color:var(--color-surface)]"}`}
     >
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+      <Reveal className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
         <h2 id={`${id}-titre`} className="max-w-2xl text-2xl font-bold tracking-tight text-[color:var(--color-brand)] sm:text-3xl">
           {title}
         </h2>
         {intro && <p className="mt-3 max-w-2xl text-[color:var(--color-muted-foreground)]">{intro}</p>}
         <div className="mt-10">{children}</div>
-      </div>
+      </Reveal>
     </section>
   );
 }
 
 function Feature({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
-    <li className="flex gap-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-brand)] text-white">
+    <li className={`group flex gap-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-5 ${cardHoverClass}`}>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-rounded)] bg-[color:var(--color-brand)] text-white transition duration-300 group-hover:-rotate-6 group-hover:scale-110 group-hover:bg-[color:var(--color-accent)] group-hover:text-[color:var(--color-on-accent)] motion-reduce:transition-none motion-reduce:group-hover:rotate-0 motion-reduce:group-hover:scale-100">
         <Icon size={20} aria-hidden="true" />
       </span>
       <span>
@@ -132,16 +137,29 @@ export default async function VitrinePage() {
     secure: process.env.NODE_ENV === "production",
   });
 
+  // Liste publique des universités actives, filtrée dans le navigateur.
+  let finderEntries: FinderEntry[] | null;
+  try {
+    const slugMap = parseUniversityHostSlugMap(process.env.UNIVERSITY_HOST_SLUG_MAP);
+    const secure = process.env.NODE_ENV === "production";
+    finderEntries = (await listActiveUniversitiesForVitrine()).flatMap((university) => {
+      const url = buildUniversityStudentUrl({ slug: university.slug, rootDomain: process.env.ROOT_DOMAIN, slugMap, secure });
+      return url ? [{ name: university.name, acronym: university.acronym, locality: university.locality, url }] : [];
+    });
+  } catch {
+    finderEntries = null;
+  }
+
   return (
     <>
       <SiteHeader />
       <main id="main-content" className="flex-1">
         <section id="haut" aria-labelledby="hero-titre" className="overflow-hidden bg-white">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2">
             <div>
               <h1
                 id="hero-titre"
-                className="text-4xl font-extrabold leading-tight tracking-tight text-[color:var(--color-brand)] sm:text-5xl"
+                className="text-3xl font-extrabold leading-tight tracking-tight text-[color:var(--color-brand)] sm:text-4xl xl:text-5xl"
               >
                 Les cours et devoirs de votre universit&eacute;, rang&eacute;s et toujours &agrave; port&eacute;e de main.
               </h1>
@@ -151,7 +169,10 @@ export default async function VitrinePage() {
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#commencer" className={accentLinkClass}>Essayer gratuitement</a>
-                <a href="#fonctionnement" className={outlineLinkClass}>Voir le fonctionnement</a>
+                <FindUniversityLink className={`gap-2 ${outlineLinkClass}`}>
+                  <Search size={18} aria-hidden="true" />
+                  Trouver mon universit&eacute;
+                </FindUniversityLink>
               </div>
             </div>
             <BinderHero />
@@ -161,8 +182,12 @@ export default async function VitrinePage() {
         <Section id="fonctionnement" title="Comment ça marche" intro="Trois étapes, de l’université à l’étudiant.">
           <ol className="grid gap-6 md:grid-cols-3">
             {STEPS.map((step, index) => (
-              <li key={step.title} className="rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-accent)] font-bold text-[color:var(--color-on-accent)]">
+              <li
+                key={step.title}
+                className={`vt-float group rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-6 ${cardHoverClass}`}
+                style={{ ["--vt-i" as string]: index }}
+              >
+                <span className="flex h-9 w-9 transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none motion-reduce:group-hover:scale-100 items-center justify-center rounded-full bg-[color:var(--color-accent)] font-bold text-[color:var(--color-on-accent)]">
                   {index + 1}
                 </span>
                 <h3 className="mt-4 font-semibold text-[color:var(--color-foreground)]">{step.title}</h3>
@@ -217,10 +242,11 @@ export default async function VitrinePage() {
 
         <Section id="offres" tone="white" title="Offres étudiantes" intro="Commencez par 30 jours d’essai.">
           <ul className="grid gap-6 md:grid-cols-3">
-            {OFFERS.map((offer) => (
+            {OFFERS.map((offer, index) => (
               <li
                 key={offer.name}
-                className={`flex flex-col rounded-[var(--radius-rounded)] border p-6 ${
+                style={{ ["--vt-i" as string]: index }}
+                className={`vt-float flex flex-col rounded-[var(--radius-rounded)] border p-6 ${cardHoverClass} ${
                   offer.highlighted
                     ? "border-[color:var(--color-accent)] bg-orange-50/60"
                     : "border-[color:var(--color-border)] bg-white"
@@ -253,13 +279,17 @@ export default async function VitrinePage() {
         <section id="commencer" aria-labelledby="commencer-titre" className="scroll-mt-20 bg-[color:var(--color-brand)]">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
             <h2 id="commencer-titre" className="text-2xl font-bold text-white sm:text-3xl">Commencer avec Tablino</h2>
-            <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            <div className="mt-10 grid items-start gap-6 lg:grid-cols-2">
               <div className="rounded-[var(--radius-rounded)] bg-white p-6">
                 <h3 className="text-lg font-bold text-[color:var(--color-foreground)]">Je suis &eacute;tudiant</h3>
                 <p className="mb-4 mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-                  Recherchez votre universit&eacute; par son acronyme (exemple : ISCOM), puis connectez-vous ou cr&eacute;ez votre compte.
+                  Tapez le nom ou l&rsquo;acronyme de votre universit&eacute;, puis connectez-vous ou cr&eacute;ez votre compte.
                 </p>
-                <UniversitySearchForm />
+                {finderEntries === null ? (
+                  <p role="alert" className="text-sm text-[color:var(--color-muted-foreground)]">Recherche temporairement indisponible.</p>
+                ) : (
+                  <UniversityFinder universities={finderEntries} />
+                )}
               </div>
               <div className="rounded-[var(--radius-rounded)] bg-white p-6">
                 <h3 className="text-lg font-bold text-[color:var(--color-foreground)]">Je repr&eacute;sente une universit&eacute;</h3>

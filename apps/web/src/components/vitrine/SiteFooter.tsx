@@ -1,7 +1,7 @@
-import { GraduationCap } from "lucide-react";
+import Image from "next/image";
 import { focusRing } from "@/components/ui/kit";
 
-const linkClass = `rounded text-sm text-[color:var(--color-on-band-muted)] hover:text-[color:var(--color-on-band)] focus-visible:outline-[color:var(--color-ring-on-band)] ${focusRing}`;
+const linkClass = `rounded text-sm text-[color:var(--color-on-band-muted)] hover:text-[color:var(--color-on-band)] transition-colors focus-visible:outline-[color:var(--color-ring-on-band)] ${focusRing}`;
 
 export function SiteFooter({ signupUrl }: { signupUrl: string | null }) {
   return (
@@ -9,7 +9,7 @@ export function SiteFooter({ signupUrl }: { signupUrl: string | null }) {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
         <div>
           <p className="flex items-center gap-2 text-lg font-bold">
-            <GraduationCap size={26} aria-hidden="true" />
+            <Image src="/icons/icon-192.png" alt="" width={32} height={32} className="rounded-lg ring-1 ring-white/20" />
             Tablino
           </p>
           <p className="mt-2 max-w-xs text-sm text-[color:var(--color-on-band-muted)]">

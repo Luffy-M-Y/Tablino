@@ -366,8 +366,12 @@ export type {
 } from "./university-partnership";
 export { setUniversityVisibility } from "./university-visibility";
 export type { SetUniversityVisibilityResult } from "./university-visibility";
-export { searchActiveUniversitiesByAcronym } from "./university-search";
-export type { UniversitySearchResult, SearchUniversitiesByAcronymResult } from "./university-search";
+export { listActiveUniversitiesForVitrine, searchActiveUniversitiesByAcronym } from "./university-search";
+export type {
+  ActiveUniversityListing,
+  UniversitySearchResult,
+  SearchUniversitiesByAcronymResult,
+} from "./university-search";
 export { checkUniversityAddress } from "./university-address";
 export type { CheckUniversityAddressResult } from "./university-address";
 export {

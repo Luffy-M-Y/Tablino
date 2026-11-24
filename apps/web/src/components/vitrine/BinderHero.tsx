@@ -48,7 +48,7 @@ export function BinderHero() {
           {FILES.map((file, index) => (
             <li
               key={file.title}
-              className="vt-file flex items-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-3"
+              className="vt-file flex items-center gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] p-3 transition-colors duration-200 hover:border-[color:var(--color-primary)] hover:bg-blue-50/50 motion-reduce:transition-none"
               style={{ ["--vt-i" as string]: index }}
             >
               <span
