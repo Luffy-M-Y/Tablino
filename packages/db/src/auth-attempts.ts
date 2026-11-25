@@ -17,7 +17,8 @@ export type AuthAttemptAction =
   | "verify_code"
   | "password_reset"
   | "password_reset_verify"
-  | "search_ip";
+  | "search_ip"
+  | "signup_ip";
 
 export type RateLimit = {
   maxAttempts: number;
@@ -34,12 +35,13 @@ export const RATE_LIMITS: Record<AuthAttemptAction, RateLimit> = {
   password_reset: { maxAttempts: 5, windowMs: 3600000, blockMs: 3600000 },
   password_reset_verify: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
   search_ip: { maxAttempts: 30, windowMs: 900000, blockMs: 900000 },
+  signup_ip: { maxAttempts: 10, windowMs: 3600000, blockMs: 3600000 },
 };
 
 export function hashAttemptKey(action: AuthAttemptAction, identifier: string): string {
   const normalizedIdentifier = typeof identifier === "string" ? identifier.trim().toLowerCase() : "";
   const value = action + ":" + normalizedIdentifier;
-  if (action === "login_ip" || action === "search_ip") {
+  if (action === "login_ip" || action === "search_ip" || action === "signup_ip") {
     const secret = process.env.NEXTAUTH_SECRET;
     if (typeof secret !== "string" || secret.length < 16) {
       throw new Error("Secret d'authentification absent pour le hachage de l'adresse IP.");

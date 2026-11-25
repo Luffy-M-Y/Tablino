@@ -1,6 +1,8 @@
 "use server";
 
-import { registerUniversityAdminWithPassword, checkRateLimit, resetAttempts } from "@tablino/db";
+import { getCloudflareClientIp } from "@tablino/auth";
+import { registerUniversityAdminWithPassword, checkRateLimit, recordFailure, resetAttempts } from "@tablino/db";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
@@ -40,6 +42,17 @@ export async function signupAction(
     return { ...state, message: TURNSTILE_ERROR_MESSAGE };
   }
 
+  const clientIp = getCloudflareClientIp(await headers());
+  if (clientIp === null && process.env.NODE_ENV === "production") {
+    return { ...state, message: "Inscription temporairement indisponible." };
+  }
+  if (clientIp !== null) {
+    const ipLimit = await checkRateLimit("signup_ip", clientIp);
+    if (!ipLimit.allowed) {
+      return { ...state, message: "Trop d'inscriptions depuis ce réseau. Réessayez plus tard." };
+    }
+  }
+
   if (visibilityField !== "private" && visibilityField !== "public") {
     return { ...state, message: "Choisissez la visibilité de l'université." };
   }
@@ -65,6 +78,9 @@ export async function signupAction(
   if (!limit.allowed) {
     return { ...state, message: "Trop de tentatives. Réessaie plus tard." };
   }
+
+  // Chaque tentative d'inscription vérifiée compte dans la limite par IP (10 par heure).
+  if (clientIp !== null) await recordFailure("signup_ip", clientIp);
 
   const result = await registerUniversityAdminWithPassword({
     universityName,

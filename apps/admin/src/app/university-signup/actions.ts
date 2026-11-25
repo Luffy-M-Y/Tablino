@@ -1,8 +1,8 @@
 "use server";
 
-import { getSessionCookieConfig, verifyUniversitySignupToken } from "@tablino/auth";
-import { createStudentSession, registerUniversityAdminWithGoogle } from "@tablino/db";
-import { cookies } from "next/headers";
+import { getCloudflareClientIp, getSessionCookieConfig, verifyUniversitySignupToken } from "@tablino/auth";
+import { checkRateLimit, createStudentSession, recordFailure, registerUniversityAdminWithGoogle } from "@tablino/db";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
 import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
@@ -38,6 +38,27 @@ export async function registerUniversityAction(
       showForm: true,
       showLoginLink: false,
     };
+  }
+
+  const clientIp = getCloudflareClientIp(await headers());
+  if (clientIp === null && process.env.NODE_ENV === "production") {
+    return {
+      message: "Inscription temporairement indisponible.",
+      ...state,
+      showForm: true,
+      showLoginLink: false,
+    };
+  }
+  if (clientIp !== null) {
+    const ipLimit = await checkRateLimit("signup_ip", clientIp);
+    if (!ipLimit.allowed) {
+      return {
+        message: "Trop d'inscriptions depuis ce réseau. Réessayez plus tard.",
+        ...state,
+        showForm: true,
+        showLoginLink: false,
+      };
+    }
   }
 
   let payload: ReturnType<typeof verifyUniversitySignupToken>;
@@ -80,6 +101,9 @@ export async function registerUniversityAction(
       showLoginLink: false,
     };
   }
+
+  // Chaque tentative d'inscription vérifiée compte dans la limite par IP (10 par heure).
+  if (clientIp !== null) await recordFailure("signup_ip", clientIp);
 
   const result = await registerUniversityAdminWithGoogle({
     universityName,

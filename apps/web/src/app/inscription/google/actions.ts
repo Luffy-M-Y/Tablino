@@ -1,6 +1,6 @@
 "use server";
 
-import { getSessionCookieConfig, verifyGoogleSignupToken } from "@tablino/auth";
+import { getCloudflareClientIp, getSessionCookieConfig, verifyGoogleSignupToken } from "@tablino/auth";
 import {
   checkRateLimit,
   createStudentSession,
@@ -8,7 +8,7 @@ import {
   registerGoogleStudentWithCode,
   resetAttempts,
 } from "@tablino/db";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
 
@@ -27,6 +27,15 @@ export async function registerGoogleAction(
     return { message: TURNSTILE_ERROR_MESSAGE };
   }
 
+  const clientIp = getCloudflareClientIp(await headers());
+  if (clientIp === null && process.env.NODE_ENV === "production") {
+    return { message: "Inscription temporairement indisponible." };
+  }
+  if (clientIp !== null) {
+    const ipLimit = await checkRateLimit("signup_ip", clientIp);
+    if (!ipLimit.allowed) return { message: "Trop d'inscriptions depuis ce réseau. Réessaie plus tard." };
+  }
+
   const universityId = await getCurrentUniversityId();
   const token = readStringField(formData, "token");
   const accessCode = readStringField(formData, "accessCode");
@@ -43,6 +52,9 @@ export async function registerGoogleAction(
 
   const limit = await checkRateLimit("signup_code", payload.email);
   if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+
+  // Chaque tentative d'inscription vérifiée compte dans la limite par IP (10 par heure).
+  if (clientIp !== null) await recordFailure("signup_ip", clientIp);
 
   const result = await registerGoogleStudentWithCode(universityId, {
     email: payload.email,
