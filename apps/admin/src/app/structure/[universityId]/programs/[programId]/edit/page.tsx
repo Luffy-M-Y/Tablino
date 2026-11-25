@@ -1,7 +1,8 @@
-import { Layers, Pencil } from "lucide-react";
+import Link from "next/link";
+import { Layers, Pencil, Plus } from "lucide-react";
 import { forbidden, notFound } from "next/navigation";
 import AdminPage from "@/components/admin-page";
-import { AdminCard, AdminEmptyState, adminFieldClass } from "@/components/admin-ui";
+import { AdminCard, AdminEmptyState, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
@@ -108,8 +109,16 @@ export default async function EditProgramPage({
 
       <AdminCard className="mt-6">
         <h2 className="mb-4 text-xl font-semibold">Ajouter un cycle</h2>
-        {availableCycles.length === 0 ? (
-          <p>Tous les cycles sont déjà dans cette filière.</p>
+        {overview.cycles.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-[color:var(--color-muted-foreground)]">Aucun cycle n'existe encore dans l'université.</p>
+            <Link href={`/structure/${universityId}/cycles`} className={adminSecondaryButtonClass}>
+              <Plus size={16} aria-hidden="true" />
+              Créer un cycle
+            </Link>
+          </div>
+        ) : availableCycles.length === 0 ? (
+          <p className="text-sm text-[color:var(--color-muted-foreground)]">Tous les cycles sont déjà dans cette filière.</p>
         ) : (
           <StructureActionForm action={addProgramCycleAction} buttonLabel="Ajouter le cycle">
             <input type="hidden" name="universityId" value={universityId} />

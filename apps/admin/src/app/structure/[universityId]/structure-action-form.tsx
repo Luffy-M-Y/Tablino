@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
 import { adminPrimaryButtonClass } from "@/components/admin-ui";
 
@@ -26,6 +27,8 @@ export function StructureActionForm({
   onSuccess,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, null);
+  // Message d'erreur masqué dès qu'un champ change ; un nouvel envoi l'affiche de nouveau.
+  const [dismissedState, setDismissedState] = useState<typeof state>(null);
   const onSuccessRef = useRef(onSuccess);
 
   useEffect(() => {
@@ -37,18 +40,33 @@ export function StructureActionForm({
   }, [state]);
 
   return (
-    <form action={formAction} className={className}>
+    <form
+      action={formAction}
+      className={className}
+      onInput={() => {
+        if (state && !state.ok) setDismissedState(state);
+      }}
+      onChange={() => {
+        if (state && !state.ok) setDismissedState(state);
+      }}
+    >
       {children}
       {hideSubmit ? null : (
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className={adminPrimaryButtonClass}
         >
-          {pending ? "Enregistrement…" : buttonLabel}
+          {pending ? (
+            <>
+              <LoaderCircle size={16} aria-hidden="true" className="motion-safe:animate-spin" />
+              Enregistrement…
+            </>
+          ) : buttonLabel}
         </button>
       )}
-      {state && (
+      {state && state !== dismissedState && (
         <p
           role={state.ok ? "status" : "alert"}
           aria-live="polite"
