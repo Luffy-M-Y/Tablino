@@ -179,6 +179,7 @@ export {
   recordFailure,
   resetAttempts,
 } from "./auth-attempts";
+export { canonicalizeEmail, isCanonicalEmailTaken } from "./email-canonical";
 export { deleteStudentSession, deleteAllStudentSessionsByUser, getStudentNameById } from "./session-logout";
 export { searchCatalog, SEARCH_RESULT_LIMIT } from "./search-catalog";
 export type { SearchCatalog, SearchResult, SearchResultKind, SearchScope, SearchSubjectRow } from "./search-catalog";

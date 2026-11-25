@@ -219,6 +219,32 @@ test("hashAttemptKey HMACs search IP identifiers, separated from login IP, and r
   }
 });
 
+test("RATE_LIMITS for signup_ip allows 10 signups per hour then blocks for one hour", () => {
+  assert.equal(RATE_LIMITS.signup_ip.maxAttempts, 10);
+  assert.equal(RATE_LIMITS.signup_ip.windowMs, 3600000);
+  assert.equal(RATE_LIMITS.signup_ip.blockMs, 3600000);
+});
+
+test("hashAttemptKey HMACs signup IP identifiers, separated from other IP limits, and requires the auth secret", () => {
+  const originalSecret = process.env.NEXTAUTH_SECRET;
+  process.env.NEXTAUTH_SECRET = "test-nextauth-secret-at-least-16";
+  try {
+    const hash = hashAttemptKey("signup_ip", "203.0.113.10");
+    assert.equal(hash.length, 64);
+    assert.equal(hash, hashAttemptKey("signup_ip", "203.0.113.10"));
+    assert.notEqual(hash, hashAttemptKey("login_ip", "203.0.113.10"));
+    assert.notEqual(hash, hashAttemptKey("search_ip", "203.0.113.10"));
+    delete process.env.NEXTAUTH_SECRET;
+    assert.throws(() => hashAttemptKey("signup_ip", "203.0.113.10"));
+  } finally {
+    if (originalSecret === undefined) {
+      delete process.env.NEXTAUTH_SECRET;
+    } else {
+      process.env.NEXTAUTH_SECRET = originalSecret;
+    }
+  }
+});
+
 test("hashAttemptKey HMACs login IP identifiers and requires the auth secret", () => {
   const originalSecret = process.env.NEXTAUTH_SECRET;
   process.env.NEXTAUTH_SECRET = "test-nextauth-secret-at-least-16";

@@ -1,11 +1,14 @@
 "use server";
 
+import { getCloudflareClientIp } from "@tablino/auth";
 import {
   checkRateLimit,
+  isCanonicalEmailTaken,
   recordFailure,
   registerStudentWithCode,
   resetAttempts,
 } from "@tablino/db";
+import { headers } from "next/headers";
 import { startEmailVerification } from "@/lib/email-verification-flow";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 import { getCurrentUniversityId } from "@/lib/university";
@@ -25,6 +28,15 @@ export async function registerAction(
     return { message: TURNSTILE_ERROR_MESSAGE };
   }
 
+  const clientIp = getCloudflareClientIp(await headers());
+  if (clientIp === null && process.env.NODE_ENV === "production") {
+    return { message: "Inscription temporairement indisponible." };
+  }
+  if (clientIp !== null) {
+    const ipLimit = await checkRateLimit("signup_ip", clientIp);
+    if (!ipLimit.allowed) return { message: "Trop d'inscriptions depuis ce réseau. Réessaie plus tard." };
+  }
+
   const universityId = await getCurrentUniversityId();
   const firstName = readStringField(formData, "firstName");
   const lastName = readStringField(formData, "lastName");
@@ -39,6 +51,14 @@ export async function registerAction(
 
   const limit = await checkRateLimit("signup_code", email);
   if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+
+  // Chaque tentative d'inscription vérifiée compte dans la limite par IP (10 par heure).
+  if (clientIp !== null) await recordFailure("signup_ip", clientIp);
+
+  // Production seulement : les alias (+tag, points Gmail) servent d'adresses de test en local.
+  if (process.env.NODE_ENV === "production" && (await isCanonicalEmailTaken(email))) {
+    return { message: "Cette adresse est déjà utilisée." };
+  }
 
   const result = await registerStudentWithCode(universityId, {
     firstName,
