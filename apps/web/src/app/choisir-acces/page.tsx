@@ -1,12 +1,12 @@
 export const instant = false;
 
 import type { CSSProperties } from "react";
-import Link from "next/link";
 import { decideStudentAccess } from "@tablino/db";
 import { forbidden } from "next/navigation";
 import { describeAccessStatus, formatAccessDate } from "@/lib/access-status.mjs";
 import { requireStudentSession } from "@/lib/authorization";
-import { PageContainer, cardClass, linkClass, mutedClass, secondaryButtonClass } from "@/components/ui/kit";
+import { BackButton } from "@/components/ui/BackButton";
+import { PageContainer, cardClass, mutedClass, secondaryButtonClass } from "@/components/ui/kit";
 import { TrialForm } from "./trial-form";
 
 export default async function ChoisirAccesPage() {
@@ -33,9 +33,9 @@ export default async function ChoisirAccesPage() {
 
   return (
     <PageContainer>
-      <Link href="/" className={`mb-4 min-h-11 ${linkClass}`}>
+      <BackButton href="/" className="mb-6">
         Retour à l&rsquo;accueil
-      </Link>
+      </BackButton>
       <h1 className="mb-8 text-2xl font-bold text-[color:var(--color-text)] sm:text-3xl">Mon acc&egrave;s</h1>
 
       <section
