@@ -1,14 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LogOut, User } from "lucide-react";
 
 export function UserMenuDropdown({
   name,
   email,
+  statusLabel,
+  showUpgrade,
 }: {
   name: string | null;
   email: string | null;
+  statusLabel: string | null;
+  showUpgrade: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -100,6 +105,27 @@ export function UserMenuDropdown({
               <p className="truncate text-sm text-[color:var(--color-muted-foreground)]">{email}</p>
             ) : null}
           </div>
+          {statusLabel !== null ? (
+            <div className="mt-3 space-y-2 md:hidden">
+              <Link
+                href="/choisir-acces"
+                onClick={() => setOpen(false)}
+                className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-[color:var(--color-border)] px-3 py-2 text-sm hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+              >
+                <span className="text-[color:var(--color-muted-foreground)]">Statut</span>
+                <span className="font-semibold">{statusLabel}</span>
+              </Link>
+              {showUpgrade ? (
+                <Link
+                  href="/choisir-acces"
+                  onClick={() => setOpen(false)}
+                  className="flex min-h-11 items-center justify-center rounded-lg bg-[color:var(--color-accent)] px-3 py-2 text-sm font-semibold text-[color:var(--color-on-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+                >
+                  Mise &agrave; niveau
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
           <div className="mt-4 border-t border-[color:var(--color-border)] pt-3">
             <form onSubmit={(event) => handleLogout(event, true)}>
               <button
