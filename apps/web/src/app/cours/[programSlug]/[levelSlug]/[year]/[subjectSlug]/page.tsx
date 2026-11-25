@@ -1,7 +1,7 @@
 export const instant = false;
 
 import { notFound } from "next/navigation";
-import { BookOpen, ExternalLink, FileX, Clock } from "lucide-react";
+import { BookOpen, ExternalLink, FileX, Clock, Download } from "lucide-react";
 import { getCurrentUniversityId } from "@/lib/university";
 import {
   getProgramBySlug,
@@ -106,10 +106,19 @@ export default async function CoursRessourcesPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Ouvrir ${title}`}
-                    className={`${primaryButtonClass} w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
+                    className={`${primaryButtonClass} !w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
                   >
                     <ExternalLink size={15} aria-hidden="true" />
                     Ouvrir
+                  </a>
+                ) : r.fileKey ? (
+                  <a
+                    href={`/fichiers/${r.id}`}
+                    aria-label={`T\u00e9l\u00e9charger ${title}`}
+                    className={`${primaryButtonClass} !w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
+                  >
+                    <Download size={15} aria-hidden="true" />
+                    T&eacute;l&eacute;charger
                   </a>
                 ) : (
                   <div
