@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
+import { SECURITY_HEADERS } from "./src/lib/security-headers.mjs";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: { authInterrupts: true },
   transpilePackages: ["@tablino/db", "@tablino/auth", "@tablino/email"],
   cacheComponents: true,
@@ -15,7 +17,12 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
+    // Règle globale d'abord : la règle plus précise qui suit remplace la même clé.
     return [
+      {
+        source: "/:path*",
+        headers: [...SECURITY_HEADERS],
+      },
       {
         source: "/auth-central/error",
         headers: [
