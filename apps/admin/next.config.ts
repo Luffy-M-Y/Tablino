@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
+import { SECURITY_HEADERS } from "./src/lib/security-headers.mjs";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: {
     authInterrupts: true,
     serverActions: { bodySizeLimit: "25mb" },
@@ -14,6 +16,14 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [...SECURITY_HEADERS],
+      },
+    ];
   },
 };
 
