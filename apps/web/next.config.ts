@@ -4,7 +4,7 @@ import { SECURITY_HEADERS } from "./src/lib/security-headers.mjs";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   experimental: { authInterrupts: true },
-  transpilePackages: ["@tablino/db", "@tablino/auth", "@tablino/email"],
+  transpilePackages: ["@tablino/db", "@tablino/auth", "@tablino/email", "@tablino/storage"],
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,

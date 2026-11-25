@@ -344,6 +344,63 @@ export async function getResourcesBySubject(universityId: string, subjectId: str
     .orderBy(schema.resources.publishedAt);
 }
 
+// ─── Fichiers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Clé de stockage d'une ressource ou d'un devoir publié de l'université,
+ * dans une filière publiée. Exige la session étudiante et l'accès (abonnement ou essai).
+ */
+export async function getDownloadableFileKey(universityId: string, fileId: string): Promise<string | null> {
+  await requireStudentUniversityAccess(universityId);
+  const [resource] = await db
+    .select({ fileKey: schema.resources.fileKey })
+    .from(schema.resources)
+    .innerJoin(schema.subjects, and(
+      eq(schema.resources.subjectId, schema.subjects.id),
+      eq(schema.resources.universityId, schema.subjects.universityId),
+    ))
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
+    .where(and(
+      eq(schema.resources.id, fileId),
+      eq(schema.resources.universityId, universityId),
+      eq(schema.resources.status, "published"),
+      eq(schema.programs.status, "published"),
+    ))
+    .limit(1);
+  if (resource) return resource.fileKey;
+
+  const [assignment] = await db
+    .select({ fileKey: schema.assignments.fileKey })
+    .from(schema.assignments)
+    .innerJoin(schema.subjects, and(
+      eq(schema.assignments.subjectId, schema.subjects.id),
+      eq(schema.assignments.universityId, schema.subjects.universityId),
+    ))
+    .innerJoin(schema.levels, and(
+      eq(schema.subjects.levelId, schema.levels.id),
+      eq(schema.subjects.universityId, schema.levels.universityId),
+    ))
+    .innerJoin(schema.programs, and(
+      eq(schema.levels.programId, schema.programs.id),
+      eq(schema.levels.universityId, schema.programs.universityId),
+    ))
+    .where(and(
+      eq(schema.assignments.id, fileId),
+      eq(schema.assignments.universityId, universityId),
+      eq(schema.assignments.status, "published"),
+      eq(schema.programs.status, "published"),
+    ))
+    .limit(1);
+  return assignment ? assignment.fileKey : null;
+}
+
 // ─── Devoirs ──────────────────────────────────────────────────────────────────
 
 export async function getAssignmentsBySubject(universityId: string, subjectId: string) {

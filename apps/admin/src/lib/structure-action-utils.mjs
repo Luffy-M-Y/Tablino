@@ -22,6 +22,8 @@ const messages = {
   invalid_title: "Le titre est invalide.",
   invalid_format: "Le format est invalide.",
   invalid_file: "Le fichier est invalide.",
+  unsupported_file: "Format refusé : fichiers acceptés : PDF, Word, Excel, PowerPoint, LibreOffice, texte, CSV, JPG, PNG, MP4 et MP3.",
+  storage_unavailable: "L'envoi du fichier est indisponible. Réessayez plus tard.",
   confirmation_required: "Confirmez la suppression.",
   subject_exists: "Cette matière existe déjà pour ce niveau et cette année.",
   academic_year_not_found: "Année académique introuvable.",

@@ -1,5 +1,12 @@
 "use server";
 
+import {
+  buildAttachmentDisposition,
+  deleteStoredObject,
+  detectUploadFile,
+  MAX_UPLOAD_BYTES,
+  putStoredObject,
+} from "@tablino/storage";
 import { revalidatePath } from "next/cache";
 import { forbidden, redirect } from "next/navigation";
 import {
@@ -18,7 +25,6 @@ import {
   isCycleValid,
   isProgramStatusValid,
   isShortCodeValid,
-  inferResourceFormat,
   normalizeShortCode,
   publishAssignment,
   publishResource,
@@ -49,6 +55,7 @@ import {
 } from "@/lib/structure-action-utils.mjs";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { requireAdminPermission } from "@/lib/authorization";
+import { storeThenRecord } from "@/lib/upload-storage.mjs";
 
 function failure(reason: ActionReason): StructureActionState {
   return { ok: false, reason, message: messageForReason(reason) };
@@ -174,8 +181,6 @@ export async function createProgramAction(
   return result;
 }
 
-const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
-
 export async function uploadFileAction(
   _previousState: StructureActionInitialState,
   formData: FormData,
@@ -198,38 +203,55 @@ export async function uploadFileAction(
   const title = readStringField(formData, "title");
   const publish = formData.get("publishNow") === "on";
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_SIZE) {
+  if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
     return failure("invalid_file");
   }
 
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const detected = detectUploadFile(file.name, bytes);
+  if (!detected.ok) return failure("unsupported_file");
+
   const uploadTitle = buildUploadTitle(title, file.name);
-  const dot = file.name.lastIndexOf(".");
-  const extension = dot >= 0 ? file.name.slice(dot + 1).toLowerCase() : "";
-  const ext = /^[a-z0-9]{1,10}$/.test(extension) ? extension : "bin";
-  const fileKey = `${universityId}/${crypto.randomUUID()}.${ext}`;
-  const fileSizeBytes = file.size;
+  const fileKey = `${universityId}/${crypto.randomUUID()}.${detected.ext}`;
+  const fileSizeBytes = bytes.length;
 
-  // Stockage simulé : aucun objet n'est écrit.
-  if (kind === "resource") {
-    return runMutation("upload_resource", universityId, () =>
-      createResource(universityId, userId, {
-        subjectId,
-        title: uploadTitle,
-        format: inferResourceFormat(file.name),
-        fileKey,
-        fileSizeBytes,
-        publish,
-      }));
+  const logAction = kind === "resource" ? "upload_resource" : "upload_assignment";
+  const outcome = await storeThenRecord({
+    store: () => putStoredObject({
+      key: fileKey,
+      body: bytes,
+      contentType: detected.contentType,
+      contentDisposition: buildAttachmentDisposition(uploadTitle, detected.ext),
+    }),
+    record: () => kind === "resource"
+      ? runMutation("upload_resource", universityId, () =>
+        createResource(universityId, userId, {
+          subjectId,
+          title: uploadTitle,
+          format: detected.format,
+          fileKey,
+          fileSizeBytes,
+          publish,
+        }))
+      : runMutation("upload_assignment", universityId, () =>
+        createAssignment(universityId, userId, {
+          subjectId,
+          title: uploadTitle,
+          fileKey,
+          fileSizeBytes,
+          publish,
+        })),
+    discard: () => deleteStoredObject(fileKey),
+  });
+
+  if (!outcome.stored) {
+    console.info("structure_mutation", createStructureMutationLog(logAction, "error", "storage_unavailable"));
+    return failure("storage_unavailable");
   }
-
-  return runMutation("upload_assignment", universityId, () =>
-    createAssignment(universityId, userId, {
-      subjectId,
-      title: uploadTitle,
-      fileKey,
-      fileSizeBytes,
-      publish,
-    }));
+  if (outcome.discardFailed) {
+    console.info("structure_mutation", createStructureMutationLog(logAction, "error", "storage_unavailable"));
+  }
+  return outcome.result ?? failure("unexpected_error");
 }
 
 export async function updateCycleShortCodeAction(

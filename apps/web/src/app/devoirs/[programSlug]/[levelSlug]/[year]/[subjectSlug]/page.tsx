@@ -1,7 +1,7 @@
 export const instant = false;
 
 import { notFound } from "next/navigation";
-import { FileText, FileX, Clock, AlertCircle, CheckCircle } from "lucide-react";
+import { FileText, FileX, Clock, AlertCircle, CheckCircle, Download } from "lucide-react";
 import { getCurrentUniversityId } from "@/lib/university";
 import {
   getProgramBySlug,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { StepIndicator } from "@/components/ui/StepIndicator";
-import { PageHero, mutedClass, cardClass } from "@/components/ui/kit";
+import { PageHero, mutedClass, cardClass, primaryButtonClass } from "@/components/ui/kit";
 
 const STEPS = [
   { label: "Fili\u00e8re" },
@@ -105,15 +105,14 @@ export default async function DevoirsListePage({
                   </div>
 
                   {a.fileKey ? (
-                    <div
-                      aria-disabled="true"
-                      aria-label="T\u00e9l\u00e9chargement bient\u00f4t disponible"
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-rounded)] bg-[color:var(--color-page-background)] border border-[color:var(--color-border)] ${mutedClass} text-sm font-medium cursor-not-allowed shrink-0`}
-                      title="Le t\u00e9l\u00e9chargement sera disponible prochainement"
+                    <a
+                      href={`/fichiers/${a.id}`}
+                      aria-label={`T\u00e9l\u00e9charger ${title}`}
+                      className={`${primaryButtonClass} !w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
                     >
-                      <Clock size={15} aria-hidden="true" />
-                      Bient&ocirc;t disponible
-                    </div>
+                      <Download size={15} aria-hidden="true" />
+                      T&eacute;l&eacute;charger
+                    </a>
                   ) : (
                     <div
                       aria-label="Fichier non disponible"

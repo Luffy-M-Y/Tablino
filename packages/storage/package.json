@@ -1,0 +1,22 @@
+{
+  "name": "@tablino/storage",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./file-signature": "./src/file-signature.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/s3-request-presigner": "^3.1152.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  },
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts"
+  }
+}

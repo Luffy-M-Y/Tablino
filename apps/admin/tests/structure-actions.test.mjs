@@ -69,6 +69,11 @@ test("translates expected mutation reasons without exposing raw errors", () => {
   assert.equal(messageForReason("invalid_title"), "Le titre est invalide.");
   assert.equal(messageForReason("invalid_format"), "Le format est invalide.");
   assert.equal(messageForReason("invalid_file"), "Le fichier est invalide.");
+  assert.equal(
+    messageForReason("unsupported_file"),
+    "Format refusé : fichiers acceptés : PDF, Word, Excel, PowerPoint, LibreOffice, texte, CSV, JPG, PNG, MP4 et MP3.",
+  );
+  assert.equal(messageForReason("storage_unavailable"), "L'envoi du fichier est indisponible. Réessayez plus tard.");
   assert.equal(messageForReason("university_not_found"), "Université introuvable.");
   assert.equal(messageForReason("year_taken"), "Cette année est déjà utilisée dans la filière.");
   assert.equal(messageForReason("blocking_levels"), "Des niveaux à supprimer contiennent des matières. Supprimez d'abord ces matières.");

@@ -22,6 +22,8 @@ export type ActionReason =
   | "invalid_title"
   | "invalid_format"
   | "invalid_file"
+  | "unsupported_file"
+  | "storage_unavailable"
   | "confirmation_required"
   | "subject_exists"
   | "academic_year_not_found"

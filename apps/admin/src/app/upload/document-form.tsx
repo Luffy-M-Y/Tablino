@@ -336,7 +336,7 @@ export function DocumentForm({
           </label>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Sans cocher, le fichier reste en brouillon.</p>
         </div>
-        <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
+        <label htmlFor="upload-publish-now" className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center">
           <input
             type="checkbox"
             id="upload-publish-now"
@@ -345,7 +345,7 @@ export function DocumentForm({
           />
           <span aria-hidden="true" className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[color:var(--color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none" />
           <span aria-hidden="true" className="pointer-events-none absolute left-1 size-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 motion-reduce:transition-none" />
-        </span>
+        </label>
       </div>
     </>
   );
