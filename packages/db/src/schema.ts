@@ -16,7 +16,7 @@ export const roleEnum = pgEnum("role", [
 export const statusEnum = pgEnum("status", ["draft", "published"]);
 export const universityStatusEnum = pgEnum("university_status", ["pending", "approved", "active"]);
 export const universityVisibilityEnum = pgEnum("university_visibility", ["private", "public"]);
-export const planEnum = pgEnum("plan", ["premium_pro", "premium_pro_max"]);
+export const planEnum = pgEnum("plan", ["premium_pro"]);
 export const resourceFormatEnum = pgEnum("resource_format", [
   "pdf", "video", "audio", "docx", "pptx", "link", "other",
 ]);

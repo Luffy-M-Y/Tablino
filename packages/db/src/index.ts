@@ -123,7 +123,6 @@ export {
   computePaidPeriod,
   getAccessState,
   hasAccess,
-  canDownload,
 } from "./plans";
 export type { Plan, AccessState } from "./plans";
 export { startTrial, recordVerifiedPayment } from "./subscriptions";

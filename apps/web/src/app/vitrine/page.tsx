@@ -95,19 +95,13 @@ const STEPS = [
 const OFFERS = [
   {
     name: "Essai gratuit",
-    text: "30 jours avec les mêmes droits que Premium pro, une seule fois par compte.",
+    text: "30 jours avec les mêmes droits que Pro, téléchargement compris, une seule fois par compte.",
     status: "Disponible après l’inscription",
     highlighted: true,
   },
   {
-    name: "Premium pro",
-    text: "Accès aux cours et aux devoirs de votre université.",
-    status: "Bientôt disponible",
-    highlighted: false,
-  },
-  {
-    name: "Premium pro max",
-    text: "Les droits Premium pro, avec en plus le téléchargement hors ligne.",
+    name: "Pro",
+    text: "Accès aux cours et aux devoirs de votre université, téléchargement compris.",
     status: "Bientôt disponible",
     highlighted: false,
   },
@@ -128,7 +122,7 @@ const FAQ = [
   },
   {
     question: "Comment fonctionne l’essai gratuit ?",
-    answer: "Après l’inscription, vous pouvez activer 30 jours d’essai avec les droits Premium pro. L’essai ne s’utilise qu’une fois.",
+    answer: "Après l’inscription, vous pouvez activer 30 jours d’essai avec les droits Pro. L’essai ne s’utilise qu’une fois.",
   },
 ];
 
@@ -265,7 +259,7 @@ export default async function VitrinePage() {
         </Section>
 
         <Section id="offres" tone="white" title="Offres étudiantes" intro="Commencez par 30 jours d’essai.">
-          <ul className="grid gap-6 md:grid-cols-3">
+          <ul className="grid gap-6 md:grid-cols-2">
             {OFFERS.map((offer, index) => (
               <li
                 key={offer.name}
