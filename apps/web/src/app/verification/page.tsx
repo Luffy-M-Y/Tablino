@@ -1,6 +1,5 @@
 export const instant = false;
 
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -8,7 +7,8 @@ import {
   verifyEmailVerificationToken,
 } from "@tablino/auth";
 import { hasStudentSession } from "@/lib/authorization";
-import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
+import { BackButton } from "@/components/ui/BackButton";
+import { AuthShell, authCardClass, mutedClass } from "@/components/ui/kit";
 import { VerificationForms } from "./verification-forms";
 
 export default async function VerificationPage() {
@@ -31,9 +31,9 @@ export default async function VerificationPage() {
             <p className={`text-sm ${mutedClass}`}>
               Lien expir&eacute;. Recommence ton inscription ou connecte-toi.
             </p>
-            <Link href="/connexion" className={`mt-6 ${linkClass}`}>
+            <BackButton href="/connexion" className="mt-6">
               Retour &agrave; la connexion
-            </Link>
+            </BackButton>
           </>
         ) : (
           <>

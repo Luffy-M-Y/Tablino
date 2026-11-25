@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getUniversityPartnershipInfo } from "@tablino/db";
 import { hasStudentSession } from "@/lib/authorization";
 import { getCurrentUniversityId } from "@/lib/university";
+import { BackButton } from "@/components/ui/BackButton";
 import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
 import { RegisterForm } from "./register-form";
 
@@ -17,9 +18,9 @@ export default async function InscriptionPage() {
 
   return (
     <AuthShell title={<>Inscription &eacute;tudiante</>}>
-      <Link href="/" className={`mb-2 min-h-11 ${linkClass}`}>
+      <BackButton href="/" className="mb-3">
         Retour à l&rsquo;accueil
-      </Link>
+      </BackButton>
       <div className={authCardClass}>
         <RegisterForm requiresAccessCode={requiresAccessCode} />
         <p className={`mt-6 text-center text-sm ${mutedClass}`}>
