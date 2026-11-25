@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  canDownload,
   computePaidPeriod,
   computeRevenueShare,
   computeTrialEnd,
@@ -103,17 +102,9 @@ test("hasAccess allows trial and paid states only", () => {
   assert.equal(hasAccess("expired"), false);
 });
 
-test("canDownload requires a paid premium_pro_max plan", () => {
-  assert.equal(canDownload("premium_pro_max", "paid"), true);
-  assert.equal(canDownload("premium_pro", "paid"), false);
-  assert.equal(canDownload("premium_pro_max", "trial"), false);
-  assert.equal(canDownload("premium_pro_max", "expired"), false);
-  assert.equal(canDownload(null, "paid"), false);
-});
-
 test("isPlanValid accepts only configured plans", () => {
   assert.equal(isPlanValid("premium_pro"), true);
-  assert.equal(isPlanValid("premium_pro_max"), true);
+  assert.equal(isPlanValid("premium_pro_max"), false);
   assert.equal(isPlanValid("pro"), false);
   assert.equal(isPlanValid(1), false);
   assert.equal(isPlanValid(null), false);

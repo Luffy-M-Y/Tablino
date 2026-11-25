@@ -1,23 +1,16 @@
-export type Plan = "premium_pro" | "premium_pro_max";
+export type Plan = "premium_pro";
 
-export const PLANS: Plan[] = ["premium_pro", "premium_pro_max"];
+export const PLANS: Plan[] = ["premium_pro"];
 export const TRIAL_DAYS = 30;
 
 // Prix FICTIFS, à remplacer.
 export const PLAN_CONFIG: Record<Plan, {
   priceXof: number;
   durationDays: number;
-  offlineDownload: boolean;
 }> = {
   premium_pro: {
     priceXof: 1000,
     durationDays: 30,
-    offlineDownload: false,
-  },
-  premium_pro_max: {
-    priceXof: 2500,
-    durationDays: 30,
-    offlineDownload: true,
   },
 };
 
@@ -77,8 +70,4 @@ export function getAccessState(
 
 export function hasAccess(state: AccessState): boolean {
   return state === "trial" || state === "paid";
-}
-
-export function canDownload(plan: Plan | null, state: AccessState): boolean {
-  return state === "paid" && plan !== null && PLAN_CONFIG[plan].offlineDownload;
 }
