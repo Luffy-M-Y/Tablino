@@ -3,6 +3,7 @@ export const instant = false;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasStudentSession } from "@/lib/authorization";
+import { BackButton } from "@/components/ui/BackButton";
 import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
 import { RequestResetForm } from "./request-form";
 
@@ -14,9 +15,9 @@ export default async function MotDePasseOubliePage() {
       title="Mot de passe oublié"
       subtitle="Saisis ton adresse e-mail pour recevoir un code de réinitialisation."
     >
-      <Link href="/connexion" className={`mb-2 min-h-11 ${linkClass}`}>
+      <BackButton href="/connexion" className="mb-3">
         Retour &agrave; la connexion
-      </Link>
+      </BackButton>
       <div className={authCardClass}>
         <RequestResetForm />
         <p className={`mt-6 text-center text-sm ${mutedClass}`}>

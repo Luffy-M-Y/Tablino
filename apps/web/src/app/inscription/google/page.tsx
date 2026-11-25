@@ -1,12 +1,12 @@
 export const instant = false;
 
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifyGoogleSignupToken } from "@tablino/auth";
 import { getUniversityPartnershipInfo } from "@tablino/db";
 import { hasStudentSession } from "@/lib/authorization";
 import { getCurrentUniversityId } from "@/lib/university";
-import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
+import { BackButton } from "@/components/ui/BackButton";
+import { AuthShell, authCardClass, mutedClass } from "@/components/ui/kit";
 import { GoogleRegisterForm } from "./google-register-form";
 
 export default async function GoogleInscriptionPage({
@@ -37,9 +37,9 @@ export default async function GoogleInscriptionPage({
         {payload === null ? (
           <>
             <p className={`text-sm ${mutedClass}`}>Lien expir&eacute;. Recommence avec Google.</p>
-            <Link href="/connexion" className={`mt-6 ${linkClass}`}>
+            <BackButton href="/connexion" className="mt-6">
               Retour &agrave; la connexion
-            </Link>
+            </BackButton>
           </>
         ) : (
           <>

@@ -1,11 +1,11 @@
 export const instant = false;
 
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPasswordResetCookieConfig, verifyPasswordResetToken } from "@tablino/auth";
 import { hasStudentSession } from "@/lib/authorization";
-import { AuthShell, authCardClass, linkClass, mutedClass } from "@/components/ui/kit";
+import { BackButton } from "@/components/ui/BackButton";
+import { AuthShell, authCardClass, mutedClass } from "@/components/ui/kit";
 import { ResetVerificationForms } from "./forms";
 
 export default async function ResetVerificationPage() {
@@ -28,9 +28,9 @@ export default async function ResetVerificationPage() {
             <p className={`text-sm ${mutedClass}`}>
               Lien expir&eacute;. Redemande un code depuis la page de r&eacute;initialisation.
             </p>
-            <Link href="/mot-de-passe-oublie" className={`mt-6 ${linkClass}`}>
+            <BackButton href="/mot-de-passe-oublie" className="mt-6">
               Retour &agrave; la demande
-            </Link>
+            </BackButton>
           </>
         ) : (
           <>

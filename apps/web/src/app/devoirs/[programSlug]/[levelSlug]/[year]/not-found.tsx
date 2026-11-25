@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { linkClass, mutedClass } from "@/components/ui/kit";
+import { BackButton } from "@/components/ui/BackButton";
+import { mutedClass } from "@/components/ui/kit";
 
 export default function NotFound() {
   return (
@@ -7,9 +7,9 @@ export default function NotFound() {
       <p className={`mb-4 text-sm ${mutedClass}`}>
         Cette ann&eacute;e acad&eacute;mique est introuvable.
       </p>
-      <Link href="/devoirs" className={linkClass}>
+      <BackButton href="/devoirs">
         Retour aux fili&egrave;res
-      </Link>
+      </BackButton>
     </div>
   );
 }
