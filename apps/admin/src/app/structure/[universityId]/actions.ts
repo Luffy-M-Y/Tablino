@@ -13,6 +13,7 @@ import {
   addProgramCycle,
   createAssignment,
   createCycle,
+  createProgramCycle,
   createProgram,
   createResource,
   createSubject,
@@ -99,6 +100,7 @@ async function runMutation(
     | "level_year_number"
     | "program_status"
     | "program_cycle_add"
+    | "program_cycle_create"
     | "program_cycle_years_count"
     | "cycle_rename"
     | "program_rename"
@@ -442,6 +444,23 @@ export async function addProgramCycleAction(
 
   return runMutation("program_cycle_add", universityId, () =>
     addProgramCycle(universityId, programId, cycleId, yearsCount));
+}
+
+export async function createProgramCycleAction(
+  _previousState: StructureActionInitialState,
+  formData: FormData,
+): Promise<StructureActionState> {
+  const universityId = await requireUniversityForAction(formData);
+  const programId = readStringField(formData, "programId");
+  const name = readStringField(formData, "name");
+  const shortCode = readStringField(formData, "shortCode");
+  const yearsCount = readIntegerField(formData, "yearsCount");
+  if (!isUuid(programId)) return failure("program_not_found");
+  if (!isCycleValid(name ?? "", shortCode ?? "")) return failure("invalid_cycle");
+  if (yearsCount === null) return failure("years_out_of_range");
+
+  return runMutation("program_cycle_create", universityId, () =>
+    createProgramCycle(universityId, programId, { name: name ?? "", shortCode: shortCode ?? "", yearsCount }));
 }
 
 export async function updateProgramCycleYearsCountAction(

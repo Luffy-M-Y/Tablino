@@ -118,6 +118,7 @@ test("successMessageForMutation names what was done for each action", () => {
     level_year_number: "Numéro d'année du niveau enregistré.",
     program_status: "Statut de la filière enregistré.",
     program_cycle_add: "Cycle ajouté à la filière.",
+    program_cycle_create: "Cycle créé et ajouté à la filière.",
     program_cycle_years_count: "Nombre d'années enregistré pour cette filière.",
     cycle_rename: "Cycle renommé.",
     program_rename: "Filière renommée.",
