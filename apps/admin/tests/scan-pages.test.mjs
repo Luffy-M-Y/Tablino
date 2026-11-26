@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildScanFileName, computeScaledSize } from "../src/lib/scan-pages.mjs";
+import { buildScanFileName, computeScaledSize, normalizeBulletWords } from "../src/lib/scan-pages.mjs";
 
 test("keeps small images unchanged", () => {
   assert.deepEqual(computeScaledSize(800, 600), { width: 800, height: 600 });
@@ -34,4 +34,24 @@ test("builds the pdf file name", () => {
     buildScanFileName(new Date(Date.UTC(2026, 0, 5))),
     "scan-2026-01-05.pdf",
   );
+});
+
+test("replaces misread bullets at the start of a line with a dash", () => {
+  for (const bullet of ["e", "o", "•", "◦", "●", "▪"]) {
+    assert.deepEqual(normalizeBulletWords([bullet, "C'est", "un", "renseignement."]), ["-", "C'est", "un", "renseignement."], bullet);
+  }
+});
+
+test("keeps lines without a misread bullet unchanged", () => {
+  const words = ["La", "connaissance", "e", "o"];
+  assert.equal(normalizeBulletWords(words), words);
+  assert.deepEqual(normalizeBulletWords(["«", "Bonjour", "»"]), ["«", "Bonjour", "»"]);
+  assert.deepEqual(normalizeBulletWords(["E", "majuscule"]), ["E", "majuscule"]);
+  assert.deepEqual(normalizeBulletWords(["à", "partir"]), ["à", "partir"]);
+});
+
+test("keeps a lone sign and invalid input unchanged", () => {
+  assert.deepEqual(normalizeBulletWords(["e"]), ["e"]);
+  assert.deepEqual(normalizeBulletWords([]), []);
+  assert.equal(normalizeBulletWords(null), null);
 });

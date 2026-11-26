@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { computeScaledSize } from "@/lib/scan-pages.mjs";
+import { computeScaledSize, normalizeBulletWords } from "@/lib/scan-pages.mjs";
 
 export type ScanPdfMode = "text" | "photo";
 
@@ -43,10 +43,14 @@ function extractTextParagraphs(blocks: (OcrBlock | undefined)[]): string[] {
       const lines: string[] = [];
       for (const line of paragraph.lines) {
         if (!line || !line.words) continue;
-        const words: string[] = [];
+        const rawWords: string[] = [];
         for (const word of line.words) {
           const text = word && word.text ? word.text.trim() : "";
-          if (!text) continue;
+          if (text) rawWords.push(text);
+        }
+        // Puce lue « e », « o » ou « • » en début de ligne : remplacée par un tiret.
+        const words: string[] = [];
+        for (const text of normalizeBulletWords(rawWords)) {
           const sanitizedText = sanitizeRecognizedWord(text);
           if (!sanitizedText) continue;
           words.push(sanitizedText);
