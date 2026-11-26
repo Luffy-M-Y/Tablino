@@ -1,7 +1,7 @@
 export const instant = false;
 
 import { notFound } from "next/navigation";
-import { FileText, FileX, Clock, AlertCircle, CheckCircle, Download } from "lucide-react";
+import { FileText, FileX, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { getCurrentUniversityId } from "@/lib/university";
 import {
   getProgramBySlug,
@@ -11,8 +11,9 @@ import {
   getAssignmentsBySubject,
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { DownloadButton } from "@/components/ui/DownloadButton";
 import { StepIndicator } from "@/components/ui/StepIndicator";
-import { PageHero, mutedClass, cardClass, primaryButtonClass } from "@/components/ui/kit";
+import { PageHero, mutedClass, cardClass } from "@/components/ui/kit";
 
 const STEPS = [
   { label: "Fili\u00e8re" },
@@ -105,14 +106,7 @@ export default async function DevoirsListePage({
                   </div>
 
                   {a.fileKey ? (
-                    <a
-                      href={`/fichiers/${a.id}`}
-                      aria-label={`T\u00e9l\u00e9charger ${title}`}
-                      className={`${primaryButtonClass} !w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
-                    >
-                      <Download size={15} aria-hidden="true" />
-                      T&eacute;l&eacute;charger
-                    </a>
+                    <DownloadButton href={`/fichiers/${a.id}`} title={title} />
                   ) : (
                     <div
                       aria-label="Fichier non disponible"
