@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { SECURITY_HEADERS } from "./src/lib/security-headers.mjs";
+import { buildSecurityHeaders } from "./src/lib/security-headers.mjs";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -21,7 +21,10 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [...SECURITY_HEADERS],
+        headers: [...buildSecurityHeaders({
+          development: process.env.NODE_ENV === "development",
+          centralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
+        })],
       },
     ];
   },
