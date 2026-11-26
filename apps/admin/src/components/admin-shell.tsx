@@ -3,13 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import {
   getAdminMenuItems,
   shouldShowAdminHeaderNavigation,
   type AdminMenuEntry,
 } from "@/lib/admin-menu.mjs";
+import { signOutToLogin } from "@/components/sign-out-button";
 import { getAdminSidebarPinPolicy } from "@/lib/admin-sidebar-pinning.mjs";
 import AdminSearchBox from "@/components/admin-search-box";
 import {
@@ -232,7 +232,7 @@ export function AdminShell({
         {accountLabel === null ? (
           <button
             type="button"
-            onClick={() => { void signOut({ callbackUrl: "/login" }); }}
+            onClick={() => { void signOutToLogin(); }}
             className={"rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-on-band)] hover:bg-white/10 " + headerFocusStyle}
           >
             Déconnexion
@@ -312,7 +312,7 @@ export function AdminShell({
                     type="button"
                     onClick={() => {
                       setIsAccountMenuOpen(false);
-                      void signOut({ callbackUrl: "/login" });
+                      void signOutToLogin();
                     }}
                     className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
                   >
