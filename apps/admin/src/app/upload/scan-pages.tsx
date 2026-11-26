@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ExternalLink, FileText } from "lucide-react";
 import { buildPdfFromImages, type ScanPdfMode } from "./build-pdf-from-images";
 import { buildScanFileName } from "@/lib/scan-pages.mjs";
 import { adminAccentButtonClass, adminSecondaryButtonClass } from "@/components/admin-ui";
@@ -320,18 +321,33 @@ export function ScanPages({ onPdfChange }: { onPdfChange?: (file: File | null) =
       {isBuilding && progressLabel && <p aria-live="polite">{progressLabel}</p>}
       {pdfError && <p role="alert">{pdfError}</p>}
       {pdfFile && pdfUrl && (
-        <>
-          <p>
-            {pdfFile.name} (
-            {pdfFile.size >= 1048576
-              ? (pdfFile.size / 1048576).toFixed(1) + " Mo"
-              : Math.round(pdfFile.size / 1024) + " Ko"}
-            )
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white p-3">
+          <p className="flex min-w-0 items-center gap-2 text-sm text-[color:var(--color-text)]">
+            <FileText size={18} aria-hidden="true" className="shrink-0 text-[color:var(--color-primary-text)]" />
+            <span className="truncate font-medium">{pdfFile.name}</span>
+            <span className="shrink-0 text-slate-600">
+              (
+              {pdfFile.size >= 1048576
+                ? (pdfFile.size / 1048576).toFixed(1) + " Mo"
+                : Math.round(pdfFile.size / 1024) + " Ko"}
+              )
+            </span>
           </p>
-          <a href={pdfUrl} target="_blank" rel="noopener">
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noopener"
+            className={`group min-h-[44px] ${adminSecondaryButtonClass} hover:border-[color:var(--color-primary)] hover:text-[color:var(--color-primary-text)]`}
+          >
             Ouvrir le PDF
+            <ExternalLink
+              size={16}
+              aria-hidden="true"
+              className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 motion-reduce:group-hover:translate-y-0"
+            />
+            <span className="sr-only"> (nouvel onglet)</span>
           </a>
-        </>
+        </div>
       )}
     </section>
   );
