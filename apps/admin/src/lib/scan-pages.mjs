@@ -25,3 +25,15 @@ export function buildScanFileName(date) {
   const day = String(date.getUTCDate()).padStart(2, "0");
   return "scan-" + date.getUTCFullYear() + "-" + month + "-" + day + ".pdf";
 }
+
+/** Signs Tesseract returns for list bullets ("e", "o" are not French words on their own). */
+const MISREAD_BULLETS = new Set(["e", "o", "•", "◦", "●", "▪"]);
+
+/**
+ * Replaces a misread bullet at the start of a recognized line with "-".
+ * Only when another word follows; "«" is kept (it may open a real quotation).
+ */
+export function normalizeBulletWords(words) {
+  if (!Array.isArray(words) || words.length < 2 || !MISREAD_BULLETS.has(words[0])) return words;
+  return ["-", ...words.slice(1)];
+}
