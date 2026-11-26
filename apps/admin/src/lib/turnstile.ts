@@ -1,6 +1,6 @@
 import "server-only";
 
-import { verifyTurnstileToken, type TurnstileAction } from "@tablino/auth";
+import { getCloudflareClientIp, verifyTurnstileToken, type TurnstileAction } from "@tablino/auth";
 import { headers } from "next/headers";
 import { getAdminTurnstileExpectedHostname } from "./turnstile-host.mjs";
 
@@ -13,7 +13,8 @@ export async function verifyTurnstileForm(
 ): Promise<boolean> {
   const value = formData.get("turnstileToken");
   const token = typeof value === "string" ? value : "";
-  const host = (await headers()).get("host");
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
   const expectedHostname = getAdminTurnstileExpectedHostname(
     host,
     process.env.ADMIN_ROOT_DOMAIN,
@@ -30,7 +31,10 @@ export async function verifyTurnstileForm(
     return false;
   }
 
-  const result = await verifyTurnstileToken(token, action, { expectedHostname });
+  const result = await verifyTurnstileToken(token, action, {
+    expectedHostname,
+    remoteIp: getCloudflareClientIp(requestHeaders),
+  });
 
   if (!result.ok) {
     console.warn(JSON.stringify({

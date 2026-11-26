@@ -1,4 +1,4 @@
-import { verifyTurnstileToken, type TurnstileAction } from "@tablino/auth";
+import { getCloudflareClientIp, verifyTurnstileToken, type TurnstileAction } from "@tablino/auth";
 import { headers } from "next/headers";
 import { getCurrentUniversityIdOrNull } from "./university";
 import { getRootSiteTurnstileHostname } from "./root-site.mjs";
@@ -14,7 +14,8 @@ export async function verifyTurnstileForm(
 ): Promise<boolean> {
   const value = formData.get("turnstileToken");
   const token = typeof value === "string" ? value : "";
-  const host = (await headers()).get("host");
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
   // Recherche de la vitrine : domaine racine seul. Autres actions : hôte d'une université seul.
   const expectedHostname = action === "university_search"
     ? getRootSiteTurnstileHostname(host, process.env.ROOT_DOMAIN)
@@ -34,7 +35,10 @@ export async function verifyTurnstileForm(
     return false;
   }
 
-  const result = await verifyTurnstileToken(token, action, { expectedHostname });
+  const result = await verifyTurnstileToken(token, action, {
+    expectedHostname,
+    remoteIp: getCloudflareClientIp(requestHeaders),
+  });
 
   if (!result.ok) {
     console.warn(JSON.stringify({

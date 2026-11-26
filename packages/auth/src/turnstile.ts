@@ -46,6 +46,8 @@ function isSiteverifyResponse(value: unknown): value is SiteverifyResponse {
 type TurnstileOptions = {
   secret?: string;
   expectedHostname?: string;
+  /** IP du visiteur (cf-connecting-ip) ; envoyée à Siteverify si présente. */
+  remoteIp?: string | null;
   fetcher?: typeof fetch;
 };
 
@@ -88,7 +90,11 @@ export async function verifyTurnstileToken(
     response = await (options.fetcher ?? fetch)(SITEVERIFY_URL, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ secret, response: token }),
+      body: JSON.stringify({
+        secret,
+        response: token,
+        ...(options.remoteIp ? { remoteip: options.remoteIp } : {}),
+      }),
       cache: "no-store",
       signal: AbortSignal.timeout(SITEVERIFY_TIMEOUT_MS),
     });

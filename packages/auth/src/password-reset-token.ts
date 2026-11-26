@@ -1,3 +1,4 @@
+import { shouldUseSecureCookies } from "./secure-cookies";
 import {
   createCipheriv,
   createDecipheriv,
@@ -251,7 +252,7 @@ export function verifyAdminPasswordResetConfirmedToken(
 }
 
 export function getPasswordResetCookieConfig(surface: PasswordResetSurface = "web") {
-  const secure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  const secure = shouldUseSecureCookies();
   return {
     name: (secure ? "__Secure-" : "") + `tablino-${surface}.password-reset`,
     options: {
@@ -267,7 +268,7 @@ export function getPasswordResetCookieConfig(surface: PasswordResetSurface = "we
 export function getPasswordResetConfirmedCookieConfig(
   surface: PasswordResetSurface = "web",
 ) {
-  const secure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  const secure = shouldUseSecureCookies();
   return {
     name: (secure ? "__Secure-" : "") + `tablino-${surface}.password-reset-confirmed`,
     options: {
