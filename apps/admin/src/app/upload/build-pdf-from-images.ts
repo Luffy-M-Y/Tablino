@@ -135,12 +135,18 @@ export async function buildPdfFromImages(
     throw new Error("OCR indisponible.");
   });
   const base = window.location.origin + "/tesseract";
-  const worker = await tesseract.createWorker("fra", undefined, {
-    workerPath: base + "/worker.min.js",
-    corePath: base + "/tesseract-core-lstm.wasm.js",
-    langPath: base + "/lang",
-  }).catch(() => {
-    throw new Error("OCR indisponible.");
+  // Langue servie sans « .gz » (gzip détecté par Tesseract) : les gestionnaires de
+  // téléchargement (IDM) interceptent les URL en .gz. errorHandler : sans lui, un échec
+  // de chargement de la langue laisse createWorker en attente sans fin.
+  const worker = await new Promise<Awaited<ReturnType<typeof tesseract.createWorker>>>((resolve, reject) => {
+    const fail = () => reject(new Error("OCR indisponible."));
+    tesseract.createWorker("fra", undefined, {
+      workerPath: base + "/worker.min.js",
+      corePath: base + "/tesseract-core-lstm.wasm.js",
+      langPath: base + "/lang",
+      gzip: false,
+      errorHandler: fail,
+    }).then(resolve, fail);
   });
 
   try {
