@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { setNewPasswordAction } from "./actions";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 
 export function NewPasswordForm() {
   const [state, action, pending] = useActionState(setNewPasswordAction, { message: null });
@@ -57,7 +58,7 @@ export function NewPasswordForm() {
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
-        R&eacute;initialiser le mot de passe
+        <PendingLabel pending={pending} pendingText="Réinitialisation en cours…">R&eacute;initialiser le mot de passe</PendingLabel>
       </button>
       {state.message !== null ? (
         <p className={errorClass} role="alert">{state.message}</p>

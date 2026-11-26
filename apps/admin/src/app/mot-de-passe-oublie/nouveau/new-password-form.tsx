@@ -9,6 +9,7 @@ import {
 } from "@/components/auth-ui";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { setNewPasswordAction } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 export function NewPasswordForm() {
   const [state, action, pending] = useActionState(setNewPasswordAction, { message: null });
@@ -56,7 +57,7 @@ export function NewPasswordForm() {
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
-        {pending ? "Mise à jour en cours\u2026" : "Réinitialiser le mot de passe"}
+        <PendingLabel pending={pending} pendingText={"Mise à jour en cours\u2026"}>{"Réinitialiser le mot de passe"}</PendingLabel>
       </button>
       {state.message !== null ? (
         <p className={errorClass} role="alert">{state.message}</p>

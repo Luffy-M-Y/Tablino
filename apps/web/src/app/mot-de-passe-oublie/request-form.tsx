@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { requestResetAction } from "./actions";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 
 export function RequestResetForm() {
   const [state, action, pending] = useActionState(requestResetAction, { message: null });
@@ -40,7 +41,7 @@ export function RequestResetForm() {
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
-        Envoyer le code
+        <PendingLabel pending={pending} pendingText="Envoi en cours…">Envoyer le code</PendingLabel>
       </button>
       {state.message !== null ? (
         <p className={`text-sm ${mutedClass}`} role="status">{state.message}</p>

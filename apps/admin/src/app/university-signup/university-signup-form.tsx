@@ -16,6 +16,7 @@ import {
   registerUniversityAction,
   type UniversitySignupActionState,
 } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: UniversitySignupActionState = {
   message: null,
@@ -145,7 +146,7 @@ export function UniversitySignupForm({
             disabled={isSubmitDisabled}
             className={primaryButtonClass}
           >
-            {pending ? "Envoi en cours\u2026" : "Cr\u00e9er l'universit\u00e9"}
+            <PendingLabel pending={pending} pendingText={"Envoi en cours\u2026"}>{"Cr\u00e9er l'universit\u00e9"}</PendingLabel>
           </button>
         </form>
       )}

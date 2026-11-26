@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { loginAction } from "./actions";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 
 export function LoginForm({ defaultEmail }: { defaultEmail?: string } = {}) {
   const [state, action, pending] = useActionState(loginAction, { message: null });
@@ -54,7 +55,7 @@ export function LoginForm({ defaultEmail }: { defaultEmail?: string } = {}) {
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
-        Se connecter
+        <PendingLabel pending={pending} pendingText="Connexion en cours…">Se connecter</PendingLabel>
       </button>
       {state.message !== null ? (
         <p className={errorClass} role="alert">{state.message}</p>

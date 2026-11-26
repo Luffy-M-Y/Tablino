@@ -11,6 +11,7 @@ import {
   adminPrimaryButtonClass,
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
+import { PendingLabel } from "@/components/pending-label";
 
 type RenameControlProps = {
   action: StructureFormAction;
@@ -81,7 +82,7 @@ export function RenameControl({
             disabled={pending}
             className={adminPrimaryButtonClass}
           >
-            {pending ? "Enregistrement…" : "Enregistrer"}
+            <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{"Enregistrer"}</PendingLabel>
           </button>
           <button
             type="button"
@@ -153,7 +154,7 @@ export function DeleteControl({
             disabled={pending}
             className={adminDangerButtonClass}
           >
-            {pending ? "Suppression…" : "Confirmer"}
+            <PendingLabel pending={pending} pendingText={"Suppression…"}>{"Confirmer"}</PendingLabel>
           </button>
           <button
             type="button"

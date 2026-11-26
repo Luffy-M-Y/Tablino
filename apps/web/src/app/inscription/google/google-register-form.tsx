@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { registerGoogleAction } from "./actions";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 
 export function GoogleRegisterForm({
   token,
@@ -53,7 +54,7 @@ export function GoogleRegisterForm({
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
-        Cr&eacute;er mon compte
+        <PendingLabel pending={pending} pendingText="Création en cours…">Cr&eacute;er mon compte</PendingLabel>
       </button>
       {state.message !== null ? (
         <p className={errorClass} role="alert">{state.message}</p>

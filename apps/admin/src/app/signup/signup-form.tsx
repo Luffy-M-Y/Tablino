@@ -21,6 +21,7 @@ import {
 } from "@/components/auth-ui";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { signupAction, type SignupActionState } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: SignupActionState = {
   message: null,
@@ -422,7 +423,7 @@ export function SignupForm({ addressDomains }: { addressDomains: SignupAddressDo
         )}
         {step === "review" ? (
           <button type="submit" disabled={isSubmitDisabled} className={primaryButtonClass}>
-            {pending ? "Création en cours…" : "Valider et créer le compte"}
+            <PendingLabel pending={pending} pendingText={"Création en cours…"}>{"Valider et créer le compte"}</PendingLabel>
           </button>
         ) : (
           <button type="submit" className={primaryButtonClass}>

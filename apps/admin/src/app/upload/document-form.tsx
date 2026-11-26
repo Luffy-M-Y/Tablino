@@ -14,6 +14,7 @@ import {
   adminPrimaryButtonClass,
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
+import { PendingLabel } from "@/components/pending-label";
 
 export type Program = {
   id: string;
@@ -66,7 +67,7 @@ function WizardSubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className={adminPrimaryButtonClass}>
-      {pending ? "Enregistrement…" : label}
+      <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{label}</PendingLabel>
     </button>
   );
 }

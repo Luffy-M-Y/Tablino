@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState } from "react";
 import { AdminCard, adminLabelClass, adminPrimaryButtonClass } from "@/components/admin-ui";
 import { setVisibilityAction, type VisibilityState } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: VisibilityState = { status: "idle", message: null };
 
@@ -86,7 +87,7 @@ export function VisibilityForm({ currentVisibility }: { currentVisibility: "priv
           </p>
         )}
         <button type="submit" disabled={isSubmitDisabled} className={adminPrimaryButtonClass}>
-          {pending ? "Enregistrement…" : "Enregistrer la visibilité"}
+          <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{"Enregistrer la visibilité"}</PendingLabel>
         </button>
       </form>
     </AdminCard>
