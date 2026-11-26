@@ -21,6 +21,8 @@ type Props = {
   programId: string;
   levels: ProgramLevel[];
   academicYears: AcademicYear[];
+  /** Niveau présélectionné (lien « Ajouter une matière » depuis l'envoi de fichier). */
+  defaultLevelId?: string;
 };
 
 export function SubjectCreateForm({
@@ -28,6 +30,7 @@ export function SubjectCreateForm({
   programId,
   levels,
   academicYears,
+  defaultLevelId,
 }: Props) {
   const [academicYearLabel, setAcademicYearLabel] = useState("");
   const [selectedAcademicYearLabel, setSelectedAcademicYearLabel] = useState("");
@@ -78,6 +81,7 @@ export function SubjectCreateForm({
           id={`subject-level-${programId}`}
           name="levelId"
           className={adminFieldClass}
+          defaultValue={defaultLevelId}
           required
         >
           {levels.map((level) => (

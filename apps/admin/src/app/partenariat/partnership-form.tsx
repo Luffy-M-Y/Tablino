@@ -8,6 +8,7 @@ import {
   completePartnershipAction,
   type PartnershipActionState,
 } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: PartnershipActionState = {
   status: "idle",
@@ -174,11 +175,12 @@ export function PartnershipForm({ addressReady }: { addressReady: boolean }) {
 
       <div className="pt-4">
         <button
+          aria-busy={pending}
           type="submit"
           disabled={isSubmitDisabled}
           className={primaryButtonClass}
         >
-          {pending ? "Validation en cours…" : "Accepter le contrat et finaliser le partenariat"}
+          <PendingLabel pending={pending} pendingText={"Validation en cours…"}>{"Accepter le contrat et finaliser le partenariat"}</PendingLabel>
         </button>
       </div>
     </form>

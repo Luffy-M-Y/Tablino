@@ -10,6 +10,7 @@ import {
   inviteAdminAction,
   type InviteAdminActionState,
 } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: InviteAdminActionState = {
   status: "idle",
@@ -91,8 +92,8 @@ export function InvitationForm({ roles }: { roles: InvitationRoleOption[] }) {
           {state.message}
         </p>
       ) : null}
-      <button type="submit" disabled={pending} className={adminPrimaryButtonClass}>
-        {pending ? "Envoi en cours…" : "Envoyer l'invitation"}
+      <button aria-busy={pending} type="submit" disabled={pending} className={adminPrimaryButtonClass}>
+        <PendingLabel pending={pending} pendingText={"Envoi en cours…"}>{"Envoyer l'invitation"}</PendingLabel>
       </button>
     </form>
   );

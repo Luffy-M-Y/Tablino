@@ -11,6 +11,7 @@ import {
   secondaryButtonClass,
 } from "@/components/ui/kit";
 import { searchUniversitiesAction, type UniversitySearchState } from "./actions";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 
 const initialState: UniversitySearchState = { message: null, results: null };
 
@@ -53,11 +54,12 @@ export function UniversitySearchForm() {
           resetKey={state}
         />
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending || !turnstileToken || !acronym.trim()}
           className={primaryButtonClass}
         >
-          {pending ? "Recherche…" : "Rechercher"}
+          <PendingLabel pending={pending} pendingText={"Recherche…"}>{"Rechercher"}</PendingLabel>
         </button>
       </form>
       {state.message !== null ? (

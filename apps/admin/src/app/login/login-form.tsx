@@ -9,6 +9,7 @@ import {
   type LoginActionState,
 } from "./actions";
 import { getAdminGoogleExistingAccountMessage } from "@/lib/admin-google-existing-account.mjs";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: LoginActionState = {
   message: null,
@@ -144,11 +145,12 @@ export function LoginForm({
           </p>
         )}
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending || !turnstileToken}
           className={`h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-primary)] px-4 font-semibold text-white transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`}
         >
-          {pending ? "Connexion en cours\u2026" : "Se connecter"}
+          <PendingLabel pending={pending} pendingText={"Connexion en cours\u2026"}>{"Se connecter"}</PendingLabel>
         </button>
       </form>
 

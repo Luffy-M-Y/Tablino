@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { inputClass, labelClass, mutedClass, primaryButtonClass } from "@/components/auth-ui";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { requestResetAction } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 export function RequestResetForm() {
   const [state, action, pending] = useActionState(requestResetAction, { message: null });
@@ -30,11 +31,12 @@ export function RequestResetForm() {
         resetKey={state}
       />
       <button
+        aria-busy={pending}
         type="submit"
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}
       >
-        {pending ? "Envoi en cours\u2026" : "Envoyer le code"}
+        <PendingLabel pending={pending} pendingText={"Envoi en cours\u2026"}>{"Envoyer le code"}</PendingLabel>
       </button>
       {state.message !== null ? (
         <p className={`text-sm ${mutedClass}`} role="status">{state.message}</p>

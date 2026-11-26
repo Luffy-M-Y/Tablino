@@ -17,6 +17,7 @@ import {
   type RegisterStepId,
 } from "@/lib/register-steps.mjs";
 import { registerAction } from "./actions";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 
 const editButtonClass =
   "text-sm font-semibold text-[color:var(--color-primary-text)] underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]";
@@ -300,11 +301,12 @@ export function RegisterForm({ requiresAccessCode }: { requiresAccessCode: boole
         )}
         {currentStep.id === "review" ? (
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending || !turnstileToken}
             className={primaryButtonClass}
           >
-            {pending ? "Création en cours…" : "Valider et créer mon compte"}
+            <PendingLabel pending={pending} pendingText={"Création en cours…"}>{"Valider et créer mon compte"}</PendingLabel>
           </button>
         ) : (
           <button type="submit" className={primaryButtonClass}>

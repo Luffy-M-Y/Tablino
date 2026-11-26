@@ -55,6 +55,41 @@ const mutationActions = new Set([
   "delete_resource",
   "delete_assignment",
 ]);
+const successMessages = {
+  cycle_create: "Cycle créé.",
+  program_create: "Filière créée.",
+  cycle_years_count: "Nombre d'années du cycle enregistré.",
+  cycle_short_code: "Sigle du cycle enregistré.",
+  level_year_number: "Numéro d'année du niveau enregistré.",
+  program_status: "Statut de la filière enregistré.",
+  program_cycle_add: "Cycle ajouté à la filière.",
+  program_cycle_years_count: "Nombre d'années enregistré pour cette filière.",
+  cycle_rename: "Cycle renommé.",
+  program_rename: "Filière renommée.",
+  subject_rename: "Matière renommée.",
+  subject_create: "Matière ajoutée.",
+  subject_delete: "Matière supprimée.",
+  program_cycle_delete: "Cycle retiré de la filière.",
+  cycle_delete: "Cycle supprimé.",
+  program_delete: "Filière supprimée.",
+  upload_resource: "Cours publié.",
+  upload_assignment: "Devoir publié.",
+  publish_resource: "Cours publié.",
+  publish_assignment: "Devoir publié.",
+  delete_resource: "Cours supprimé.",
+  delete_assignment: "Devoir supprimé.",
+};
+const draftUploadMessages = {
+  upload_resource: "Cours enregistré en brouillon.",
+  upload_assignment: "Devoir enregistré en brouillon.",
+};
+
+/** Message de succès propre à chaque action ; un envoi gardé en brouillon le précise. */
+export function successMessageForMutation(action, options = {}) {
+  if (options.draft === true && Object.hasOwn(draftUploadMessages, action)) return draftUploadMessages[action];
+  return Object.hasOwn(successMessages, action) ? successMessages[action] : "Modification enregistrée.";
+}
+
 const mutationResults = new Set(["success", "rejected", "error"]);
 const mutationReasons = new Set([...Object.keys(messages), "none"]);
 

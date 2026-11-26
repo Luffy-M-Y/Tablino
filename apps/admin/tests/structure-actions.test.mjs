@@ -7,6 +7,7 @@ import {
   messageForReason,
   readIntegerField,
   readStringField,
+  successMessageForMutation,
 } from "../src/lib/structure-action-utils.mjs";
 
 function fields(values) {
@@ -106,4 +107,47 @@ test("mutation journal contains only allowlisted action, result, and generic rea
     result: "success",
     reason: "none",
   });
+});
+
+test("successMessageForMutation names what was done for each action", () => {
+  const expected = {
+    cycle_create: "Cycle créé.",
+    program_create: "Filière créée.",
+    cycle_years_count: "Nombre d'années du cycle enregistré.",
+    cycle_short_code: "Sigle du cycle enregistré.",
+    level_year_number: "Numéro d'année du niveau enregistré.",
+    program_status: "Statut de la filière enregistré.",
+    program_cycle_add: "Cycle ajouté à la filière.",
+    program_cycle_years_count: "Nombre d'années enregistré pour cette filière.",
+    cycle_rename: "Cycle renommé.",
+    program_rename: "Filière renommée.",
+    subject_rename: "Matière renommée.",
+    subject_create: "Matière ajoutée.",
+    subject_delete: "Matière supprimée.",
+    program_cycle_delete: "Cycle retiré de la filière.",
+    cycle_delete: "Cycle supprimé.",
+    program_delete: "Filière supprimée.",
+    upload_resource: "Cours publié.",
+    upload_assignment: "Devoir publié.",
+    publish_resource: "Cours publié.",
+    publish_assignment: "Devoir publié.",
+    delete_resource: "Cours supprimé.",
+    delete_assignment: "Devoir supprimé.",
+  };
+  for (const [action, message] of Object.entries(expected)) {
+    assert.equal(successMessageForMutation(action), message, action);
+  }
+});
+
+test("successMessageForMutation says when an upload stays in draft", () => {
+  assert.equal(successMessageForMutation("upload_resource", { draft: true }), "Cours enregistré en brouillon.");
+  assert.equal(successMessageForMutation("upload_assignment", { draft: true }), "Devoir enregistré en brouillon.");
+  assert.equal(successMessageForMutation("upload_resource", { draft: false }), "Cours publié.");
+  assert.equal(successMessageForMutation("subject_create", { draft: true }), "Matière ajoutée.");
+});
+
+test("successMessageForMutation falls back to a generic message", () => {
+  assert.equal(successMessageForMutation("unknown_action"), "Modification enregistrée.");
+  assert.equal(successMessageForMutation("toString"), "Modification enregistrée.");
+  assert.equal(successMessageForMutation("__proto__", { draft: true }), "Modification enregistrée.");
 });

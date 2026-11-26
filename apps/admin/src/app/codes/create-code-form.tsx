@@ -8,6 +8,7 @@ import {
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
 import { createCodeAction, type CreateCodeState } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 export function CreateCodeForm() {
   const [result, setResult] = useState<CreateCodeState | null>(null);
@@ -80,11 +81,12 @@ export function CreateCodeForm() {
           </p>
         </div>
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending}
           className={`${adminPrimaryButtonClass} w-full sm:w-auto`}
         >
-          Générer un code
+          <PendingLabel pending={pending} pendingText="Génération en cours…">Générer un code</PendingLabel>
         </button>
       </form>
       {result?.message && <p role="alert" className="mt-4 text-red-700">{result.message}</p>}

@@ -8,6 +8,7 @@ import {
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
 import { revokeAdminAction, type RevokeAdminActionState } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const initialState: RevokeAdminActionState = {
   status: "idle",
@@ -95,11 +96,12 @@ export function RevokeAdminForm({
 
       <div className="flex flex-wrap items-center gap-2">
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending}
           className={adminDangerButtonClass}
         >
-          {pending ? "Révocation en cours…" : "Confirmer la révocation"}
+          <PendingLabel pending={pending} pendingText={"Révocation en cours…"}>{"Confirmer la révocation"}</PendingLabel>
         </button>
         <button
           type="button"

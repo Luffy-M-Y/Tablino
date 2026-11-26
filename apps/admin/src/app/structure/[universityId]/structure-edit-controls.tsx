@@ -11,6 +11,7 @@ import {
   adminPrimaryButtonClass,
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
+import { PendingLabel } from "@/components/pending-label";
 
 type RenameControlProps = {
   action: StructureFormAction;
@@ -77,11 +78,12 @@ export function RenameControl({
             {helpText && <p className="text-sm">{helpText}</p>}
           </div>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
             className={adminPrimaryButtonClass}
           >
-            {pending ? "Enregistrement…" : "Enregistrer"}
+            <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{"Enregistrer"}</PendingLabel>
           </button>
           <button
             type="button"
@@ -149,11 +151,12 @@ export function DeleteControl({
           <input type="hidden" name="confirm" value="supprimer" />
           <p>Supprimer « {itemName} » ? Cette action est définitive.</p>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
             className={adminDangerButtonClass}
           >
-            {pending ? "Suppression…" : "Confirmer"}
+            <PendingLabel pending={pending} pendingText={"Suppression…"}>{"Confirmer"}</PendingLabel>
           </button>
           <button
             type="button"

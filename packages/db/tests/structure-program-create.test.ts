@@ -121,3 +121,17 @@ test("createProgram ignores conflicts on university and slug", async () => {
 test("buildProgramSlug removes accents and normalizes punctuation", () => {
   assert.equal(buildProgramSlug("  Économie   générale & Analyse  "), "economie-generale-analyse");
 });
+
+test("createProgram stores the chosen status", async () => {
+  for (const status of ["published", "draft"] as const) {
+    const fake = createMemoryDatabase([{ id: "program-a" }]);
+    assert.deepEqual(
+      await createProgram(UNIVERSITY_A, "Informatique", fake.database, { status }),
+      { ok: true, programId: "program-a" },
+    );
+    assert.deepEqual(fake.inserts, [{
+      table: schema.programs,
+      values: { universityId: UNIVERSITY_A, name: "Informatique", slug: "informatique", status },
+    }]);
+  }
+});

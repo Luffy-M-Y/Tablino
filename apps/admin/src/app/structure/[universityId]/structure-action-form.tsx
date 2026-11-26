@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
-import { LoaderCircle } from "lucide-react";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
 import { adminPrimaryButtonClass } from "@/components/admin-ui";
+import { PendingLabel } from "@/components/pending-label";
 
 type Props = {
   action: StructureFormAction;
@@ -57,17 +57,12 @@ export function StructureActionForm({
       {hideSubmit ? null : (
         <SubmitWrapper className={submitWrapperClassName}>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
-            aria-busy={pending}
             className={adminPrimaryButtonClass}
           >
-            {pending ? (
-              <>
-                <LoaderCircle size={16} aria-hidden="true" className="motion-safe:animate-spin" />
-                Enregistrement…
-              </>
-            ) : buttonLabel}
+            <PendingLabel pending={pending} pendingText="Enregistrement…">{buttonLabel}</PendingLabel>
           </button>
         </SubmitWrapper>
       )}

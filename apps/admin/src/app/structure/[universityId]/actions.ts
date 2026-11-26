@@ -49,6 +49,7 @@ import {
   messageForReason,
   readIntegerField,
   readStringField,
+  successMessageForMutation,
   type ActionReason,
   type StructureActionInitialState,
   type StructureActionState,
@@ -115,6 +116,7 @@ async function runMutation(
     | "delete_assignment",
   universityId: string,
   mutation: () => Promise<{ ok: true } | { ok: false; reason: ActionReason }>,
+  successOptions?: { draft?: boolean },
 ): Promise<StructureActionState> {
   try {
     const result = await mutation();
@@ -128,7 +130,7 @@ async function runMutation(
     revalidatePath("/drafts");
     revalidatePath("/drafts/programs");
     revalidatePath("/drafts/files");
-    return { ok: true, message: "Modification enregistrée." };
+    return { ok: true, message: successMessageForMutation(action, successOptions) };
   } catch {
     console.info("structure_mutation", createStructureMutationLog(action, "error", "unexpected_error"));
     return failure("unexpected_error");
@@ -167,10 +169,12 @@ export async function createProgramAction(
 ): Promise<StructureActionState> {
   const universityId = await requireUniversityForAction(formData);
   const name = readStringField(formData, "name");
+  // Créée publiée par défaut ; la case « Créer en brouillon » la laisse en brouillon.
+  const status = formData.get("keepDraft") === "on" ? "draft" : "published";
   let programId: string | null = null;
 
   const result = await runMutation("program_create", universityId, async () => {
-    const createdProgram = await createProgram(universityId, name ?? "");
+    const createdProgram = await createProgram(universityId, name ?? "", undefined, { status });
     if (createdProgram.ok) programId = createdProgram.programId;
     return createdProgram;
   });
@@ -201,7 +205,8 @@ export async function uploadFileAction(
   if (!isUuid(subjectId)) forbidden();
 
   const title = readStringField(formData, "title");
-  const publish = formData.get("publishNow") === "on";
+  // Publié par défaut ; la case « Garder en brouillon » le laisse en brouillon.
+  const publish = formData.get("keepDraft") !== "on";
   const file = formData.get("file");
   if (!(file instanceof File) || file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
     return failure("invalid_file");
@@ -232,7 +237,7 @@ export async function uploadFileAction(
           fileKey,
           fileSizeBytes,
           publish,
-        }))
+        }), { draft: !publish })
       : runMutation("upload_assignment", universityId, () =>
         createAssignment(universityId, userId, {
           subjectId,
@@ -240,7 +245,7 @@ export async function uploadFileAction(
           fileKey,
           fileSizeBytes,
           publish,
-        })),
+        }), { draft: !publish }),
     discard: () => deleteStoredObject(fileKey),
   });
 

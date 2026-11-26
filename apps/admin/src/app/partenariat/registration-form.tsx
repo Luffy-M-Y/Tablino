@@ -7,6 +7,7 @@ import {
   type SignupAddressDomains,
 } from "@/lib/signup-address-preview.mjs";
 import { updateRegistrationAction, type RegistrationActionState } from "./actions";
+import { PendingLabel } from "@/components/pending-label";
 
 const radioClass =
   "mt-1 h-4 w-4 rounded border-[color:var(--color-input-border)] text-[color:var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]";
@@ -134,8 +135,8 @@ export function RegistrationForm({
             {state.message}
           </p>
         )}
-        <button type="submit" disabled={pending || !acronym.trim()} className={primaryButtonClass}>
-          {pending ? "Enregistrement…" : "Enregistrer les modifications"}
+        <button aria-busy={pending} type="submit" disabled={pending || !acronym.trim()} className={primaryButtonClass}>
+          <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{"Enregistrer les modifications"}</PendingLabel>
         </button>
       </form>
     </details>
