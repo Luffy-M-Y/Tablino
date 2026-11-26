@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AdminCard, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
+import { AdminCard, AdminSearchField } from "@/components/admin-ui";
 import { normalizeSearchValue } from "@/lib/search-normalization.mjs";
 import { deleteSubjectAction, renameSubjectAction } from "../../actions";
 import { DeleteControl, RenameControl } from "../../structure-edit-controls";
@@ -30,29 +30,14 @@ export function SubjectsSearch({ universityId, subjects }: Props) {
 
   return (
     <div>
-      <label htmlFor="subject-search">Rechercher une matière</label>
-      <div className="mt-2 flex gap-3">
-        <input
-          id="subject-search"
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") setQuery("");
-          }}
-          className={adminFieldClass}
-        />
-        <button
-          type="button"
-          onClick={() => setQuery("")}
-          className={adminSecondaryButtonClass}
-        >
-          Effacer
-        </button>
-      </div>
-      <p className="mt-3" aria-live="polite">
-        {matchingSubjects.length} {matchingSubjects.length === 1 ? "résultat" : "résultats"}
-      </p>
+      <AdminSearchField
+        id="subject-search"
+        label="Rechercher une matière"
+        placeholder="Rechercher une matière…"
+        value={query}
+        onChange={setQuery}
+        resultCount={matchingSubjects.length}
+      />
       {matchingSubjects.length === 0 ? (
         <p className="mt-4">Aucune matière trouvée.</p>
       ) : (
