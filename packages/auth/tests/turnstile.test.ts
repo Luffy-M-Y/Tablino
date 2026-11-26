@@ -169,6 +169,21 @@ test("Turnstile rejects provider and network errors", async () => {
   assert.deepEqual(unavailable, { ok: false, reason: "unavailable" });
 });
 
+test("Turnstile bounds Siteverify with an abort signal and fails closed on timeout", async () => {
+  let signal: AbortSignal | null | undefined;
+  const timedOut = await verifyTurnstileToken("valid-token", expectedAction, {
+    ...options,
+    fetcher: async (_input, init) => {
+      signal = init?.signal;
+      throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    },
+  });
+
+  assert.ok(signal instanceof AbortSignal);
+  assert.equal(signal.aborted, false);
+  assert.deepEqual(timedOut, { ok: false, reason: "unavailable" });
+});
+
 test("Turnstile rejects malformed Siteverify responses", async () => {
   const invalidJson = await verifyTurnstileToken("valid-token", expectedAction, {
     ...options,
