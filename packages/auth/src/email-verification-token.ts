@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { shouldUseSecureCookies } from "./secure-cookies";
 
 export const EMAIL_VERIFICATION_TOKEN_TTL_MS = 1800000;
 
@@ -73,7 +74,7 @@ export function verifyEmailVerificationToken(
 }
 
 export function getEmailVerificationCookieConfig() {
-  const secure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  const secure = shouldUseSecureCookies();
   return {
     name: (secure ? "__Secure-" : "") + "tablino-web.email-verification",
     options: {

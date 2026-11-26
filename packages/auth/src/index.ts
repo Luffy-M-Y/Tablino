@@ -22,6 +22,7 @@ import {
 } from "@tablino/db";
 import type {} from "./next-auth";
 import { createGoogleSignupToken } from "./google-signup-token";
+import { shouldUseSecureCookies } from "./secure-cookies";
 import { createUniversitySignupToken } from "./university-signup-token";
 import { createGoogleExistingAccountToken } from "./google-existing-account-token";
 import { createSuperGoogleExistingAccountTokenEnv } from "./google-super-existing-account-token";
@@ -512,7 +513,7 @@ function safeAuthErrorDetails(metadata: unknown) {
 }
 
 export function getSessionCookieConfig(surface: AuthSurface) {
-  const secureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  const secureCookies = shouldUseSecureCookies();
   return {
     name: (secureCookies ? "__Secure-" : "") + "tablino-" + surface + ".session-token",
     options: {

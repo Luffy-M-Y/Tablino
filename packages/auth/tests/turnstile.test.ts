@@ -104,6 +104,44 @@ test("Turnstile sends Siteverify the secret and response token", async () => {
   });
 });
 
+test("Turnstile sends Siteverify the visitor IP when provided", async () => {
+  let requestBody = "";
+  const fetcher: typeof fetch = async (_input, init) => {
+    requestBody = String(init?.body);
+    return new Response(JSON.stringify({
+      success: true,
+      action: expectedAction,
+      hostname: "example.com",
+    }), { status: 200 });
+  };
+
+  await verifyTurnstileToken("valid-token", expectedAction, { ...options, remoteIp: "203.0.113.7", fetcher });
+
+  assert.deepEqual(JSON.parse(requestBody), {
+    secret: options.secret,
+    response: "valid-token",
+    remoteip: "203.0.113.7",
+  });
+});
+
+test("Turnstile omits remoteip when the visitor IP is unknown", async () => {
+  for (const remoteIp of [null, undefined, ""]) {
+    let requestBody = "";
+    const fetcher: typeof fetch = async (_input, init) => {
+      requestBody = String(init?.body);
+      return new Response(JSON.stringify({
+        success: true,
+        action: expectedAction,
+        hostname: "example.com",
+      }), { status: 200 });
+    };
+
+    await verifyTurnstileToken("valid-token", expectedAction, { ...options, remoteIp, fetcher });
+
+    assert.deepEqual(JSON.parse(requestBody), { secret: options.secret, response: "valid-token" });
+  }
+});
+
 test("Turnstile fails closed when configuration is missing", async () => {
   const result = await verifyTurnstileToken("valid-token", expectedAction, {
     fetcher: successfulFetcher(),

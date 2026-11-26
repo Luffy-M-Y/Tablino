@@ -3,24 +3,20 @@ import { getSessionCookieConfig } from "@tablino/auth";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
+  // Origin obligatoire : sans lui, impossible de prouver que la demande vient du site.
   const origin = request.headers.get("origin");
-  if (origin !== null) {
-    const host = request.headers.get("host");
-    let originHost: string;
-    try {
-      originHost = new URL(origin).host;
-    } catch {
-      return NextResponse.json(
-        { error: "Forbidden" },
-        { status: 403, headers: { "Cache-Control": "no-store" } },
-      );
-    }
-    if (host === null || originHost.toLowerCase() !== host.toLowerCase()) {
-      return NextResponse.json(
-        { error: "Forbidden" },
-        { status: 403, headers: { "Cache-Control": "no-store" } },
-      );
-    }
+  const host = request.headers.get("host");
+  let originHost: string | null = null;
+  try {
+    originHost = origin === null ? null : new URL(origin).host;
+  } catch {
+    originHost = null;
+  }
+  if (originHost === null || host === null || originHost.toLowerCase() !== host.toLowerCase()) {
+    return NextResponse.json(
+      { error: "Forbidden" },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   const config = getSessionCookieConfig("web");
