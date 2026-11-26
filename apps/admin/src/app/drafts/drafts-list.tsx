@@ -2,14 +2,15 @@
 
 import { useId, useMemo, useState } from "react";
 import { filterFiles, filterPrograms } from "@/lib/files-filter.mjs";
-import { FileText, Layers, Search, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, FileText, Layers, Search, X } from "lucide-react";
 import {
   AdminCard,
   AdminEmptyState,
-  AdminLinkCard,
   adminFieldClass,
 } from "@/components/admin-ui";
 import { PublishDraftForm } from "./publish-draft-form";
+import { PublishProgramForm } from "./publish-program-form";
 
 type DraftListItem = {
   id: string;
@@ -98,6 +99,8 @@ export function DraftProgramsList({
   programs,
 }: Pick<Props, "universityId" | "programs">) {
   const [query, setQuery] = useState("");
+  // Nom de la dernière filière publiée : sa carte disparaît, le message reste.
+  const [publishedName, setPublishedName] = useState<string | null>(null);
   const matchingPrograms = useMemo(
     () => filterPrograms(programs, query),
     [programs, query],
@@ -111,6 +114,11 @@ export function DraftProgramsList({
         placeholder="Rechercher une filière…"
         resultCount={matchingPrograms.length}
       />
+      {publishedName !== null && (
+        <p role="status" aria-live="polite" className="mb-4 rounded-[var(--radius-rounded)] bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          Filière « {publishedName} » publiée.
+        </p>
+      )}
       {matchingPrograms.length === 0 ? (
         <EmptyState
           title={programs.length === 0 ? "Aucune filière en brouillon" : "Aucun résultat"}
@@ -121,13 +129,36 @@ export function DraftProgramsList({
       ) : (
         <ul className="space-y-4">
           {matchingPrograms.map((program) => (
-            <li key={program.id}>
-              <AdminLinkCard
+            <li
+              key={program.id}
+              className="group flex flex-col rounded-[var(--radius-rounded)] border border-[color:var(--admin-card-border)] bg-[color:var(--admin-card-background)] shadow-[var(--admin-card-shadow)] transition-colors hover:border-[color:var(--color-primary)] focus-within:border-[color:var(--color-primary)] motion-safe:transition-[box-shadow,border-color] motion-safe:duration-200 motion-safe:hover:shadow-[var(--admin-card-shadow-hover)] motion-reduce:transition-none"
+            >
+              <Link
                 href={"/structure/" + universityId + "/programs/" + program.id}
-                icon={Layers}
-                title={program.name}
-                description="Les fichiers de cette filière restent invisibles sur le site."
-              />
+                className="flex items-center gap-4 rounded-t-[var(--radius-rounded)] p-4 text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+              >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--admin-icon-background)] text-[color:var(--admin-icon-color)]">
+                  <Layers size={22} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{program.name}</span>
+                  <span className="mt-1 block text-sm text-[color:var(--color-muted-foreground)]">
+                    Les fichiers de cette filière restent invisibles sur le site.
+                  </span>
+                </span>
+                <ArrowRight
+                  size={18}
+                  aria-hidden="true"
+                  className="shrink-0 text-[color:var(--admin-icon-color)] transition-transform duration-200 motion-safe:group-hover:translate-x-1 motion-reduce:transition-none"
+                />
+              </Link>
+              <div className="border-t border-[color:var(--admin-card-border)] px-4 py-3">
+                <PublishProgramForm
+                  universityId={universityId}
+                  programId={program.id}
+                  onPublished={() => setPublishedName(program.name)}
+                />
+              </div>
             </li>
           ))}
         </ul>

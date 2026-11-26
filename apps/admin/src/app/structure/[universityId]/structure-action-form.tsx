@@ -8,6 +8,8 @@ import { PendingLabel } from "@/components/pending-label";
 type Props = {
   action: StructureFormAction;
   buttonLabel: string;
+  /** Texte du bouton pendant l'envoi (« Enregistrement… » par défaut). */
+  pendingText?: string;
   children: ReactNode;
   /** Remplace la mise en page par défaut du formulaire. */
   className?: string;
@@ -22,6 +24,7 @@ type Props = {
 export function StructureActionForm({
   action,
   buttonLabel,
+  pendingText = "Enregistrement…",
   children,
   className = "mt-4 flex flex-wrap items-end gap-3",
   hideSubmit = false,
@@ -62,7 +65,7 @@ export function StructureActionForm({
             disabled={pending}
             className={adminPrimaryButtonClass}
           >
-            <PendingLabel pending={pending} pendingText="Enregistrement…">{buttonLabel}</PendingLabel>
+            <PendingLabel pending={pending} pendingText={pendingText}>{buttonLabel}</PendingLabel>
           </button>
         </SubmitWrapper>
       )}

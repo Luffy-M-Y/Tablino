@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
-import { ArrowLeft, ArrowRight, BookOpen, ClipboardList, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, ClipboardList, Plus, TriangleAlert, type LucideIcon } from "lucide-react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
 import { uploadFileAction } from "../structure/[universityId]/actions";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
@@ -19,6 +19,7 @@ import { PendingLabel } from "@/components/pending-label";
 export type Program = {
   id: string;
   name: string;
+  status: "draft" | "published";
 };
 
 export type Subject = {
@@ -79,15 +80,31 @@ const selectClassName = `${fieldClassName} h-11 text-sm`;
 const hintClassName = "mt-1 text-xs text-[color:var(--color-muted-foreground)]";
 
 /** Raccourci vers la page où ajouter l'élément manquant. */
-function ShortcutLink({ href, children }: { href: string; children: ReactNode }) {
+function ShortcutLink({ href, children, icon: Icon = Plus }: { href: string; children: ReactNode; icon?: LucideIcon }) {
   return (
     <Link
       href={href}
       className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 py-1.5 text-sm font-semibold text-[color:var(--color-primary-text)] transition-colors hover:border-[color:var(--color-primary)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none"
     >
-      <Plus size={14} aria-hidden="true" />
+      <Icon size={14} aria-hidden="true" />
       {children}
     </Link>
+  );
+}
+
+/** Filière en brouillon : ce qui y est publié reste invisible des étudiants. */
+function DraftProgramWarning({ href }: { href: string }) {
+  return (
+    <div role="status" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+      <TriangleAlert size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
+      <div>
+        <p className="text-sm font-semibold">Filière en brouillon</p>
+        <p className="mt-1 text-sm">
+          Le fichier restera invisible des étudiants tant que la filière n'est pas publiée.
+        </p>
+        <ShortcutLink href={href} icon={ArrowRight}>Publier la filière</ShortcutLink>
+      </div>
+    </div>
   );
 }
 
@@ -203,6 +220,11 @@ export function DocumentForm({
       </div>
     </fieldset>
   );
+
+  const selectedProgram = programs.find((program) => program.id === programId);
+  const draftProgramWarning = selectedProgram?.status === "draft"
+    ? <DraftProgramWarning href={`/structure/${universityId}/programs/${selectedProgram.id}#statut`} />
+    : null;
 
   const structureControls = (
     <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2 lg:grid-cols-4">
@@ -375,10 +397,16 @@ export function DocumentForm({
       <>
         {typeControl}
         {structureControls}
+        {draftProgramWarning}
       </>
     ),
     2: children,
-    3: publicationControls,
+    3: (
+      <>
+        {draftProgramWarning}
+        {publicationControls}
+      </>
+    ),
   };
 
   return (
