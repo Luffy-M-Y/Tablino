@@ -10,6 +10,7 @@ import {
   secondaryButtonClass,
 } from "@/components/auth-ui";
 import { TurnstileField } from "@/components/auth/TurnstileField";
+import { PendingLabel } from "@/components/pending-label";
 import { resendResetCodeAction, verifyResetCodeAction } from "./actions";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -69,10 +70,11 @@ export function ResetVerificationForms() {
         ) : null}
         <button
           type="submit"
+          aria-busy={verifyPending}
           disabled={verifyPending || !verifyTurnstileToken}
           className={primaryButtonClass}
         >
-          V&eacute;rifier
+          <PendingLabel pending={verifyPending} pendingText="Vérification…">V&eacute;rifier</PendingLabel>
         </button>
       </form>
 
@@ -86,10 +88,13 @@ export function ResetVerificationForms() {
         ) : null}
         <button
           type="submit"
+          aria-busy={resendPending}
           disabled={resendPending || secondsLeft > 0 || !resendTurnstileToken}
           className={`${secondaryButtonClass} disabled:opacity-60`}
         >
-          {secondsLeft > 0 ? `Renvoyer le code (${secondsLeft} s)` : "Renvoyer le code"}
+          <PendingLabel pending={resendPending} pendingText="Envoi en cours…">
+            {secondsLeft > 0 ? `Renvoyer le code (${secondsLeft} s)` : "Renvoyer le code"}
+          </PendingLabel>
         </button>
         {resendState.message !== null ? (
           <p role="status" className={`text-sm ${mutedClass}`}>{resendState.message}</p>

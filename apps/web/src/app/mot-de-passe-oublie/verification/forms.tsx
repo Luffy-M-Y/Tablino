@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
+import { PendingLabel } from "@/components/ui/PendingLabel";
 import { resendResetCodeAction, verifyResetCodeAction } from "./actions";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -66,10 +67,11 @@ export function ResetVerificationForms() {
         />
         <button
           type="submit"
+          aria-busy={verifyPending}
           disabled={verifyPending || !verifyTurnstileToken}
           className={primaryButtonClass}
         >
-          V&eacute;rifier
+          <PendingLabel pending={verifyPending} pendingText="Vérification…">V&eacute;rifier</PendingLabel>
         </button>
         {verifyState.message !== null ? (
           <p className={errorClass} role="alert">{verifyState.message}</p>
@@ -85,10 +87,13 @@ export function ResetVerificationForms() {
         ) : null}
         <button
           type="submit"
+          aria-busy={resendPending}
           disabled={resendPending || secondsLeft > 0 || !resendTurnstileToken}
           className={secondaryButtonClass}
         >
-          {secondsLeft > 0 ? "Renvoyer le code (" + secondsLeft + " s)" : "Renvoyer le code"}
+          <PendingLabel pending={resendPending} pendingText="Envoi en cours…">
+            {secondsLeft > 0 ? "Renvoyer le code (" + secondsLeft + " s)" : "Renvoyer le code"}
+          </PendingLabel>
         </button>
         {resendState.message !== null ? (
           <p className={`text-sm ${mutedClass}`} role="status">{resendState.message}</p>
