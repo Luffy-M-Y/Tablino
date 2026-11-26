@@ -135,7 +135,7 @@ export default async function ProgramDetailPage({
         />
       </AdminCard>
 
-      <AdminCard>
+      <AdminCard id="statut" className="scroll-mt-24">
         <h2 className="text-xl font-semibold">Statut</h2>
         <StructureActionForm action={updateProgramStatusAction} buttonLabel="Enregistrer le statut">
           <input type="hidden" name="universityId" value={universityId} />
