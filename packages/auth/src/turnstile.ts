@@ -1,5 +1,7 @@
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const MAX_TURNSTILE_TOKEN_LENGTH = 2048;
+// Siteverify sans réponse : refus après ce délai, au lieu d'une attente sans fin.
+const SITEVERIFY_TIMEOUT_MS = 10_000;
 
 export const TURNSTILE_ACTIONS = [
   "login",
@@ -88,6 +90,7 @@ export async function verifyTurnstileToken(
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ secret, response: token }),
       cache: "no-store",
+      signal: AbortSignal.timeout(SITEVERIFY_TIMEOUT_MS),
     });
   } catch {
     return { ok: false, reason: "unavailable" };
