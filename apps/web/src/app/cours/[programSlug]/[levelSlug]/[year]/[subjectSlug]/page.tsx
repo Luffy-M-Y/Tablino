@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { DownloadButton } from "@/components/ui/DownloadButton";
+import { formatFileSize } from "@/lib/file-size.mjs";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { PageHero, mutedClass, primaryButtonClass, cardClass } from "@/components/ui/kit";
 
@@ -86,6 +87,7 @@ export default async function CoursRessourcesPage({
         <div className="flex flex-col gap-3">
           {resources.map((r) => {
             const title = r.title.replace(/^\[.*?\]\s*/, "") || r.title;
+            const fileSize = formatFileSize(r.fileSizeBytes);
             const safeUrl = r.externalUrl && /^https?:\/\//i.test(r.externalUrl) ? r.externalUrl : null;
 
             return (
@@ -97,7 +99,7 @@ export default async function CoursRessourcesPage({
                   <p className="font-medium text-[color:var(--color-text)] truncate">{title}</p>
                   <p className={`text-xs ${mutedClass} mt-0.5`}>
                     {FORMAT_LABELS[r.format] ?? r.format}
-                    {r.fileSizeBytes ? ` \u00b7 ${Math.round(r.fileSizeBytes / 1024)} Ko` : ""}
+                    {fileSize ? ` \u00b7 ${fileSize}` : ""}
                   </p>
                 </div>
 

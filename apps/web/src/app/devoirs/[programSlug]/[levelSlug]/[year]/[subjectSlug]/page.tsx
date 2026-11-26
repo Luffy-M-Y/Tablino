@@ -12,6 +12,7 @@ import {
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { DownloadButton } from "@/components/ui/DownloadButton";
+import { formatFileSize } from "@/lib/file-size.mjs";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { PageHero, mutedClass, cardClass } from "@/components/ui/kit";
 
@@ -87,6 +88,7 @@ export default async function DevoirsListePage({
           {assignments.map((a) => {
             const { label: statusLabel, color, Icon: StatusIcon } = getDueStatus(a.dueDate);
             const title = a.title.replace(/^\[.*?\]\s*/, "") || a.title;
+            const fileSize = a.fileKey ? formatFileSize(a.fileSizeBytes) : null;
 
             return (
               <div
@@ -103,6 +105,9 @@ export default async function DevoirsListePage({
                       <StatusIcon size={13} aria-hidden="true" />
                       {statusLabel}
                     </div>
+                    {fileSize && (
+                      <p className={`text-xs ${mutedClass} mt-1`}>Fichier &middot; {fileSize}</p>
+                    )}
                   </div>
 
                   {a.fileKey ? (
