@@ -7,6 +7,7 @@ import {
   adminPrimaryButtonClass,
 } from "@/components/admin-ui";
 import { TurnstileField } from "@/components/auth/TurnstileField";
+import { PendingLabel } from "@/components/pending-label";
 import {
   resendInvitationCodeAction,
   startAdminInvitationGoogleAction,
@@ -93,10 +94,11 @@ export function AcceptInvitationForm() {
         ) : null}
         <button
           type="submit"
+          aria-busy={verifyPending}
           disabled={verifyPending || !verifyToken}
           className={adminPrimaryButtonClass}
         >
-          {verifyPending ? "Vérification en cours…" : "Confirmer le code"}
+          <PendingLabel pending={verifyPending} pendingText="Vérification en cours…">Confirmer le code</PendingLabel>
         </button>
       </form>
 
@@ -115,10 +117,13 @@ export function AcceptInvitationForm() {
         ) : null}
         <button
           type="submit"
+          aria-busy={resendPending}
           disabled={resendPending || secondsLeft > 0 || !resendToken}
           className={adminPrimaryButtonClass}
         >
-          {secondsLeft > 0 ? `Renvoyer le code (${secondsLeft} s)` : "Renvoyer le code"}
+          <PendingLabel pending={resendPending} pendingText="Envoi en cours…">
+            {secondsLeft > 0 ? `Renvoyer le code (${secondsLeft} s)` : "Renvoyer le code"}
+          </PendingLabel>
         </button>
       </form>
     </div>
@@ -167,10 +172,11 @@ export function AcceptInvitationForm() {
         ) : null}
         <button
           type="submit"
+          aria-busy={startPending}
           disabled={startPending || !startToken}
           className={adminPrimaryButtonClass}
         >
-          {startPending ? "Envoi du code…" : "Envoyer le code de confirmation"}
+          <PendingLabel pending={startPending} pendingText="Envoi du code…">Envoyer le code de confirmation</PendingLabel>
         </button>
       </form>
       <div className="my-5 flex items-center gap-3 text-sm text-[color:var(--color-muted-foreground)]">
@@ -237,7 +243,7 @@ export function GoogleInvitationButton() {
           <path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z" />
           <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
         </svg>
-        {googlePending ? "Connexion en cours…" : "Continuer avec Google"}
+        <PendingLabel pending={googlePending} pendingText="Connexion en cours…">Continuer avec Google</PendingLabel>
       </button>
       {googleError ? (
         <p role="alert" className="mt-2 text-sm text-[color:var(--color-destructive-text)]">
