@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   adminFieldClass,
   adminLabelClass,
@@ -37,6 +37,13 @@ export function AcceptInvitationForm() {
     initialState,
   );
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
+  // Champ contrôlé : React 19 vide un champ libre après chaque envoi, même en erreur.
+  const [code, setCode] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  // Code refusé : il reste affiché, sélectionné ; une frappe le remplace, on peut aussi corriger un chiffre.
+  useEffect(() => {
+    if (verifyState.message !== null) codeInputRef.current?.select();
+  }, [verifyState]);
   const [startToken, setStartToken] = useState("");
   const [verifyToken, setVerifyToken] = useState("");
   const [resendToken, setResendToken] = useState("");
@@ -73,6 +80,9 @@ export function AcceptInvitationForm() {
           <input
             id="invitation-code"
             name="code"
+            ref={codeInputRef}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"

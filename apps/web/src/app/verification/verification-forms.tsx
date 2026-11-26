@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { errorClass, inputClass, labelClass, mutedClass, primaryButtonClass, secondaryButtonClass } from "@/components/ui/kit";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { PendingLabel } from "@/components/ui/PendingLabel";
@@ -19,6 +19,13 @@ export function VerificationForms() {
     { message: null },
   );
   const [secondsLeft, setSecondsLeft] = useState(RESEND_COOLDOWN_SECONDS);
+  // Champ contrôlé : React 19 vide un champ libre après chaque envoi, même en erreur.
+  const [code, setCode] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  // Code refusé : il reste affiché, sélectionné ; une frappe le remplace, on peut aussi corriger un chiffre.
+  useEffect(() => {
+    if (verifyState.message !== null && !verifyState.redirectTo) codeInputRef.current?.select();
+  }, [verifyState]);
   const [verifyTurnstileToken, setVerifyTurnstileToken] = useState("");
   const [resendTurnstileToken, setResendTurnstileToken] = useState("");
   useEffect(() => {
@@ -57,6 +64,9 @@ export function VerificationForms() {
           <input
             id="code"
             name="code"
+            ref={codeInputRef}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
