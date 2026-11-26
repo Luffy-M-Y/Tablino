@@ -52,6 +52,18 @@ export function decidePaymentConfirmation(input: {
   expectedAmount: number;
   requireLive: boolean;
 }): PaymentConfirmation;
+export const WEBHOOK_TOLERANCE_SECONDS: number;
+export const WEBHOOK_MAX_BYTES: number;
+export function verifyWebhookSignature(input: {
+  rawBody: string;
+  signature: string | null;
+  timestamp: string | null;
+  secret: string | undefined;
+  now: Date;
+}):
+  | { ok: true; payload: Record<string, unknown> }
+  | { ok: false; reason: "missing_secret" | "invalid_signature" | "stale_timestamp" | "invalid_body" };
+export function parseWebhookEvent(payload: unknown): { event: string | null; reference: string | null };
 export function createPaymentReferenceToken(input: {
   reference: string;
   userId: string;
