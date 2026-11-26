@@ -48,7 +48,7 @@ test("production CSP allows only the expected sources", () => {
     ["frame-src", "https://challenges.cloudflare.com"],
     ["object-src", "'none'"],
     ["base-uri", "'self'"],
-    ["form-action", "'self' https://accounts.google.com"],
+    ["form-action", "'self' https://accounts.google.com https://geniuspay.ci"],
     ["frame-ancestors", "'none'"],
   ]);
   assert.equal(byKey.get("Content-Security-Policy"), buildContentSecurityPolicy({ development: false }));
@@ -77,12 +77,12 @@ test("development CSP only adds unsafe-eval to scripts", () => {
 
 test("form-action adds the central sign-in host when configured", () => {
   const withHost = directives(buildContentSecurityPolicy({ development: false, centralHost: " Auth.Example.com:8443 " }));
-  assert.equal(withHost.get("form-action"), "'self' https://accounts.google.com auth.example.com:8443");
+  assert.equal(withHost.get("form-action"), "'self' https://accounts.google.com https://geniuspay.ci auth.example.com:8443");
   const without = directives(buildContentSecurityPolicy({ development: false }));
-  assert.equal(without.get("form-action"), "'self' https://accounts.google.com");
+  assert.equal(without.get("form-action"), "'self' https://accounts.google.com https://geniuspay.ci");
   assert.equal(directives(buildContentSecurityPolicy({ development: false, centralHost: "  " })).get("form-action"), without.get("form-action"));
   const headers = new Map(buildSecurityHeaders({ development: false, centralHost: "127.0.0.1:3001" }).map(({ key, value }) => [key, value]));
-  assert.equal(directives(headers.get("Content-Security-Policy")).get("form-action"), "'self' https://accounts.google.com 127.0.0.1:3001");
+  assert.equal(directives(headers.get("Content-Security-Policy")).get("form-action"), "'self' https://accounts.google.com https://geniuspay.ci 127.0.0.1:3001");
 });
 
 test("refuses an invalid central host instead of writing a wrong policy", () => {

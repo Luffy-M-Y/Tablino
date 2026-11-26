@@ -53,6 +53,19 @@ export async function requireStudentSession(): Promise<GuardUser> {
   return user;
 }
 
+/** Étudiant connecté sur l'hôte de son université, sans redirect() (routes) ; null sinon. */
+export async function getStudentSessionUser(): Promise<GuardUser | null> {
+  try {
+    const universityId = await getCurrentUniversityId();
+    const sessionUser = await requireRole("web", ["student"]);
+    if (!isUniversityAccessAllowed(sessionUser.universityId, universityId, universityId)) return null;
+    return await requireUniversityAccess("web", universityId);
+  } catch (error) {
+    if (error instanceof SessionRequiredError || error instanceof AuthorizationDeniedError) return null;
+    throw error;
+  }
+}
+
 export async function hasStudentSession(): Promise<boolean> {
   try {
     const universityId = await getCurrentUniversityId();
