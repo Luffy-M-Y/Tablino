@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireApprovedUniversityAdmin } from "@/lib/authorization";
 import { getContractClauses } from "@/lib/partnership-contract.mjs";
 import { getUniversityPartnershipInfo } from "@tablino/db";
 import { linkClass } from "@/components/auth-ui";
+import { SignOutButton } from "@/components/sign-out-button";
 import { getUniversityHostnamePreview } from "@/lib/university-hostname-preview";
 import { PartnershipForm } from "./partnership-form";
 import { RegistrationForm } from "./registration-form";
@@ -38,12 +38,9 @@ export default async function PartenariatPage() {
         <h1 className="text-2xl font-bold text-[color:var(--color-text)] sm:text-3xl">
           Contrat de partenariat
         </h1>
-        <Link
-          href="/api/auth/signout"
-          className={linkClass}
-        >
+        <SignOutButton className={linkClass}>
           Se déconnecter
-        </Link>
+        </SignOutButton>
       </div>
 
       <section className="mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-subtle)] sm:p-8">
