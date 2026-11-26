@@ -6,11 +6,35 @@ import { forbidden } from "next/navigation";
 import { describeAccessStatus, formatAccessDate } from "@/lib/access-status.mjs";
 import { requireStudentSession } from "@/lib/authorization";
 import { BackButton } from "@/components/ui/BackButton";
-import { PageContainer, cardClass, mutedClass, secondaryButtonClass } from "@/components/ui/kit";
+import { PageContainer, cardClass, errorClass, linkClass, mutedClass, primaryButtonClass } from "@/components/ui/kit";
+import { ClearPaymentParam } from "./clear-payment-param";
 import { TrialForm } from "./trial-form";
 
-export default async function ChoisirAccesPage() {
+// Retour de /paiement/retour (?paiement=...) : message affiché, aucune décision prise ici.
+const PAYMENT_MESSAGES = {
+  ok: { tone: "success", text: "Paiement confirmé. Votre offre Pro est active." },
+  attente: { tone: "pending", text: "Paiement en attente de confirmation." },
+  echec: { tone: "error", text: "Le paiement a échoué ou a été annulé." },
+  introuvable: { tone: "error", text: "Aucun paiement en cours. Relancez le paiement." },
+  indisponible: { tone: "error", text: "Paiement indisponible pour le moment. Réessayez plus tard." },
+  erreur: { tone: "error", text: "Paiement non validé. Si vous avez été débité, contactez le support." },
+} as const;
+
+type PaymentMessageKey = keyof typeof PAYMENT_MESSAGES;
+
+function isPaymentMessageKey(value: unknown): value is PaymentMessageKey {
+  return typeof value === "string" && Object.hasOwn(PAYMENT_MESSAGES, value);
+}
+
+export default async function ChoisirAccesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ paiement?: string | string[] }>;
+}) {
   const user = await requireStudentSession();
+  const { paiement } = await searchParams;
+  const paymentKey = isPaymentMessageKey(paiement) ? paiement : null;
+  const paymentMessage = paymentKey === null ? null : PAYMENT_MESSAGES[paymentKey];
   const now = new Date();
   const decision = decideStudentAccess(user, now);
   const status = describeAccessStatus(user, now);
@@ -37,6 +61,24 @@ export default async function ChoisirAccesPage() {
         Retour à l&rsquo;accueil
       </BackButton>
       <h1 className="mb-8 text-2xl font-bold text-[color:var(--color-text)] sm:text-3xl">Mon acc&egrave;s</h1>
+
+      {paymentMessage !== null ? (
+        <div
+          role={paymentMessage.tone === "error" ? "alert" : "status"}
+          className={paymentMessage.tone === "error"
+            ? `mb-8 ${errorClass}`
+            : "mb-8 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] bg-white px-4 py-3 text-sm text-[color:var(--color-text)]"}
+        >
+          {paymentMessage.text}
+          {paymentMessage.tone === "pending" ? (
+            <>
+              {" "}
+              <a href="/paiement/retour" className={linkClass}>V&eacute;rifier de nouveau</a>
+            </>
+          ) : null}
+          <ClearPaymentParam />
+        </div>
+      ) : null}
 
       <section
         aria-labelledby="access-status-title"
@@ -88,13 +130,11 @@ export default async function ChoisirAccesPage() {
               Offre active jusqu&rsquo;au {formatAccessDate(status.endsAt)}.
             </div>
           ) : (
-            <button
-              type="button"
-              disabled
-              className={`${secondaryButtonClass} disabled:cursor-not-allowed`}
-            >
-              Bient&ocirc;t disponible
-            </button>
+            <form method="post" action="/paiement/pro">
+              <button type="submit" className={primaryButtonClass}>
+                Passer &agrave; Pro
+              </button>
+            </form>
           )}
         </section>
       </div>

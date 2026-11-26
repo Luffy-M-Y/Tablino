@@ -38,7 +38,8 @@ export function buildContentSecurityPolicy({ development, centralHost }) {
     "object-src 'none'",
     "base-uri 'self'",
     // Connexion Google : formulaire vers l'hôte central, puis redirection vers Google.
-    "form-action 'self' https://accounts.google.com" + centralHostSource(centralHost),
+    // Paiement Pro : formulaire vers /paiement/pro, puis redirection vers la page GeniusPay.
+    "form-action 'self' https://accounts.google.com https://geniuspay.ci" + centralHostSource(centralHost),
     "frame-ancestors 'none'",
   ].join("; ");
 }
