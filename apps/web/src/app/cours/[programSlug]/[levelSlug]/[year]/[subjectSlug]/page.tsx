@@ -1,7 +1,7 @@
 export const instant = false;
 
 import { notFound } from "next/navigation";
-import { BookOpen, ExternalLink, FileX, Clock, Download } from "lucide-react";
+import { BookOpen, ExternalLink, FileX, Clock } from "lucide-react";
 import { getCurrentUniversityId } from "@/lib/university";
 import {
   getProgramBySlug,
@@ -11,6 +11,7 @@ import {
   getResourcesBySubject,
 } from "@/lib/queries";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { DownloadButton } from "@/components/ui/DownloadButton";
 import { StepIndicator } from "@/components/ui/StepIndicator";
 import { PageHero, mutedClass, primaryButtonClass, cardClass } from "@/components/ui/kit";
 
@@ -112,14 +113,7 @@ export default async function CoursRessourcesPage({
                     Ouvrir
                   </a>
                 ) : r.fileKey ? (
-                  <a
-                    href={`/fichiers/${r.id}`}
-                    aria-label={`T\u00e9l\u00e9charger ${title}`}
-                    className={`${primaryButtonClass} !w-auto inline-flex items-center justify-center gap-1.5 shrink-0`}
-                  >
-                    <Download size={15} aria-hidden="true" />
-                    T&eacute;l&eacute;charger
-                  </a>
+                  <DownloadButton href={`/fichiers/${r.id}`} title={title} />
                 ) : (
                   <div
                     aria-disabled="true"

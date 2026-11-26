@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isFileId, isServableFileKey } from "../src/lib/file-download.mjs";
+import {
+  buildDownloadFileName,
+  downloadProgressPercent,
+  fileKeyExtension,
+  isFileId,
+  isServableFileKey,
+} from "../src/lib/file-download.mjs";
 
 const UNIVERSITY = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
@@ -42,4 +48,41 @@ test("isServableFileKey refuses missing, legacy and suspicious keys", () => {
     assert.equal(isServableFileKey(key, UNIVERSITY), false, String(key));
   }
   assert.equal(isServableFileKey(`${UNIVERSITY}/${OBJECT}.pdf`, ""), false);
+});
+
+test("fileKeyExtension returns the lower-case extension or null", () => {
+  assert.equal(fileKeyExtension(`${UNIVERSITY}/${OBJECT}.PDF`), "pdf");
+  assert.equal(fileKeyExtension(`${UNIVERSITY}/${OBJECT}.docx`), "docx");
+  for (const value of [`${UNIVERSITY}/${OBJECT}`, "", null, undefined, 42]) {
+    assert.equal(fileKeyExtension(value), null, String(value));
+  }
+});
+
+test("buildDownloadFileName removes forbidden characters and keeps the extension", () => {
+  assert.equal(buildDownloadFileName("Cours 1 : algèbre", "pdf"), "Cours 1 algèbre.pdf");
+  assert.equal(buildDownloadFileName('a/b\\c*?"<>|d', "docx"), "a b c d.docx");
+  assert.equal(buildDownloadFileName("..cache", "txt"), "cache.txt");
+  assert.equal(buildDownloadFileName("ligne\nsuivante\u0000", "pdf"), "ligne suivante.pdf");
+});
+
+test("buildDownloadFileName falls back to fichier and refuses unsafe extensions", () => {
+  assert.equal(buildDownloadFileName("   ", "pdf"), "fichier.pdf");
+  assert.equal(buildDownloadFileName(null, "pdf"), "fichier.pdf");
+  assert.equal(buildDownloadFileName("Cours", "p/df"), "Cours");
+  assert.equal(buildDownloadFileName("Cours", null), "Cours");
+  assert.equal(buildDownloadFileName("Cours", "PDF"), "Cours.pdf");
+});
+
+test("buildDownloadFileName limits the title to 150 characters", () => {
+  assert.equal(buildDownloadFileName("é".repeat(200), "pdf"), "é".repeat(150) + ".pdf");
+});
+
+test("downloadProgressPercent returns a bounded integer or null", () => {
+  assert.equal(downloadProgressPercent(0, 200), 0);
+  assert.equal(downloadProgressPercent(99, 200), 49);
+  assert.equal(downloadProgressPercent(200, 200), 100);
+  assert.equal(downloadProgressPercent(300, 200), 100);
+  for (const [received, total] of [[10, 0], [10, NaN], [10, -5], [-1, 10], [NaN, 10]]) {
+    assert.equal(downloadProgressPercent(received, total), null, `${received}/${total}`);
+  }
 });
