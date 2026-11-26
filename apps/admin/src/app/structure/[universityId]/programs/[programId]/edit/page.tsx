@@ -17,8 +17,10 @@ import { SubjectCreateForm } from "../subject-create-form";
 
 export default async function EditProgramPage({
   params,
+  searchParams,
 }: PageProps<"/structure/[universityId]/programs/[programId]/edit">) {
   const { universityId, programId } = await params;
+  const { niveau } = await searchParams;
   const university = await getCurrentUniversity();
   if (!university || university.id !== universityId) forbidden();
   if (!isUuid(programId)) notFound();
@@ -33,6 +35,10 @@ export default async function EditProgramPage({
     (cycle) => !program.cycles.some((programCycle) => programCycle.cycleId === cycle.id),
   );
   const programLevels = getProgramLevels(overview, program.id);
+  // Niveau venu du lien de l'envoi de fichier : gardé seulement s'il appartient à cette filière.
+  const defaultLevelId = typeof niveau === "string" && programLevels.some((level) => level.id === niveau)
+    ? niveau
+    : undefined;
 
   return (
     <AdminPage
@@ -159,6 +165,7 @@ export default async function EditProgramPage({
           programId={program.id}
           levels={programLevels}
           academicYears={overview.academicYears}
+          defaultLevelId={defaultLevelId}
         />
       </AdminCard>
     </AdminPage>

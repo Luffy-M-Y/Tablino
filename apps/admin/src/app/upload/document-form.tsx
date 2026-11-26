@@ -296,7 +296,7 @@ export function DocumentForm({
         ) : academicYearLabels.length === 0 ? (
           <>
             <p className={hintClassName}>Aucune année pour ce niveau : elle se crée avec la première matière.</p>
-            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit#ajouter-matiere`}>Ajouter une matière</ShortcutLink>
+            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit?niveau=${encodeURIComponent(levelId)}#ajouter-matiere`}>Ajouter une matière</ShortcutLink>
           </>
         ) : null}
       </div>
@@ -324,7 +324,7 @@ export function DocumentForm({
         ) : hasNoSubjects ? (
           <>
             <p className={hintClassName}>Aucune matière pour ce niveau et cette année.</p>
-            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit#ajouter-matiere`}>Ajouter une matière</ShortcutLink>
+            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit?niveau=${encodeURIComponent(levelId)}#ajouter-matiere`}>Ajouter une matière</ShortcutLink>
           </>
         ) : !academicYearLabel ? (
           <p className={hintClassName}>Choisis d’abord une année académique.</p>
