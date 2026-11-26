@@ -45,6 +45,7 @@ export function buildUploadTitle(title: string | null | undefined, fileName: str
 export function readIntegerField(formData: Pick<FormData, "get">, name: string): number | null;
 export function isUuid(value: unknown): value is string;
 export function messageForReason(reason: string): string;
+export function successMessageForMutation(action: string, options?: { draft?: boolean }): string;
 export function createStructureMutationLog(
   action: string,
   result: string,

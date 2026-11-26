@@ -135,7 +135,7 @@ export function RegistrationForm({
             {state.message}
           </p>
         )}
-        <button type="submit" disabled={pending || !acronym.trim()} className={primaryButtonClass}>
+        <button aria-busy={pending} type="submit" disabled={pending || !acronym.trim()} className={primaryButtonClass}>
           <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{"Enregistrer les modifications"}</PendingLabel>
         </button>
       </form>

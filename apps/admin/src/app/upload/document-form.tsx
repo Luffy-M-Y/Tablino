@@ -60,13 +60,13 @@ type WizardStep = 1 | 2 | 3;
 const WIZARD_STEPS: ReadonlyArray<{ step: WizardStep; title: string; description: string }> = [
   { step: 1, title: "Destination", description: "Choisis le type et l’emplacement du fichier." },
   { step: 2, title: "Fichier", description: "Ajoute le document à envoyer." },
-  { step: 3, title: "Publication", description: "Complète le titre et choisis quand publier." },
+  { step: 3, title: "Publication", description: "Complète le titre ; le fichier est publié sauf si tu le gardes en brouillon." },
 ];
 
 function WizardSubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={adminPrimaryButtonClass}>
+    <button type="submit" aria-busy={pending} disabled={pending} className={adminPrimaryButtonClass}>
       <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{label}</PendingLabel>
     </button>
   );
@@ -351,19 +351,19 @@ export function DocumentForm({
       </div>
       <div className="flex items-center justify-between gap-4 rounded-xl bg-[color:var(--admin-page-background)] p-4">
         <div>
-          <label htmlFor="upload-publish-now" className="text-sm font-semibold text-[color:var(--color-text)]">
-            Publier directement
+          <label htmlFor="upload-keep-draft" className="text-sm font-semibold text-[color:var(--color-text)]">
+            Garder en brouillon
           </label>
-          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Sans cocher, le fichier reste en brouillon.</p>
+          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Sans cocher, le fichier est publié tout de suite.</p>
         </div>
-        <label htmlFor="upload-publish-now" className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center">
+        <label htmlFor="upload-keep-draft" className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center">
           <input
             type="checkbox"
-            id="upload-publish-now"
-            name="publishNow"
+            id="upload-keep-draft"
+            name="keepDraft"
             className="peer sr-only"
           />
-          <span aria-hidden="true" className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[color:var(--color-primary)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none" />
+          <span aria-hidden="true" className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-amber-500 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none" />
           <span aria-hidden="true" className="pointer-events-none absolute left-1 size-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5 motion-reduce:transition-none" />
         </label>
       </div>

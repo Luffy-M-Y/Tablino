@@ -78,6 +78,7 @@ export function RenameControl({
             {helpText && <p className="text-sm">{helpText}</p>}
           </div>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
             className={adminPrimaryButtonClass}
@@ -150,6 +151,7 @@ export function DeleteControl({
           <input type="hidden" name="confirm" value="supprimer" />
           <p>Supprimer « {itemName} » ? Cette action est définitive.</p>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
             className={adminDangerButtonClass}

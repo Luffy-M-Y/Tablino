@@ -52,6 +52,7 @@ export function ApprovalForm({
           />
           <span className="text-sm font-medium text-slate-600">%</span>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
             className="rounded-[var(--radius-rounded)] bg-[color:var(--color-university-primary)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"

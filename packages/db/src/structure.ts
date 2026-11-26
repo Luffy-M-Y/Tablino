@@ -464,6 +464,7 @@ export async function createProgram(
   universityId: string,
   name: string,
   database?: StructureDatabase,
+  options?: { status?: "draft" | "published" },
 ): Promise<CreateProgramResult> {
   const normalizedName = normalizeName(name);
   if (!isNameValid(normalizedName, PROGRAM_NAME_MAX_LENGTH)) {
@@ -476,7 +477,12 @@ export async function createProgram(
   return (await resolveDatabase(database)).transaction(async (tx) => {
     const programs = await tx
       .insert(schema.programs)
-      .values({ universityId, name: normalizedName, slug })
+      .values({
+        universityId,
+        name: normalizedName,
+        slug,
+        ...(options?.status === undefined ? {} : { status: options.status }),
+      })
       .onConflictDoNothing({
         target: [schema.programs.universityId, schema.programs.slug],
       })

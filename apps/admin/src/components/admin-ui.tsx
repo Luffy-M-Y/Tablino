@@ -103,7 +103,7 @@ export function AdminLinkCard({
   );
 }
 
-const buttonBaseClass = "inline-flex min-h-10 items-center justify-center gap-2 rounded-[var(--radius-rounded)] px-4 py-2 text-sm font-semibold transition-colors active:translate-y-px disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none motion-reduce:active:translate-y-0";
+const buttonBaseClass = "inline-flex min-h-10 items-center justify-center gap-2 rounded-[var(--radius-rounded)] px-4 py-2 text-sm font-semibold transition-colors active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-busy:opacity-100 aria-busy:cursor-progress focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none motion-reduce:active:translate-y-0";
 
 export const adminPrimaryButtonClass = `${buttonBaseClass} bg-[color:var(--color-primary)] text-white hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] focus-visible:outline-[color:var(--color-ring)]`;
 export const adminAccentButtonClass = `${buttonBaseClass} bg-[color:var(--admin-action)] text-white hover:bg-[color-mix(in_srgb,var(--admin-action)_85%,black)] focus-visible:outline-[color:var(--admin-action)]`;

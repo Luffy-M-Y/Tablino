@@ -31,6 +31,7 @@ export function RequestResetForm() {
         resetKey={state}
       />
       <button
+        aria-busy={pending}
         type="submit"
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}

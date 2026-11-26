@@ -142,6 +142,7 @@ export function UniversitySignupForm({
             </p>
           )}
           <button
+            aria-busy={pending}
             type="submit"
             disabled={isSubmitDisabled}
             className={primaryButtonClass}

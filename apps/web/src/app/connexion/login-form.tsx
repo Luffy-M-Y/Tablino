@@ -51,6 +51,7 @@ export function LoginForm({ defaultEmail }: { defaultEmail?: string } = {}) {
         resetKey={state}
       />
       <button
+        aria-busy={pending}
         type="submit"
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}

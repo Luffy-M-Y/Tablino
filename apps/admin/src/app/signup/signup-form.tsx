@@ -422,7 +422,7 @@ export function SignupForm({ addressDomains }: { addressDomains: SignupAddressDo
           </button>
         )}
         {step === "review" ? (
-          <button type="submit" disabled={isSubmitDisabled} className={primaryButtonClass}>
+          <button aria-busy={pending} type="submit" disabled={isSubmitDisabled} className={primaryButtonClass}>
             <PendingLabel pending={pending} pendingText={"Création en cours…"}>{"Valider et créer le compte"}</PendingLabel>
           </button>
         ) : (

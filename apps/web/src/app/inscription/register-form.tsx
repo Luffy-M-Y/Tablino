@@ -301,6 +301,7 @@ export function RegisterForm({ requiresAccessCode }: { requiresAccessCode: boole
         )}
         {currentStep.id === "review" ? (
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending || !turnstileToken}
             className={primaryButtonClass}

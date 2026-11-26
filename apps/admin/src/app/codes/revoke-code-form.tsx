@@ -12,6 +12,7 @@ export function RevokeCodeForm({ codeId }: { codeId: string }) {
     <form action={formAction} className="space-y-2">
       <input type="hidden" name="codeId" value={codeId} />
       <button
+        aria-busy={pending}
         type="submit"
         disabled={pending}
         className={`${adminSecondaryButtonClass} border-red-200 bg-red-50 text-red-800 hover:bg-red-100 focus-visible:outline-red-700`}

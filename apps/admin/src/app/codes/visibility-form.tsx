@@ -86,7 +86,7 @@ export function VisibilityForm({ currentVisibility }: { currentVisibility: "priv
             {state.message}
           </p>
         )}
-        <button type="submit" disabled={isSubmitDisabled} className={adminPrimaryButtonClass}>
+        <button aria-busy={pending} type="submit" disabled={isSubmitDisabled} className={adminPrimaryButtonClass}>
           <PendingLabel pending={pending} pendingText={"Enregistrement…"}>{"Enregistrer la visibilité"}</PendingLabel>
         </button>
       </form>

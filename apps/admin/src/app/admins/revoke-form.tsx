@@ -96,6 +96,7 @@ export function RevokeAdminForm({
 
       <div className="flex flex-wrap items-center gap-2">
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending}
           className={adminDangerButtonClass}

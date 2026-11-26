@@ -54,6 +54,7 @@ export function UniversitySearchForm() {
           resetKey={state}
         />
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending || !turnstileToken || !acronym.trim()}
           className={primaryButtonClass}

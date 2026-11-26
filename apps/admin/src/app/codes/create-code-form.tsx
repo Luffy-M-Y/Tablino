@@ -81,6 +81,7 @@ export function CreateCodeForm() {
           </p>
         </div>
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending}
           className={`${adminPrimaryButtonClass} w-full sm:w-auto`}

@@ -50,6 +50,7 @@ export function GoogleRegisterForm({
         </p>
       )}
       <button
+        aria-busy={pending}
         type="submit"
         disabled={pending || !turnstileToken}
         className={primaryButtonClass}

@@ -175,6 +175,7 @@ export function PartnershipForm({ addressReady }: { addressReady: boolean }) {
 
       <div className="pt-4">
         <button
+          aria-busy={pending}
           type="submit"
           disabled={isSubmitDisabled}
           className={primaryButtonClass}

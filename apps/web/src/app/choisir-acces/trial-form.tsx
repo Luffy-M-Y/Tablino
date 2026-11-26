@@ -17,6 +17,7 @@ export function TrialForm() {
   return (
     <form action={action}>
       <button
+        aria-busy={pending}
         type="submit"
         disabled={pending}
         className={primaryButtonClass}

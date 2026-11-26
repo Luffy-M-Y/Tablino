@@ -57,9 +57,9 @@ export function StructureActionForm({
       {hideSubmit ? null : (
         <SubmitWrapper className={submitWrapperClassName}>
           <button
+            aria-busy={pending}
             type="submit"
             disabled={pending}
-            aria-busy={pending}
             className={adminPrimaryButtonClass}
           >
             <PendingLabel pending={pending} pendingText="Enregistrement…">{buttonLabel}</PendingLabel>

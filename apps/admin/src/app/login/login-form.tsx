@@ -145,6 +145,7 @@ export function LoginForm({
           </p>
         )}
         <button
+          aria-busy={pending}
           type="submit"
           disabled={pending || !turnstileToken}
           className={`h-11 w-full rounded-[var(--radius-rounded)] bg-[color:var(--color-primary)] px-4 font-semibold text-white transition-colors hover:bg-[color-mix(in_srgb,var(--color-primary)_85%,black)] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none ${focusRing}`}

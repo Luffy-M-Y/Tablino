@@ -92,7 +92,7 @@ export function InvitationForm({ roles }: { roles: InvitationRoleOption[] }) {
           {state.message}
         </p>
       ) : null}
-      <button type="submit" disabled={pending} className={adminPrimaryButtonClass}>
+      <button aria-busy={pending} type="submit" disabled={pending} className={adminPrimaryButtonClass}>
         <PendingLabel pending={pending} pendingText={"Envoi en cours…"}>{"Envoyer l'invitation"}</PendingLabel>
       </button>
     </form>
