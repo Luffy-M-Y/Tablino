@@ -107,7 +107,7 @@ export default async function EditProgramPage({
         )}
       </AdminCard>
 
-      <AdminCard className="mt-6">
+      <AdminCard id="ajouter-cycle" className="mt-6 scroll-mt-24">
         <h2 className="mb-4 text-xl font-semibold">Ajouter un cycle</h2>
         {overview.cycles.length === 0 ? (
           <div className="flex flex-wrap items-center gap-3">
@@ -149,8 +149,11 @@ export default async function EditProgramPage({
         )}
       </AdminCard>
 
-      <AdminCard className="mt-6">
-        <h2 className="mb-4 text-xl font-semibold">Ajouter une matière</h2>
+      <AdminCard id="ajouter-matiere" className="mt-6 scroll-mt-24">
+        <h2 className="text-xl font-semibold">Ajouter une matière</h2>
+        <p className="mb-5 mt-1 text-sm text-[color:var(--color-muted-foreground)]">
+          La matière est rattachée à un niveau et à une année académique.
+        </p>
         <SubjectCreateForm
           universityId={universityId}
           programId={program.id}

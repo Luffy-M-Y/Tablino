@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
-import { ArrowLeft, ArrowRight, BookOpen, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, ClipboardList, Plus } from "lucide-react";
 import { StructureActionForm } from "../structure/[universityId]/structure-action-form";
 import { uploadFileAction } from "../structure/[universityId]/actions";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
@@ -76,6 +76,19 @@ export const fieldClassName = adminFieldClass;
 const kindOptionClassName = "flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-[color:var(--color-text)] transition-[color,background-color,box-shadow] duration-200 hover:bg-white/70 hover:text-[color:var(--color-primary-text)] peer-checked:bg-[color:var(--color-primary)] peer-checked:text-white peer-checked:shadow-sm peer-checked:hover:bg-[color:var(--color-primary)] peer-checked:hover:text-white peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none";
 const selectClassName = `${fieldClassName} h-11 text-sm`;
 const hintClassName = "mt-1 text-xs text-[color:var(--color-muted-foreground)]";
+
+/** Raccourci vers la page où ajouter l'élément manquant. */
+function ShortcutLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 py-1.5 text-sm font-semibold text-[color:var(--color-primary-text)] transition-colors hover:border-[color:var(--color-primary)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none"
+    >
+      <Plus size={14} aria-hidden="true" />
+      {children}
+    </Link>
+  );
+}
 
 export function DocumentForm({
   universityId,
@@ -217,13 +230,10 @@ export function DocumentForm({
           ))}
         </select>
         {programs.length === 0 ? (
-          <p className={hintClassName}>
-            Aucune filière.{" "}
-            <Link href="/structure" className="font-medium text-[color:var(--color-primary-text)] underline underline-offset-2">
-              Ajoutez-en une dans Structure
-            </Link>
-            .
-          </p>
+          <>
+            <p className={hintClassName}>Aucune filière pour le moment.</p>
+            <ShortcutLink href={`/structure/${universityId}/programs/new`}>Créer une filière</ShortcutLink>
+          </>
         ) : null}
       </div>
       <div>
@@ -252,7 +262,10 @@ export function DocumentForm({
         {!programId ? (
           <p className={hintClassName}>Choisis d’abord une filière.</p>
         ) : levels.length === 0 ? (
-          <p className={hintClassName}>Aucun niveau pour cette filière.</p>
+          <>
+            <p className={hintClassName}>Aucun niveau : ajoutez un cycle à la filière.</p>
+            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit#ajouter-cycle`}>Ajouter un cycle</ShortcutLink>
+          </>
         ) : null}
       </div>
       <div>
@@ -280,7 +293,10 @@ export function DocumentForm({
         {!levelId ? (
           <p className={hintClassName}>Choisis d’abord un niveau.</p>
         ) : academicYearLabels.length === 0 ? (
-          <p className={hintClassName}>Aucune année académique disponible pour ce niveau.</p>
+          <>
+            <p className={hintClassName}>Aucune année pour ce niveau : elle se crée avec la première matière.</p>
+            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit#ajouter-matiere`}>Ajouter une matière</ShortcutLink>
+          </>
         ) : null}
       </div>
       <div>
@@ -305,7 +321,10 @@ export function DocumentForm({
         {!levelId ? (
           <p className={hintClassName}>Choisis d’abord un niveau.</p>
         ) : hasNoSubjects ? (
-          <p className={hintClassName}>Aucune matière. Ajoutez-en une dans la filière.</p>
+          <>
+            <p className={hintClassName}>Aucune matière pour ce niveau et cette année.</p>
+            <ShortcutLink href={`/structure/${universityId}/programs/${programId}/edit#ajouter-matiere`}>Ajouter une matière</ShortcutLink>
+          </>
         ) : !academicYearLabel ? (
           <p className={hintClassName}>Choisis d’abord une année académique.</p>
         ) : null}

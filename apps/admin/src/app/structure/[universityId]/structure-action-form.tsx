@@ -14,6 +14,8 @@ type Props = {
   /** Le formulaire fournit son propre bouton d'envoi (assistant en étapes). */
   hideSubmit?: boolean;
   messageClassName?: string;
+  /** Place le bouton d'envoi dans un pied de formulaire avec cette mise en page. */
+  submitWrapperClassName?: string;
   onSuccess?: () => void;
 };
 
@@ -24,6 +26,7 @@ export function StructureActionForm({
   className = "mt-4 flex flex-wrap items-end gap-3",
   hideSubmit = false,
   messageClassName = "",
+  submitWrapperClassName,
   onSuccess,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, null);
@@ -52,19 +55,21 @@ export function StructureActionForm({
     >
       {children}
       {hideSubmit ? null : (
-        <button
-          type="submit"
-          disabled={pending}
-          aria-busy={pending}
-          className={adminPrimaryButtonClass}
-        >
-          {pending ? (
-            <>
-              <LoaderCircle size={16} aria-hidden="true" className="motion-safe:animate-spin" />
-              Enregistrement…
-            </>
-          ) : buttonLabel}
-        </button>
+        <SubmitWrapper className={submitWrapperClassName}>
+          <button
+            type="submit"
+            disabled={pending}
+            aria-busy={pending}
+            className={adminPrimaryButtonClass}
+          >
+            {pending ? (
+              <>
+                <LoaderCircle size={16} aria-hidden="true" className="motion-safe:animate-spin" />
+                Enregistrement…
+              </>
+            ) : buttonLabel}
+          </button>
+        </SubmitWrapper>
       )}
       {state && state !== dismissedState && (
         <p
@@ -77,4 +82,8 @@ export function StructureActionForm({
       )}
     </form>
   );
+}
+
+function SubmitWrapper({ className, children }: { className?: string; children: ReactNode }) {
+  return className === undefined ? <>{children}</> : <div className={className}>{children}</div>;
 }

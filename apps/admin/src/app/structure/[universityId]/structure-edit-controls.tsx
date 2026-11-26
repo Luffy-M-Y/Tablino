@@ -1,10 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useId, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { StructureFormAction } from "@/lib/structure-action-utils.mjs";
 import {
   adminDangerButtonClass,
+  adminDangerIconButtonClass,
   adminFieldClass,
+  adminIconButtonClass,
   adminPrimaryButtonClass,
   adminSecondaryButtonClass,
 } from "@/components/admin-ui";
@@ -43,13 +46,12 @@ export function RenameControl({
       <button
         type="button"
         aria-label={label}
+        title={label}
         aria-expanded={isEditing}
         onClick={() => setIsEditing(true)}
-        className={`${adminSecondaryButtonClass} size-10 p-2`}
+        className={adminIconButtonClass}
       >
-        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-          <path d="m16 5 3 3M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10L4 20Z" />
-        </svg>
+        <Pencil size={18} aria-hidden="true" />
       </button>
       {isEditing && (
         <form
@@ -131,12 +133,12 @@ export function DeleteControl({
       <button
         type="button"
         aria-label={label}
+        title={label}
+        aria-expanded={isConfirming}
         onClick={() => setIsConfirming(true)}
-        className={`${adminSecondaryButtonClass} size-10 p-2 text-red-700`}
+        className={adminDangerIconButtonClass}
       >
-        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5">
-          <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
-        </svg>
+        <Trash2 size={18} aria-hidden="true" />
       </button>
       {isConfirming && (
         <form action={formAction} className="mt-3 flex flex-wrap items-center gap-3">

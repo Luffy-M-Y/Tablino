@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { ArrowRight, type LucideIcon } from "lucide-react";
+import { ArrowRight, Search, X, type LucideIcon } from "lucide-react";
 
 type AdminCardProps = Omit<ComponentPropsWithoutRef<"section">, "children"> & {
   children: ReactNode;
@@ -113,3 +113,65 @@ export const adminSecondaryButtonClass = `${buttonBaseClass} border border-[colo
 export const adminFieldClass = "w-full rounded-[var(--radius-rounded)] border border-[color:var(--color-input-border)] bg-white px-3 py-2 text-base text-[color:var(--color-text)] placeholder:text-[color:var(--color-muted-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const adminLabelClass = "mb-2 block text-sm font-medium text-[color:var(--color-text)]";
+
+const iconButtonBaseClass = "inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-rounded)] border bg-white transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:transition-none";
+/** Bouton icône neutre (modifier). */
+export const adminIconButtonClass = `${iconButtonBaseClass} border-[color:var(--color-input-border)] text-[color:var(--color-text)] hover:border-[color:var(--color-primary)] hover:bg-[color:var(--color-page-background)] hover:text-[color:var(--color-primary-text)] focus-visible:outline-[color:var(--color-ring)]`;
+/** Bouton icône de suppression. */
+export const adminDangerIconButtonClass = `${iconButtonBaseClass} border-red-200 text-red-700 hover:border-red-700 hover:bg-red-50 focus-visible:outline-red-700`;
+
+/** Champ de recherche : loupe à gauche, bouton d'effacement dans le champ, nombre de résultats. */
+export function AdminSearchField({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange,
+  resultCount,
+}: {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  resultCount: number;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="sr-only">{label}</label>
+      <div className="relative">
+        <Search
+          size={18}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--color-muted-foreground)]"
+        />
+        <input
+          id={id}
+          type="search"
+          value={value}
+          placeholder={placeholder}
+          autoComplete="off"
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") onChange("");
+          }}
+          className="h-11 w-full rounded-full border border-[color:var(--color-input-border)] bg-white pl-10 pr-11 text-sm text-[color:var(--color-text)] shadow-sm placeholder:text-[color:var(--color-muted-foreground)] transition-colors hover:border-[color:var(--color-primary)] focus-visible:border-[color:var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)] motion-reduce:transition-none [&::-webkit-search-cancel-button]:hidden"
+        />
+        {value !== "" ? (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            aria-label="Effacer la recherche"
+            title="Effacer la recherche"
+            className="absolute right-1.5 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-page-background)] hover:text-[color:var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--color-ring)]"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+      <p className="mt-2 text-sm text-[color:var(--color-muted-foreground)]" aria-live="polite">
+        {resultCount} {resultCount === 1 ? "résultat" : "résultats"}
+      </p>
+    </div>
+  );
+}
