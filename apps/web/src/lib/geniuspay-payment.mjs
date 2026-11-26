@@ -79,7 +79,7 @@ export function describeGeniusPayFailure(status, body) {
     referenceType: Array.isArray(data.reference) ? "array" : data.reference === null ? "null" : typeof data.reference,
     referenceLength: typeof data.reference === "string" ? data.reference.length : null,
     referenceOtherChars: typeof data.reference === "string"
-      ? [...new Set(data.reference.replace(/[A-Za-z0-9-]/g, ""))].join("").slice(0, 10)
+      ? [...new Set(data.reference.replace(/[A-Za-z0-9_-]/g, ""))].join("").slice(0, 10)
       : null,
     checkoutHost,
   };
@@ -138,6 +138,64 @@ export function decidePaymentConfirmation({ payment, reference, userId, universi
   if (payment.userId !== userId || payment.universityId !== universityId) return { ok: false, reason: "owner_mismatch" };
   if (payment.amount !== expectedAmount) return { ok: false, reason: "amount_mismatch" };
   return { ok: true, plan: payment.plan, amount: payment.amount };
+}
+
+/** Fenêtre d'un webhook GeniusPay : 5 minutes avant ou après l'heure du serveur. */
+export const WEBHOOK_TOLERANCE_SECONDS = 300;
+/** Taille maximale du corps d'un webhook : 64 Ko. */
+export const WEBHOOK_MAX_BYTES = 65_536;
+
+const SIGNATURE_PATTERN = /^[0-9a-f]{64}$/i;
+const TIMESTAMP_PATTERN = /^[0-9]{1,12}$/;
+
+/** JSON à la manière de PHP json_encode (« / » et caractères non ASCII échappés). */
+function phpJsonEncode(value) {
+  return JSON.stringify(value)
+    .replace(/\//g, "\\/")
+    .replace(/[^\x00-\x7f]/g, (char) => "\\u" + char.charCodeAt(0).toString(16).padStart(4, "0"));
+}
+
+function hmacHex(data, secret) {
+  return createHmac("sha256", secret).update(data).digest("hex");
+}
+
+function sameHex(expected, received) {
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(received.toLowerCase(), "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Webhook GeniusPay : signature HMAC-SHA256 de « timestamp.corps » (corps reçu, puis
+ * JSON recalculé à la manière de PHP), puis fenêtre de 5 minutes. Corps JSON objet exigé.
+ */
+export function verifyWebhookSignature({ rawBody, signature, timestamp, secret, now }) {
+  if (typeof secret !== "string" || secret === "") return { ok: false, reason: "missing_secret" };
+  if (typeof rawBody !== "string" || typeof signature !== "string" || typeof timestamp !== "string"
+    || !SIGNATURE_PATTERN.test(signature) || !TIMESTAMP_PATTERN.test(timestamp)) {
+    return { ok: false, reason: "invalid_signature" };
+  }
+  let payload;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    payload = undefined;
+  }
+  const signedRaw = sameHex(hmacHex(timestamp + "." + rawBody, secret), signature);
+  const signedPhp = !signedRaw && payload !== undefined
+    && sameHex(hmacHex(timestamp + "." + phpJsonEncode(payload), secret), signature);
+  if (!signedRaw && !signedPhp) return { ok: false, reason: "invalid_signature" };
+  const age = Math.floor(now.getTime() / 1000) - Number(timestamp);
+  if (Math.abs(age) > WEBHOOK_TOLERANCE_SECONDS) return { ok: false, reason: "stale_timestamp" };
+  if (!isRecord(payload)) return { ok: false, reason: "invalid_body" };
+  return { ok: true, payload };
+}
+
+/** Événement d'un webhook : type et référence du paiement (null si absente ou invalide). */
+export function parseWebhookEvent(payload) {
+  const event = isRecord(payload) && typeof payload.event === "string" ? payload.event : null;
+  const data = isRecord(payload) && isRecord(payload.data) ? payload.data : {};
+  return { event, reference: isPaymentReference(data.reference) ? data.reference : null };
 }
 
 function sign(payload, secret) {

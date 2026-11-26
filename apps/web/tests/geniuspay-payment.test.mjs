@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import test from "node:test";
 import {
   buildPaymentReturnUrl,
@@ -9,7 +10,9 @@ import {
   isSameOriginRequest,
   parseCheckoutResponse,
   parsePaymentResponse,
+  parseWebhookEvent,
   verifyPaymentReferenceToken,
+  verifyWebhookSignature,
 } from "../src/lib/geniuspay-payment.mjs";
 
 const userId = "11111111-1111-4111-8111-111111111111";
@@ -196,4 +199,73 @@ test("reference token is not created without a secret or with invalid inputs", (
   assert.equal(createPaymentReferenceToken({ reference: "MTX-A1B2C3D4E5", userId, now, secret: undefined }), null);
   assert.equal(createPaymentReferenceToken({ reference: "bad.ref", userId, now, secret }), null);
   assert.equal(createPaymentReferenceToken({ reference: "MTX-A1B2C3D4E5", userId: "not-a-uuid", now, secret }), null);
+});
+
+const webhookSecret = "whsec_test";
+const webhookTimestamp = String(Math.floor(now.getTime() / 1000));
+function webhookSign(body, timestamp = webhookTimestamp, key = webhookSecret) {
+  return createHmac("sha256", key).update(timestamp + "." + body).digest("hex");
+}
+const webhookBody = JSON.stringify({
+  event: "payment.success",
+  data: { reference: "SANDBOX_A1B2C3D4E5", metadata: { note: "a/b é" } },
+});
+function verifyWebhook(overrides = {}) {
+  return verifyWebhookSignature({
+    rawBody: webhookBody,
+    signature: webhookSign(webhookBody),
+    timestamp: webhookTimestamp,
+    secret: webhookSecret,
+    now,
+    ...overrides,
+  });
+}
+
+test("webhook signature over the raw body is accepted (hex, any case)", () => {
+  const result = verifyWebhook();
+  assert.equal(result.ok, true);
+  assert.equal(result.payload.event, "payment.success");
+  assert.equal(verifyWebhook({ signature: webhookSign(webhookBody).toUpperCase() }).ok, true);
+});
+
+test("webhook signature over the PHP-style JSON is accepted", () => {
+  const phpBody = webhookBody.replace(/\//g, "\\/").replace(String.fromCharCode(0xe9), "\\" + "u00e9");
+  assert.notEqual(phpBody, webhookBody);
+  assert.equal(verifyWebhook({ signature: webhookSign(phpBody) }).ok, true);
+});
+
+test("webhook refuses a wrong secret, a tampered body or a malformed signature", () => {
+  assert.deepEqual(verifyWebhook({ signature: webhookSign(webhookBody, webhookTimestamp, "other") }), { ok: false, reason: "invalid_signature" });
+  assert.deepEqual(verifyWebhook({ rawBody: webhookBody.replace("SANDBOX", "SANDBOY") }), { ok: false, reason: "invalid_signature" });
+  for (const signature of [null, "", "abc", "z".repeat(64), "sha256=" + webhookSign(webhookBody)]) {
+    assert.deepEqual(verifyWebhook({ signature }), { ok: false, reason: "invalid_signature" }, String(signature));
+  }
+  for (const timestamp of [null, "", "12a", "-1", "1".repeat(13)]) {
+    assert.deepEqual(verifyWebhook({ timestamp }), { ok: false, reason: "invalid_signature" }, String(timestamp));
+  }
+  // Signature d'un autre horodatage : la donnée signée inclut l'horodatage.
+  assert.deepEqual(verifyWebhook({ timestamp: String(Number(webhookTimestamp) + 1) }), { ok: false, reason: "invalid_signature" });
+});
+
+test("webhook refuses a missing secret, a stale timestamp and a non-object body", () => {
+  assert.deepEqual(verifyWebhook({ secret: undefined }), { ok: false, reason: "missing_secret" });
+  assert.deepEqual(verifyWebhook({ secret: "" }), { ok: false, reason: "missing_secret" });
+  for (const delta of [301, -301]) {
+    const timestamp = String(Number(webhookTimestamp) + delta);
+    assert.deepEqual(verifyWebhook({ timestamp, signature: webhookSign(webhookBody, timestamp) }), { ok: false, reason: "stale_timestamp" }, String(delta));
+  }
+  for (const delta of [300, -300]) {
+    const timestamp = String(Number(webhookTimestamp) + delta);
+    assert.equal(verifyWebhook({ timestamp, signature: webhookSign(webhookBody, timestamp) }).ok, true, String(delta));
+  }
+  for (const rawBody of ["not json", "[1,2]", "null", "\"x\""]) {
+    assert.deepEqual(verifyWebhook({ rawBody, signature: webhookSign(rawBody) }), { ok: false, reason: "invalid_body" }, rawBody);
+  }
+});
+
+test("webhook event yields the type and a valid reference only", () => {
+  assert.deepEqual(parseWebhookEvent({ event: "payment.success", data: { reference: "SANDBOX_A1B2C3D4E5" } }), { event: "payment.success", reference: "SANDBOX_A1B2C3D4E5" });
+  assert.deepEqual(parseWebhookEvent({ event: "payment.success", data: { reference: "bad.ref" } }), { event: "payment.success", reference: null });
+  assert.deepEqual(parseWebhookEvent({ event: 3 }), { event: null, reference: null });
+  assert.deepEqual(parseWebhookEvent(null), { event: null, reference: null });
 });
