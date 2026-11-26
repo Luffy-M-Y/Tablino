@@ -105,6 +105,13 @@ export type AddProgramCycleResult =
       reason: "program_not_found" | "cycle_not_found" | "years_out_of_range" | "already_linked";
     };
 
+export type CreateProgramCycleResult =
+  | { ok: true; cycleId: string }
+  | {
+      ok: false;
+      reason: "invalid_cycle" | "years_out_of_range" | "duplicate_short_code" | "university_not_found" | "program_not_found";
+    };
+
 export type UpdateProgramCycleYearsCountResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "years_out_of_range" }
@@ -897,6 +904,90 @@ export async function addProgramCycle(
 
     return { ok: true };
   });
+}
+
+/** Crée un cycle de l'université et le rattache à la filière, dans une seule transaction. */
+export async function createProgramCycle(
+  universityId: string,
+  programId: string,
+  input: { name: string; shortCode: string; yearsCount: number },
+  database?: StructureDatabase,
+): Promise<CreateProgramCycleResult> {
+  const normalizedName = normalizeCycleName(input.name);
+  const normalizedShortCode = normalizeShortCode(input.shortCode);
+  if (!isCycleValid(normalizedName, normalizedShortCode)) {
+    return { ok: false, reason: "invalid_cycle" };
+  }
+  if (!isYearNumberInRange(input.yearsCount, 10)) {
+    return { ok: false, reason: "years_out_of_range" };
+  }
+  const yearsCount = input.yearsCount;
+
+  try {
+    return await (await resolveDatabase(database)).transaction(async (tx) => {
+      const [university] = await tx
+        .select({ id: schema.universities.id })
+        .from(schema.universities)
+        .where(eq(schema.universities.id, universityId))
+        .for("update")
+        .limit(1);
+      if (!university) return { ok: false, reason: "university_not_found" };
+
+      const [program] = await tx
+        .select({ id: schema.programs.id })
+        .from(schema.programs)
+        .where(and(
+          eq(schema.programs.universityId, universityId),
+          eq(schema.programs.id, programId),
+        ))
+        .for("update")
+        .limit(1);
+      if (!program) return { ok: false, reason: "program_not_found" };
+
+      const [lastCycle] = await tx
+        .select({ order: max(schema.cycles.order) })
+        .from(schema.cycles)
+        .where(eq(schema.cycles.universityId, universityId));
+      const order = (lastCycle?.order ?? 0) + 1;
+
+      const [cycle] = await tx
+        .insert(schema.cycles)
+        .values({
+          universityId,
+          name: normalizedName,
+          shortCode: normalizedShortCode,
+          yearsCount: null,
+          order,
+        })
+        .returning({ id: schema.cycles.id });
+      if (!cycle) throw new Error("cycle_insert_failed");
+
+      await tx
+        .insert(schema.programCycles)
+        .values({ universityId, programId, cycleId: cycle.id, yearsCount });
+
+      await tx
+        .insert(schema.levels)
+        .values(Array.from({ length: yearsCount }, (_, index) => {
+          const yearNumber = index + 1;
+          return {
+            universityId,
+            programId,
+            cycleId: cycle.id,
+            name: buildLevelName(normalizedShortCode, yearNumber),
+            slug: buildLevelSlug(normalizedShortCode, yearNumber),
+            yearNumber,
+          };
+        }));
+
+      return { ok: true, cycleId: cycle.id };
+    });
+  } catch (error) {
+    if (isUniqueConstraintViolation(error, "cycles_university_short_code_uq")) {
+      return { ok: false, reason: "duplicate_short_code" };
+    }
+    throw error;
+  }
 }
 
 export async function updateProgramCycleYearsCount(

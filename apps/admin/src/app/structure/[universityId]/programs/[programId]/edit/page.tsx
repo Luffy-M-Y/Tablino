@@ -1,13 +1,13 @@
-import Link from "next/link";
 import { Layers, Pencil, Plus } from "lucide-react";
 import { forbidden, notFound } from "next/navigation";
 import AdminPage from "@/components/admin-page";
-import { AdminCard, AdminEmptyState, adminFieldClass, adminSecondaryButtonClass } from "@/components/admin-ui";
+import { AdminCard, AdminEmptyState, adminFieldClass, adminLabelClass } from "@/components/admin-ui";
 import { getCurrentUniversity } from "@/lib/current-university";
 import { getProgramDetail, getProgramLevels, getStructureOverview } from "@/lib/structure-queries";
 import { isUuid } from "@/lib/structure-action-utils.mjs";
 import {
   addProgramCycleAction,
+  createProgramCycleAction,
   renameProgramAction,
   updateProgramCycleYearsCountAction,
 } from "../../../actions";
@@ -115,16 +115,13 @@ export default async function EditProgramPage({
 
       <AdminCard id="ajouter-cycle" className="mt-6 scroll-mt-24">
         <h2 className="mb-4 text-xl font-semibold">Ajouter un cycle</h2>
+        <h3 className="text-base font-semibold">Cycle existant</h3>
         {overview.cycles.length === 0 ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-[color:var(--color-muted-foreground)]">Aucun cycle n'existe encore dans l'université.</p>
-            <Link href={`/structure/${universityId}/cycles`} className={adminSecondaryButtonClass}>
-              <Plus size={16} aria-hidden="true" />
-              Créer un cycle
-            </Link>
-          </div>
+          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
+            Aucun cycle n'existe encore dans l'université : créez-le ci-dessous.
+          </p>
         ) : availableCycles.length === 0 ? (
-          <p className="text-sm text-[color:var(--color-muted-foreground)]">Tous les cycles sont déjà dans cette filière.</p>
+          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Tous les cycles sont déjà dans cette filière.</p>
         ) : (
           <StructureActionForm action={addProgramCycleAction} buttonLabel="Ajouter le cycle">
             <input type="hidden" name="universityId" value={universityId} />
@@ -153,6 +150,67 @@ export default async function EditProgramPage({
             </div>
           </StructureActionForm>
         )}
+
+        <div className="mt-6 border-t border-[color:var(--admin-card-border)] pt-6">
+          <h3 className="flex items-center gap-2 text-base font-semibold">
+            <Plus size={18} aria-hidden="true" />
+            Nouveau cycle
+          </h3>
+          <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
+            Le cycle est créé pour l'université et ajouté à cette filière.
+          </p>
+          <StructureActionForm
+            action={createProgramCycleAction}
+            buttonLabel="Créer et ajouter"
+            pendingText="Création…"
+            className="mt-4 grid gap-4 sm:grid-cols-3"
+            submitWrapperClassName="flex justify-end border-t border-[color:var(--admin-card-border)] pt-4 sm:col-span-3"
+          >
+            <input type="hidden" name="universityId" value={universityId} />
+            <input type="hidden" name="programId" value={program.id} />
+            <div>
+              <label htmlFor="program-new-cycle-name" className={adminLabelClass}>Nom</label>
+              <input
+                id="program-new-cycle-name"
+                name="name"
+                type="text"
+                minLength={1}
+                maxLength={100}
+                placeholder="Ex. : Licence"
+                required
+                className={adminFieldClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="program-new-cycle-short-code" className={adminLabelClass}>Sigle</label>
+              <input
+                id="program-new-cycle-short-code"
+                name="shortCode"
+                type="text"
+                minLength={1}
+                maxLength={10}
+                pattern="[A-Za-z]{1,10}"
+                title="1 à 10 lettres, sans espace ni chiffre."
+                placeholder="Ex. : L"
+                required
+                className={adminFieldClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="program-new-cycle-years" className={adminLabelClass}>Nombre d'années</label>
+              <input
+                id="program-new-cycle-years"
+                name="yearsCount"
+                type="number"
+                min={1}
+                max={10}
+                placeholder="Ex. : 3"
+                required
+                className={adminFieldClass}
+              />
+            </div>
+          </StructureActionForm>
+        </div>
       </AdminCard>
 
       <AdminCard id="ajouter-matiere" className="mt-6 scroll-mt-24">
