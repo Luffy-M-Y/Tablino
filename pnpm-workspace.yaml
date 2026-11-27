@@ -6,3 +6,8 @@ allowBuilds:
   esbuild: true
   tesseract.js: false
   unrs-resolver: true
+
+# Audit du 27/11 (F6) : failles de dev corrigées par versions épinglées.
+overrides:
+  "@esbuild-kit/core-utils>esbuild": 0.25.12
+  "@typescript-eslint/typescript-estree>minimatch": 11.0.9
