@@ -28,7 +28,7 @@ export default async function UniversitySignupPage({
               ? "La v\u00e9rification du lien est indisponible. Recommencez depuis la connexion admin."
               : "Ce lien d'inscription est absent, invalide ou expir\u00e9. Recommencez depuis la connexion admin."}
           </p>
-          <Link href="/api/auth/signin" className={linkClass}>
+          <Link href="/login" className={linkClass}>
             Aller &agrave; la connexion admin
           </Link>
         </section>

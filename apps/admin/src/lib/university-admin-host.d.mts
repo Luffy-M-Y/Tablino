@@ -7,6 +7,7 @@ export type UniversityAdminHostAccount = {
 
 export type UniversityAdminHostContext =
   | { kind: "super" }
+  | { kind: "signup" }
   | { kind: "university"; universityId: string }
   | null;
 

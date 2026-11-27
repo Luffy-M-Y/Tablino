@@ -10,10 +10,10 @@ export type HostDenialReason =
 
 export function getHostDenialReason(
   user: { role: string | null | undefined; universityId: string | null | undefined },
-  hostContext: { kind: "super" } | { kind: "university"; universityId: string } | null,
+  hostContext: { kind: "super" } | { kind: "signup" } | { kind: "university"; universityId: string } | null,
 ): HostDenialReason | null;
 
 export function isHostAllowedForUser(
   user: { role: string | null | undefined; universityId: string | null | undefined },
-  hostContext: { kind: "super" } | { kind: "university"; universityId: string } | null,
+  hostContext: { kind: "super" } | { kind: "signup" } | { kind: "university"; universityId: string } | null,
 ): boolean;

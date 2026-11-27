@@ -770,6 +770,10 @@ test("isUserEligibleForAdminPasswordReset evaluates eligibility correctly across
   assert.equal(isUserEligibleForAdminPasswordReset(validSuper, centralHost), false);
   assert.equal(isUserEligibleForAdminPasswordReset(validUnivAdmin, centralHost), false);
 
+  // Signup host rejection
+  assert.equal(isUserEligibleForAdminPasswordReset(validSuper, { kind: "signup" }), false);
+  assert.equal(isUserEligibleForAdminPasswordReset(validUnivAdmin, { kind: "signup" }), false);
+
   // Missing or invalid host
   assert.equal(isUserEligibleForAdminPasswordReset(validSuper, null), false);
   assert.equal(isUserEligibleForAdminPasswordReset(validSuper, undefined), false);

@@ -22,6 +22,7 @@ export type AdminPasswordResetCandidate = {
 
 export type AdminPasswordResetHost =
   | { kind: "super" }
+  | { kind: "signup" }
   | { kind: "university"; universityId: string }
   | { kind: "central" }
   | null

@@ -75,7 +75,7 @@ export async function verifyCodeAction(
   const verificationCookieConfig = getEmailVerificationCookieConfig();
   const cookieStore = await cookies();
 
-  // Admin d'université vérifié hors de son hôte (inscription sur sup-admin) :
+  // Admin d'université vérifié hors de son hôte (hôte d'inscription) :
   // aucune session ici, connexion à faire sur l'hôte de son université.
   const account = await getUniversityAdminAccount(userId);
   if (account !== null && resolveUniversityAdminHost(account, await getAdminHostContext()) === "other_host") {

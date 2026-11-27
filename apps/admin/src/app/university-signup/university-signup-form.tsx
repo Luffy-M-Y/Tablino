@@ -210,7 +210,7 @@ export function UniversitySignupForm({
       )}
       {state.showLoginLink && (
         <div className="mt-4">
-          <Link href="/api/auth/signin" className={linkClass}>
+          <Link href="/login" className={linkClass}>
             Aller &agrave; la connexion admin
           </Link>
         </div>

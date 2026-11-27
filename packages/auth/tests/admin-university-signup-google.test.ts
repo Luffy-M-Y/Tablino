@@ -9,7 +9,7 @@ const SECRET = "test-secret-long-enough-for-hkdf-32bytes";
 process.env.NEXTAUTH_SECRET = SECRET;
 
 const SIGNUP_RESOLVER = async () => ({ flow: "university_signup" as const });
-const SIGNUP_URL = "http://sup-admin.localhost:3001/university-signup?token=";
+const SIGNUP_URL = "http://inscription-admin.localhost:3001/university-signup?token=";
 
 function createFakeGoogleAuthContextService() {
   const records: Array<{ surface?: string; email: string; universityId: string | null }> = [];
@@ -75,7 +75,7 @@ const existingUser = {
   universityId: "university-1",
 };
 
-test("nouveau compte Google : jeton d'inscription signé puis URL de sup-admin", async () => {
+test("nouveau compte Google : jeton d'inscription signé puis URL de l'hôte d'inscription", async () => {
   const { result, emittedTokens, records, deletes } = await runSignIn();
 
   assert.equal(emittedTokens.length, 1);

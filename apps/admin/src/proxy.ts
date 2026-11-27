@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminProxyPathAllowed, resolveAdminHost } from "./lib/admin-host.mjs";
+import { getAdminSignupHostRedirect, isAdminProxyPathAllowed, resolveAdminHost } from "./lib/admin-host.mjs";
 
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host");
@@ -26,6 +26,20 @@ export function proxy(request: NextRequest) {
 
   if (resolution === null) {
     return new NextResponse(null, { status: 404 });
+  }
+
+  const signupRedirect = getAdminSignupHostRedirect({
+    kind: resolution.kind,
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    adminRootDomain,
+    secure: process.env.NODE_ENV === "production",
+  });
+  if (signupRedirect !== null) {
+    return new NextResponse(null, {
+      status: 308,
+      headers: { Location: signupRedirect, "Cache-Control": "no-store" },
+    });
   }
 
   if (!isAdminProxyPathAllowed(resolution.kind, request.nextUrl.pathname)) {

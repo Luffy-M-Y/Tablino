@@ -123,19 +123,19 @@ export function buildSuperAdminGoogleExistingAccountUrl({
 }
 
 /**
- * Construit l'URL d'inscription d'université par Google :
- * https://sup-admin.{ADMIN_ROOT_DOMAIN}/university-signup?token=...
+ * Construit l'URL d'inscription d'université par Google, sur l'hôte d'inscription :
+ * https://inscription-admin.{ADMIN_ROOT_DOMAIN}/university-signup?token=...
  *
  * @param {{ adminRootDomain: string, secure: boolean, token: string }} options
  * @returns {string | null}
  */
-export function buildSuperAdminUniversitySignupUrl({ adminRootDomain, secure, token }) {
+export function buildUniversitySignupUrl({ adminRootDomain, secure, token }) {
   if (typeof token !== "string" || token.length === 0) return null;
-  const returnUrl = buildSuperAdminReturnUrl({ adminRootDomain, secure });
-  if (returnUrl === null) return null;
+  const normalizedRootDomain = normalizeAdminRootDomain(adminRootDomain);
+  if (normalizedRootDomain === null) return null;
 
-  const url = new URL(returnUrl);
-  url.pathname = "/university-signup";
+  const scheme = secure ? "https" : "http";
+  const url = new URL(`${scheme}://inscription-admin.${normalizedRootDomain}/university-signup`);
   url.searchParams.set("token", token);
   return url.toString();
 }

@@ -7,6 +7,7 @@ import { resolveAdminHost } from "./admin-host.mjs";
 
 export type AdminHostContext =
   | { kind: "super" }
+  | { kind: "signup" }
   | { kind: "university"; universityId: string }
   | null;
 
@@ -23,6 +24,7 @@ export const getAdminHostContext = cache(async (): Promise<AdminHostContext> => 
   );
   if (resolution === null || resolution.kind === "central") return null;
   if (resolution.kind === "super") return { kind: "super" };
+  if (resolution.kind === "signup") return { kind: "signup" };
 
   const [university] = await db
     .select({ id: schema.universities.id })

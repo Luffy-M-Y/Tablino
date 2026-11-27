@@ -65,7 +65,7 @@ export async function runStartAdminGoogleSignIn({
   return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
 }
 
-/** Départ de l'inscription d'université par Google : hôte super seulement. */
+/** Départ de l'inscription d'université par Google : hôte d'inscription seulement. */
 export async function runStartUniversityGoogleSignup({
   getHostContext,
   createTicket,
@@ -83,7 +83,7 @@ export async function runStartUniversityGoogleSignup({
   } catch {
     return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
   }
-  if (hostContext?.kind !== "super") {
+  if (hostContext?.kind !== "signup") {
     return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
   }
 

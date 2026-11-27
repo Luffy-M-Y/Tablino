@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createAdminGoogleUniversityResolver } from "../src/lib/admin-google-resolver.mjs";
-import { buildAdminLoginUrl, buildSuperAdminUniversitySignupUrl } from "../src/lib/admin-return-url.mjs";
+import { buildAdminLoginUrl, buildUniversitySignupUrl } from "../src/lib/admin-return-url.mjs";
 import { runStartUniversityGoogleSignup } from "../src/lib/auth-admin-google-start.mjs";
 import { getAuthAdminSigninPage } from "../src/lib/auth-admin-signin.mjs";
 import { createAuthAdminStartHandler } from "../src/lib/auth-admin-start.mjs";
@@ -148,21 +148,21 @@ test("admin Google resolver returns the university_signup flow on the central ho
   assert.equal(await resolverFor("sup-admin.localhost:3001")(), null);
 });
 
-test("university signup URL points to /university-signup on sup-admin", () => {
+test("university signup URL points to /university-signup on the signup host", () => {
   assert.equal(
-    buildSuperAdminUniversitySignupUrl({ adminRootDomain: "localhost:3001", secure: false, token: "a.b" }),
-    "http://sup-admin.localhost:3001/university-signup?token=a.b",
+    buildUniversitySignupUrl({ adminRootDomain: "localhost:3001", secure: false, token: "a.b" }),
+    "http://inscription-admin.localhost:3001/university-signup?token=a.b",
   );
   assert.equal(
-    buildSuperAdminUniversitySignupUrl({ adminRootDomain: "example.test", secure: true, token: "a+b" }),
-    "https://sup-admin.example.test/university-signup?token=a%2Bb",
+    buildUniversitySignupUrl({ adminRootDomain: "example.test", secure: true, token: "a+b" }),
+    "https://inscription-admin.example.test/university-signup?token=a%2Bb",
   );
   assert.equal(
-    buildSuperAdminUniversitySignupUrl({ adminRootDomain: "localhost:3001", secure: false, token: "" }),
+    buildUniversitySignupUrl({ adminRootDomain: "localhost:3001", secure: false, token: "" }),
     null,
   );
   assert.equal(
-    buildSuperAdminUniversitySignupUrl({ adminRootDomain: "bad/domain", secure: false, token: "a" }),
+    buildUniversitySignupUrl({ adminRootDomain: "bad/domain", secure: false, token: "a" }),
     null,
   );
 });
@@ -182,15 +182,15 @@ test("login URL carries the pending signup notice only on request", () => {
   );
 });
 
-test("university Google signup starts only on the super host", async () => {
+test("university Google signup starts only on the signup host", async () => {
   const options = {
     createTicket: () => "ticket-value",
     getCentralHost: () => CENTRAL_HOST,
     secure: false,
   };
-  const superHost = async () => ({ kind: "super" });
+  const signupHost = async () => ({ kind: "signup" });
   assert.deepEqual(
-    await runStartUniversityGoogleSignup({ ...options, getHostContext: superHost }),
+    await runStartUniversityGoogleSignup({ ...options, getHostContext: signupHost }),
     {
       ok: true,
       action: `http://${CENTRAL_HOST}/auth-admin/start`,
@@ -207,11 +207,12 @@ test("university Google signup starts only on the super host", async () => {
   };
   for (const refused of [
     { ...options, getHostContext: async () => ({ kind: "university", universityId: "u1" }) },
+    { ...options, getHostContext: async () => ({ kind: "super" }) },
     { ...options, getHostContext: async () => null },
     { ...options, getHostContext: failingHost },
-    { ...options, getHostContext: superHost, getCentralHost: () => undefined },
-    { ...options, getHostContext: superHost, createTicket: failingTicket },
-    { ...options, getHostContext: superHost, createTicket: () => "" },
+    { ...options, getHostContext: signupHost, getCentralHost: () => undefined },
+    { ...options, getHostContext: signupHost, createTicket: failingTicket },
+    { ...options, getHostContext: signupHost, createTicket: () => "" },
   ]) {
     const result = await runStartUniversityGoogleSignup(refused);
     assert.equal(result.ok, false);

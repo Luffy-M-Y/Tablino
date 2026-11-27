@@ -66,7 +66,8 @@ export async function GET(request: NextRequest) {
     return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
   }
 
-  if (hostContext === null || code === null) {
+  // L'hôte d'inscription n'ouvre aucune session.
+  if (hostContext === null || hostContext.kind === "signup" || code === null) {
     return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH);
   }
 

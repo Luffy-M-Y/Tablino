@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAdminRequestUrl,
+  getAdminSignupHostRedirect,
   isAdminPasswordLoginAllowed,
   isAdminProxyPathAllowed,
   isAuthAdminCentralHost,
@@ -255,6 +256,70 @@ test("l'hôte super-admin n'expose que le retour auth-admin parmi ces routes", (
   assert.equal(isAdminProxyPathAllowed("super", "/api/auth/signin/credentials"), true);
 });
 
+test("inscription-admin → signup, avant le motif {slug}-admin", () => {
+  assert.deepEqual(resolveAdminHost("inscription-admin.localhost:3001", ROOT), { kind: "signup" });
+  assert.deepEqual(resolveAdminHost("INSCRIPTION-ADMIN.admin.tablino.com", ROOT_NO_PORT), { kind: "signup" });
+  assert.deepEqual(resolveAdminHost("inscription-admin.localhost:3001", ROOT, "inscription=iscom"), { kind: "signup" });
+  assert.equal(resolveAdminHost("inscription-admin.evil.com", ROOT), null);
+  assert.deepEqual(resolveAdminHost("inscriptions-admin.localhost:3001", ROOT), { kind: "university", slug: "inscriptions" });
+});
+
+test("l'hôte d'inscription ne sert que /signup, /verify, /university-signup et /icons/", () => {
+  for (const path of ["/signup", "/verify", "/university-signup", "/icons/icon-192.png"]) {
+    assert.equal(isAdminProxyPathAllowed("signup", path), true, path);
+  }
+  for (const path of [
+    "/", "/login", "/dashboard", "/partenariat", "/university-pending", "/signup/x", "/signups",
+    "/auth-admin/return", "/auth-admin/start", "/api/auth/signin/credentials", "/api/auth/session",
+    "/api/auth/signin/google", "/api/auth/callback/google", "/mot-de-passe-oublie", "/%2e%2e/login", "/%E0%A4%A",
+  ]) {
+    assert.equal(isAdminProxyPathAllowed("signup", path), false, path);
+  }
+});
+
+test("redirections de l'hôte d'inscription", () => {
+  const base = { search: "", adminRootDomain: ROOT, secure: false };
+  assert.equal(
+    getAdminSignupHostRedirect({ ...base, kind: "signup", pathname: "/" }),
+    "http://inscription-admin.localhost:3001/signup",
+  );
+  assert.equal(
+    getAdminSignupHostRedirect({ ...base, kind: "signup", pathname: "/login" }),
+    "http://sup-admin.localhost:3001/login",
+  );
+  for (const pathname of ["/signup", "/verify", "/university-signup", "/dashboard"]) {
+    assert.equal(getAdminSignupHostRedirect({ ...base, kind: "signup", pathname }), null, pathname);
+  }
+});
+
+test("/signup et /university-signup redirigent vers l'hôte d'inscription, requête gardée", () => {
+  for (const kind of ["super", "university"]) {
+    assert.equal(
+      getAdminSignupHostRedirect({ kind, pathname: "/signup", search: "", adminRootDomain: ROOT, secure: false }),
+      "http://inscription-admin.localhost:3001/signup",
+    );
+    assert.equal(
+      getAdminSignupHostRedirect({ kind, pathname: "/university-signup", search: "?token=a.b", adminRootDomain: ROOT_NO_PORT, secure: true }),
+      "https://inscription-admin.admin.tablino.com/university-signup?token=a.b",
+    );
+    assert.equal(
+      getAdminSignupHostRedirect({ kind, pathname: "/%73ignup", search: "", adminRootDomain: ROOT, secure: false }),
+      "http://inscription-admin.localhost:3001/signup",
+    );
+    for (const pathname of ["/verify", "/login", "/", "/signup/x", "/%E0%A4%A"]) {
+      assert.equal(getAdminSignupHostRedirect({ kind, pathname, search: "", adminRootDomain: ROOT, secure: false }), null, pathname);
+    }
+  }
+  assert.equal(
+    getAdminSignupHostRedirect({ kind: "super", pathname: "/signup", search: "", adminRootDomain: undefined, secure: false }),
+    null,
+  );
+  assert.equal(
+    getAdminSignupHostRedirect({ kind: "super", pathname: "/signup", search: "", adminRootDomain: "bad/domain", secure: false }),
+    null,
+  );
+});
+
 test("le super_admin garde le mot de passe uniquement sur son hôte dédié", () => {
   assert.equal(isAdminPasswordLoginAllowed("super_admin", "super"), true);
   assert.equal(isAdminPasswordLoginAllowed("super_admin", "university"), false);
@@ -268,4 +333,6 @@ test("le super_admin garde le mot de passe uniquement sur son hôte dédié", ()
   assert.equal(isAdminPasswordLoginAllowed("university_admin", null), true);
   assert.equal(isAdminPasswordLoginAllowed("student", "super"), false);
   assert.equal(isAdminPasswordLoginAllowed(null, "university"), false);
+  assert.equal(isAdminPasswordLoginAllowed("super_admin", "signup"), false);
+  assert.equal(isAdminPasswordLoginAllowed("super_admin_editor", "signup"), false);
 });

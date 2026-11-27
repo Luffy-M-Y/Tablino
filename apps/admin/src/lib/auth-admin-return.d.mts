@@ -2,6 +2,7 @@ export const AUTH_ADMIN_RETURN_ERROR_PATH: "/login?error=google";
 
 export type AdminReturnHostContext =
   | { kind: "super" }
+  | { kind: "signup" }
   | { kind: "university"; universityId: string }
   | null;
 

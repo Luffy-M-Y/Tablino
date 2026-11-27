@@ -2,7 +2,7 @@
  * Retourne la raison du refus hôte, ou null si l'accès est autorisé.
  *
  * @param {{ role: string | null | undefined, universityId: string | null | undefined }} user
- * @param {{ kind: "super" } | { kind: "university", universityId: string } | null} hostContext
+ * @param {{ kind: "super" } | { kind: "signup" } | { kind: "university", universityId: string } | null} hostContext
  * @returns {string | null}
  */
 export function getHostDenialReason(user, hostContext) {
@@ -32,7 +32,7 @@ export function getHostDenialReason(user, hostContext) {
  * Décide si un utilisateur est autorisé sur un contexte d'hôte admin.
  *
  * @param {{ role: string | null | undefined, universityId: string | null | undefined }} user
- * @param {{ kind: "super" } | { kind: "university", universityId: string } | null} hostContext
+ * @param {{ kind: "super" } | { kind: "signup" } | { kind: "university", universityId: string } | null} hostContext
  * @returns {boolean}
  */
 export function isHostAllowedForUser(user, hostContext) {
