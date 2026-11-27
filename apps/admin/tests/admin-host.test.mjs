@@ -215,6 +215,10 @@ test("l'hôte central n'expose que les routes auth-admin du flux et l'API NextAu
   assert.equal(isAdminProxyPathAllowed("central", "/api/auth/csrf"), true);
   assert.equal(isAdminProxyPathAllowed("central", "/api/auth/signin/google"), true);
   assert.equal(isAdminProxyPathAllowed("central", "/api/auth/callback/google"), true);
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/error"), true);
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/error/extra"), false);
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/signin"), true);
+  assert.equal(isAdminProxyPathAllowed("central", "/api/auth/session"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/auth-admin"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/auth-admin/other"), false);
   assert.equal(isAdminProxyPathAllowed("central", "/auth-admin/transfer/extra"), false);

@@ -187,6 +187,9 @@ export function isAdminProxyPathAllowed(kind, pathname) {
         "/api/auth/csrf",
         "/api/auth/signin/google",
         "/api/auth/callback/google",
+        // Étapes de next-auth après un échec du rappel Google : renvoient vers /auth-admin/error.
+        "/api/auth/error",
+        "/api/auth/signin",
       ].includes(decodedPathname);
   }
 
