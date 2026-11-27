@@ -5,11 +5,13 @@ import {
 } from "@tablino/db";
 import { getSessionCookieConfig } from "@tablino/auth";
 import { createAuthAdminStartHandler } from "@/lib/auth-admin-start.mjs";
+import { verifyUniversitySignupStartTicket } from "@/lib/university-signup-start-ticket.mjs";
 
 const handleStart = createAuthAdminStartHandler({
   consumeOauthStartTicket: (ticket) => consumeOauthStartTicket(ticket, "admin"),
   consumeAdminInvitationOauthStartTicket,
   consumeAdminSuperLoginOauthStartTicket,
+  verifyUniversitySignupStartTicket,
   getSecret: () => process.env.NEXTAUTH_SECRET,
   secure: process.env.NODE_ENV === "production"
     && getSessionCookieConfig("admin").options.secure,

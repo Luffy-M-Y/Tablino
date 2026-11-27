@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   // Crée le code de transfert.
   let code: string;
   try {
-    code = await createOauthTransferCode({ universityId, userId });
+    code = await createOauthTransferCode({ universityId, userId, surface: "web" });
   } catch {
     return refuse();
   }

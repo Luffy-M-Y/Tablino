@@ -64,16 +64,18 @@ export function buildSuperAdminReturnUrl({ adminRootDomain, secure }) {
 
 /**
  * Construit l'URL de connexion admin université : https://{slug}-admin.{ADMIN_ROOT_DOMAIN}/login
+ * Avec signupPending, ajoute ?inscription=en-attente (message après inscription).
  *
- * @param {{ slug: string, adminRootDomain: string, secure: boolean }} options
+ * @param {{ slug: string, adminRootDomain: string, secure: boolean, signupPending?: boolean }} options
  * @returns {string | null}
  */
-export function buildAdminLoginUrl({ slug, adminRootDomain, secure }) {
+export function buildAdminLoginUrl({ slug, adminRootDomain, secure, signupPending = false }) {
   const returnUrl = buildAdminReturnUrl({ slug, adminRootDomain, secure });
   if (returnUrl === null) return null;
 
   const url = new URL(returnUrl);
   url.pathname = "/login";
+  if (signupPending === true) url.searchParams.set("inscription", "en-attente");
   return url.toString();
 }
 
@@ -117,6 +119,24 @@ export function buildSuperAdminGoogleExistingAccountUrl({
   const url = new URL(returnUrl);
   url.pathname = "/login";
   url.searchParams.set("googleExisting", token);
+  return url.toString();
+}
+
+/**
+ * Construit l'URL d'inscription d'université par Google :
+ * https://sup-admin.{ADMIN_ROOT_DOMAIN}/university-signup?token=...
+ *
+ * @param {{ adminRootDomain: string, secure: boolean, token: string }} options
+ * @returns {string | null}
+ */
+export function buildSuperAdminUniversitySignupUrl({ adminRootDomain, secure, token }) {
+  if (typeof token !== "string" || token.length === 0) return null;
+  const returnUrl = buildSuperAdminReturnUrl({ adminRootDomain, secure });
+  if (returnUrl === null) return null;
+
+  const url = new URL(returnUrl);
+  url.pathname = "/university-signup";
+  url.searchParams.set("token", token);
   return url.toString();
 }
 

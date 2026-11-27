@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
           .limit(1);
         return rows.length > 0 ? rows[0].slug : null;
       },
-      createTransferCode: createOauthTransferCode,
+      createTransferCode: (input) => createOauthTransferCode({ ...input, surface: "admin" }),
       createInvitationTransferCode: createAdminInvitationOauthTransferCode,
       createSuperLoginTransferCode: createAdminSuperLoginOauthTransferCode,
       deleteSession: deleteStudentSession,

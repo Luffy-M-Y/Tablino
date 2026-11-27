@@ -13,6 +13,7 @@ export default async function LoginPage({
   searchParams: Promise<{
     reset?: string | string[];
     invitation?: string | string[];
+    inscription?: string | string[];
     error?: string | string[];
     googleExisting?: string | string[];
   }>;
@@ -41,6 +42,7 @@ export default async function LoginPage({
         <LoginForm
           passwordResetComplete={params.reset === "ok"}
           invitationAccepted={params.invitation === "accepted"}
+          universitySignupPending={params.inscription === "en-attente"}
           googleExistingEmail={googleExistingEmail ?? undefined}
           showGoogleSignIn={hostContext?.kind === "university" || hostContext?.kind === "super"}
           googleSignInError={

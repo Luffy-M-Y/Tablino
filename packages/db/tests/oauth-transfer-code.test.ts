@@ -32,11 +32,13 @@ function createMemoryRepository({
   let activeSet = new Set(activeMemberPairs.map(([u, usr]) => `${u}:${usr}`));
   const revokedSet = new Set(revokedUserIds);
   let createCount = 0;
+  const receivedStatuses: string[][] = [];
   let consumeCount = 0;
 
   const repository: OauthTransferCodeRepository = {
-    async createForActiveUniversityMember(universityId, userId, codeHash, expiresAt) {
+    async createForEligibleUniversityMember(universityId, userId, codeHash, expiresAt, statuses) {
       createCount++;
+      receivedStatuses.push([...statuses]);
       if (!activeSet.has(`${universityId}:${userId}`)) return false;
       if (revokedSet.has(userId)) return false;
       stored.push({ universityId, userId, codeHash, expiresAt, consumedAt: null });
@@ -59,6 +61,7 @@ function createMemoryRepository({
   return {
     repository,
     stored,
+    receivedStatuses,
     setActivePairs(pairs: Array<[string, string]>) {
       activeSet = new Set(pairs.map(([u, usr]) => `${u}:${usr}`));
     },
@@ -83,7 +86,7 @@ function createService(activePairs: Array<[string, string]> = [[UNIVERSITY_ID, U
 test("creates a 32-byte opaque code and stores only its SHA-256 hash", async () => {
   const fake = createService();
 
-  const code = await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID });
+  const code = await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" });
 
   assert.equal(code, RAW_CODE);
   assert.equal(Buffer.from(code, "base64url").length, 32);
@@ -101,7 +104,7 @@ test("refuses an unknown university or a user not belonging to it", async () => 
   const fake = createService([]);
 
   await assert.rejects(
-    fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID }),
+    fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" }),
     OauthTransferCodeError,
   );
   assert.equal(fake.createCount, 1);
@@ -112,7 +115,7 @@ test("refuses a user from a different university", async () => {
   const fake = createService([[OTHER_UNIVERSITY_ID, USER_ID]]);
 
   await assert.rejects(
-    fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID }),
+    fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" }),
     OauthTransferCodeError,
   );
   assert.equal(fake.stored.length, 0);
@@ -120,7 +123,7 @@ test("refuses a user from a different university", async () => {
 
 test("consumes a valid code and returns the userId", async () => {
   const fake = createService();
-  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID });
+  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" });
 
   const result = await fake.service.consumeOauthTransferCode({ code: RAW_CODE, universityId: UNIVERSITY_ID });
 
@@ -151,7 +154,7 @@ test("refuses an expired code", async () => {
 
 test("refuses replay after a code has been consumed", async () => {
   const fake = createService();
-  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID });
+  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" });
 
   assert.deepEqual(
     await fake.service.consumeOauthTransferCode({ code: RAW_CODE, universityId: UNIVERSITY_ID }),
@@ -165,7 +168,7 @@ test("refuses replay after a code has been consumed", async () => {
 
 test("refuses a code from a different university", async () => {
   const fake = createService([[UNIVERSITY_ID, USER_ID], [OTHER_UNIVERSITY_ID, USER_ID]]);
-  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID });
+  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" });
 
   assert.equal(
     await fake.service.consumeOauthTransferCode({ code: RAW_CODE, universityId: OTHER_UNIVERSITY_ID }),
@@ -189,7 +192,7 @@ test("refuses a malformed code without querying the repository", async () => {
 
 test("only one concurrent consumer wins", async () => {
   const fake = createService();
-  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID });
+  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" });
 
   const results = await Promise.all([
     fake.service.consumeOauthTransferCode({ code: RAW_CODE, universityId: UNIVERSITY_ID }),
@@ -216,9 +219,16 @@ test("refuses a revoked user", async () => {
   });
 
   await assert.rejects(
-    service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID }),
+    service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" }),
     OauthTransferCodeError,
   );
   assert.equal(fake.createCount, 1);
   assert.equal(fake.stored.length, 0);
+});
+
+test("statuts transmis : web actif seulement, admin en attente, approuvé ou actif", async () => {
+  const fake = createService();
+  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "web" });
+  await fake.service.createOauthTransferCode({ universityId: UNIVERSITY_ID, userId: USER_ID, surface: "admin" });
+  assert.deepEqual(fake.receivedStatuses, [["active"], ["pending", "approved", "active"]]);
 });

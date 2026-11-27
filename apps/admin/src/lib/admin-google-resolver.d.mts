@@ -2,6 +2,7 @@ export type AdminGoogleUniversityResolverResult =
   | string
   | { invitationId: string; transactionId: string }
   | { flow: "super_login"; transactionId: string }
+  | { flow: "university_signup" }
   | null;
 
 export function createAdminGoogleUniversityResolver(options: {

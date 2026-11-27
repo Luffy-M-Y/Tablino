@@ -13,6 +13,7 @@ export function buildAdminLoginUrl(options: {
   slug: string;
   adminRootDomain: string;
   secure: boolean;
+  signupPending?: boolean;
 }): string | null;
 
 export function buildAdminGoogleExistingAccountUrl(options: {
@@ -23,6 +24,12 @@ export function buildAdminGoogleExistingAccountUrl(options: {
 }): string | null;
 
 export function buildSuperAdminGoogleExistingAccountUrl(options: {
+  adminRootDomain: string;
+  secure: boolean;
+  token: string;
+}): string | null;
+
+export function buildSuperAdminUniversitySignupUrl(options: {
   adminRootDomain: string;
   secure: boolean;
   token: string;

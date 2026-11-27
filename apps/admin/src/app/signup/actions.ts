@@ -4,7 +4,10 @@ import { getCloudflareClientIp } from "@tablino/auth";
 import { registerUniversityAdminWithPassword, checkRateLimit, recordFailure, resetAttempts } from "@tablino/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAdminHostContext } from "@/lib/admin-host-context";
+import { runStartUniversityGoogleSignup } from "@/lib/auth-admin-google-start.mjs";
 import { startEmailVerification } from "@/lib/email-verification-flow";
+import { createUniversitySignupStartTicket } from "@/lib/university-signup-start-ticket.mjs";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
@@ -17,6 +20,18 @@ export type SignupActionState = {
   phone: string;
   email: string;
 };
+
+export async function startUniversityGoogleSignupAction() {
+  return runStartUniversityGoogleSignup({
+    getHostContext: getAdminHostContext,
+    createTicket: () => createUniversitySignupStartTicket({
+      now: new Date(),
+      secret: process.env.NEXTAUTH_SECRET,
+    }),
+    getCentralHost: () => process.env.AUTH_ADMIN_CENTRAL_HOST,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
 
 function readStringField(formData: FormData, name: string): string {
   const value = formData.get(name);

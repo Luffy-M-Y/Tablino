@@ -182,6 +182,7 @@ export function createAuthAdminStartHandler({
   consumeOauthStartTicket,
   consumeAdminInvitationOauthStartTicket,
   consumeAdminSuperLoginOauthStartTicket,
+  verifyUniversitySignupStartTicket,
   getSecret,
   secure,
   baseUrl,
@@ -206,7 +207,12 @@ export function createAuthAdminStartHandler({
     }
 
     const kind = form.get("kind");
-    if (kind !== "university" && kind !== "invitation" && kind !== "super_login") {
+    if (
+      kind !== "university"
+      && kind !== "invitation"
+      && kind !== "super_login"
+      && kind !== "university_signup"
+    ) {
       return textResponse(400);
     }
 
@@ -241,6 +247,14 @@ export function createAuthAdminStartHandler({
       txCookieValue = createAuthAdminTransaction({
         flow: "super_login",
         transactionId: result.transactionId,
+        now: now(),
+        secret,
+      });
+    } else if (kind === "university_signup") {
+      if (typeof verifyUniversitySignupStartTicket !== "function") return textResponse(500);
+      if (!verifyUniversitySignupStartTicket(ticket, { now: now(), secret })) return textResponse(400);
+      txCookieValue = createAuthAdminTransaction({
+        flow: "university_signup",
         now: now(),
         secret,
       });

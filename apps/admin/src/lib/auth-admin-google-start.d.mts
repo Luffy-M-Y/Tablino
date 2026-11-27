@@ -13,3 +13,14 @@ export function runStartAdminGoogleSignIn(options: {
   getCentralHost: () => string | undefined;
   secure: boolean;
 }): Promise<StartAdminGoogleSignInResult>;
+
+export type StartUniversityGoogleSignupResult =
+  | { ok: true; action: string; ticket: string; kind: "university_signup" }
+  | { ok: false; message: string };
+
+export function runStartUniversityGoogleSignup(options: {
+  getHostContext: () => Promise<AdminHostContext>;
+  createTicket: () => string;
+  getCentralHost: () => string | undefined;
+  secure: boolean;
+}): Promise<StartUniversityGoogleSignupResult>;

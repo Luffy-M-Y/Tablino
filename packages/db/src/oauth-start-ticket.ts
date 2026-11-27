@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { db } from "./client";
 import * as schema from "./schema";
 
@@ -7,11 +7,23 @@ export const OAUTH_START_TICKET_TTL_MS = 5 * 60 * 1000;
 
 export type OauthStartTicketSurface = "web" | "admin";
 
+export type OauthUniversityStatus = "pending" | "approved" | "active";
+
+/**
+ * Statuts d'université admis pour la connexion Google.
+ * Web : université active seulement. Admin : l'admin d'une université en attente
+ * ou approuvée doit pouvoir se connecter (attente, puis contrat de partenariat).
+ */
+export function getOauthUniversityStatuses(surface: OauthStartTicketSurface): readonly OauthUniversityStatus[] {
+  return surface === "admin" ? ["pending", "approved", "active"] : ["active"];
+}
+
 export type OauthStartTicketRepository = {
-  createForActiveUniversity: (
+  createForEligibleUniversity: (
     universityId: string,
     ticketHash: string,
     expiresAt: Date,
+    statuses: readonly OauthUniversityStatus[],
   ) => Promise<boolean>;
   consume: (
     ticketHash: string,
@@ -57,10 +69,11 @@ export function createOauthStartTicketService({
       }
 
       const ticket = ticketBytes.toString("base64url");
-      const created = await repository.createForActiveUniversity(
+      const created = await repository.createForEligibleUniversity(
         universityId,
         hashTicket(ticket, surface),
         new Date(createdAt.getTime() + OAUTH_START_TICKET_TTL_MS),
+        getOauthUniversityStatuses(surface),
       );
       if (!created) throw new OauthStartTicketError();
       return ticket;
@@ -76,14 +89,14 @@ export function createOauthStartTicketService({
 
 const service = createOauthStartTicketService({
   repository: {
-    async createForActiveUniversity(universityId, ticketHash, expiresAt) {
+    async createForEligibleUniversity(universityId, ticketHash, expiresAt, statuses) {
       return db.transaction(async (transaction) => {
         const [university] = await transaction
           .select({ id: schema.universities.id })
           .from(schema.universities)
           .where(and(
             eq(schema.universities.id, universityId),
-            eq(schema.universities.status, "active"),
+            inArray(schema.universities.status, [...statuses]),
           ))
           .for("share")
           .limit(1);

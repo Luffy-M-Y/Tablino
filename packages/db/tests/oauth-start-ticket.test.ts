@@ -7,6 +7,7 @@ import {
   OauthStartTicketError,
   type OauthStartTicketRepository,
   type OauthStartTicketSurface,
+  getOauthUniversityStatuses,
 } from "../src/oauth-start-ticket";
 
 const ACTIVE_UNIVERSITY_ID = "university-active";
@@ -30,11 +31,13 @@ function createMemoryRepository({
   const storedTickets = tickets.map((ticket) => ({ ...ticket }));
   let activeIds = new Set(activeUniversityIds);
   let createCount = 0;
+  const receivedStatuses: string[][] = [];
   let consumeCount = 0;
 
   const repository: OauthStartTicketRepository = {
-    async createForActiveUniversity(universityId, ticketHash, expiresAt) {
+    async createForEligibleUniversity(universityId, ticketHash, expiresAt, statuses) {
       createCount++;
+      receivedStatuses.push([...statuses]);
       if (!activeIds.has(universityId)) return false;
       storedTickets.push({
         universityId,
@@ -61,6 +64,7 @@ function createMemoryRepository({
   return {
     repository,
     storedTickets,
+    receivedStatuses,
     setActiveUniversityIds(ids: string[]) {
       activeIds = new Set(ids);
     },
@@ -189,4 +193,14 @@ test("only one concurrent consumer can consume a ticket", async () => {
 
   assert.deepEqual(results.sort(), [null, ACTIVE_UNIVERSITY_ID].sort());
   assert.equal(fake.consumeCount, 2);
+});
+
+test("statuts admis : web actif seulement, admin en attente, approuvé ou actif", async () => {
+  assert.deepEqual(getOauthUniversityStatuses("web"), ["active"]);
+  assert.deepEqual(getOauthUniversityStatuses("admin"), ["pending", "approved", "active"]);
+
+  const fake = createService();
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "web");
+  await fake.service.createOauthStartTicket(ACTIVE_UNIVERSITY_ID, "admin");
+  assert.deepEqual(fake.receivedStatuses, [["active"], ["pending", "approved", "active"]]);
 });
