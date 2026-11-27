@@ -3,6 +3,7 @@ import {
   AUTH_CENTRAL_ROUTE_HEADER,
   shouldBypassTenantResolution,
 } from "./lib/auth-central-host.mjs";
+import { decideProxyRefusal } from "./lib/proxy-refusal.mjs";
 import {
   isRootSiteHost,
   ROOT_SITE_PATH,
@@ -10,6 +11,17 @@ import {
 } from "./lib/root-site.mjs";
 
 export function proxy(request: NextRequest) {
+  // Refus sans base : 404 pour un hôte mal formé.
+  const refusal = decideProxyRefusal({
+    host: request.headers.get("host"),
+    pathname: request.nextUrl.pathname,
+    rootDomain: process.env.ROOT_DOMAIN,
+    authCentralHost: process.env.AUTH_CENTRAL_HOST,
+  });
+  if (refusal !== null) {
+    return new NextResponse(null, { status: refusal, headers: { "Cache-Control": "no-store" } });
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete(AUTH_CENTRAL_ROUTE_HEADER);
   requestHeaders.delete(ROOT_SITE_ROUTE_HEADER);
