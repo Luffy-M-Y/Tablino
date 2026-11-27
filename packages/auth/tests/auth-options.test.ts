@@ -21,7 +21,7 @@ test("createAuthOptions configures the admin sign-in page only for the admin sur
 
   assert.equal(adminOptions.pages?.signIn, "/login");
   assert.equal(adminOptions.pages?.error, undefined);
-  assert.equal(centralAdminOptions.pages?.signIn, "/login");
+  assert.equal(centralAdminOptions.pages?.signIn, AUTH_ADMIN_GOOGLE_ERROR_PATH);
   assert.equal(centralAdminOptions.pages?.error, AUTH_ADMIN_GOOGLE_ERROR_PATH);
   assert.equal(webOptions.pages, undefined);
 });

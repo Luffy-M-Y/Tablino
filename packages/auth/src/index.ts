@@ -531,6 +531,9 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
   if (context.errorPage) pages.error = context.errorPage;
   if (context.surface === "admin" && context.isAuthAdminCentral) {
     pages.error = AUTH_ADMIN_GOOGLE_ERROR_PATH;
+    // Hôte central : /login n'y est pas servi ; next-auth passe par la page de connexion
+    // après un échec du rappel Google (/api/auth/error puis /api/auth/signin).
+    pages.signIn = AUTH_ADMIN_GOOGLE_ERROR_PATH;
   }
 
   return {
