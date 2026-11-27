@@ -1,5 +1,11 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { computeScaledSize, normalizeBulletWords } from "@/lib/scan-pages.mjs";
+import {
+  computeScaledSize,
+  isFooterLine,
+  medianOf,
+  normalizeBulletWords,
+  normalizeHeadingWords,
+} from "@/lib/scan-pages.mjs";
 
 export type ScanPdfMode = "text" | "photo";
 
@@ -30,27 +36,39 @@ function sanitizeRecognizedWord(text: string): string {
 }
 
 type OcrWord = { text?: string };
-type OcrLine = { words?: OcrWord[] };
+type OcrBox = { y0: number; y1: number };
+type OcrLine = { words?: OcrWord[]; bbox?: OcrBox };
 type OcrParagraph = { lines?: OcrLine[] };
 type OcrBlock = { paragraphs?: OcrParagraph[] };
 
-function extractTextParagraphs(blocks: (OcrBlock | undefined)[]): string[] {
+function lineHeight(line: OcrLine | undefined): number {
+  return line && line.bbox ? line.bbox.y1 - line.bbox.y0 : 0;
+}
+
+function extractTextParagraphs(blocks: (OcrBlock | undefined)[], pageHeight: number): string[] {
   const paragraphs: string[] = [];
+  const medianHeight = medianOf(
+    (blocks ?? []).flatMap((block) => (block?.paragraphs ?? []).flatMap((paragraph) => (paragraph?.lines ?? []).map(lineHeight))),
+  );
   for (const block of blocks ?? []) {
     if (!block || !block.paragraphs) continue;
     for (const paragraph of block.paragraphs) {
       if (!paragraph || !paragraph.lines) continue;
+      // Puce creuse « ◦ » lue « « » : seulement si le paragraphe ne ferme aucune citation.
+      const quoteIsBullet = !paragraph.lines.some((line) => (line?.words ?? []).some((word) => (word?.text ?? "").includes("»")));
       const lines: string[] = [];
       for (const line of paragraph.lines) {
         if (!line || !line.words) continue;
+        // Pied de page (bas de page, petits caractères) : retiré du texte.
+        if (line.bbox && isFooterLine({ top: line.bbox.y0, height: lineHeight(line), pageHeight, medianHeight })) continue;
         const rawWords: string[] = [];
         for (const word of line.words) {
           const text = word && word.text ? word.text.trim() : "";
           if (text) rawWords.push(text);
         }
-        // Puce lue « e », « o » ou « • » en début de ligne : remplacée par un tiret.
+        // Puce lue « e », « o » ou « • » en début de ligne : remplacée par un tiret ; titre « |. » : « I. ».
         const words: string[] = [];
-        for (const text of normalizeBulletWords(rawWords)) {
+        for (const text of normalizeHeadingWords(normalizeBulletWords(rawWords, { quoteIsBullet }))) {
           const sanitizedText = sanitizeRecognizedWord(text);
           if (!sanitizedText) continue;
           words.push(sanitizedText);
@@ -183,7 +201,7 @@ export async function buildPdfFromImages(
         const result = await worker.recognize(canvas, {}, { blocks: true }).catch(() => {
           throw new Error("OCR impossible : " + file.name);
         });
-        const paragraphs = extractTextParagraphs(result.data.blocks ?? []);
+        const paragraphs = extractTextParagraphs(result.data.blocks ?? [], canvas.height);
         if (paragraphs.length === 0) {
           throw new Error("Aucun texte détecté : page " + (index + 1) + ".");
         }
