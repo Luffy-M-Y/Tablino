@@ -54,6 +54,7 @@ export function decidePaymentConfirmation(input: {
 }): PaymentConfirmation;
 export const WEBHOOK_TOLERANCE_SECONDS: number;
 export const WEBHOOK_MAX_BYTES: number;
+export function readLimitedText(stream: ReadableStream<Uint8Array> | null, maxBytes: number): Promise<string | null>;
 export function verifyWebhookSignature(input: {
   rawBody: string;
   signature: string | null;

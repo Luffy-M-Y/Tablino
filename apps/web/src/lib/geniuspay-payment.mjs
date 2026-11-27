@@ -148,6 +148,28 @@ export const WEBHOOK_MAX_BYTES = 65_536;
 const SIGNATURE_PATTERN = /^[0-9a-f]{64}$/i;
 const TIMESTAMP_PATTERN = /^[0-9]{1,12}$/;
 
+/**
+ * Lit un corps en flux sans dépasser maxBytes : texte UTF-8, ou null dès que la limite
+ * est franchie (lecture arrêtée, même sans en-tête Content-Length).
+ */
+export async function readLimitedText(stream, maxBytes) {
+  if (stream === null || stream === undefined) return "";
+  const reader = stream.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8");
+}
+
 /** JSON à la manière de PHP json_encode (« / » et caractères non ASCII échappés). */
 function phpJsonEncode(value) {
   return JSON.stringify(value)

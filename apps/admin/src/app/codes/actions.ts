@@ -26,8 +26,10 @@ export async function createCodeAction(
   _previousState: CreateCodeState,
   formData: FormData,
 ): Promise<CreateCodeState> {
+  // Garde explicite : admin d'université seulement (contrôle de session et de révocation).
+  const user = await requireAdminAccess();
   const university = await getCurrentUniversity();
-  if (!university) forbidden();
+  if (!university || user.role !== "university_admin") forbidden();
 
   const maxUses = readIntegerField(formData, "maxUses");
   if (maxUses === null) return { message: "Plafond invalide (1 à 5000).", code: null, expiresAt: null };
@@ -54,8 +56,10 @@ export async function revokeCodeAction(
   _previousState: RevokeCodeState,
   formData: FormData,
 ): Promise<RevokeCodeState> {
+  // Garde explicite : admin d'université seulement (contrôle de session et de révocation).
+  const user = await requireAdminAccess();
   const university = await getCurrentUniversity();
-  if (!university) forbidden();
+  if (!university || user.role !== "university_admin") forbidden();
 
   const codeId = readStringField(formData, "codeId");
   if (!isUuid(codeId)) return { message: "Code introuvable." };

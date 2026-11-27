@@ -11,6 +11,7 @@ import {
   parseCheckoutResponse,
   parsePaymentResponse,
   parseWebhookEvent,
+  readLimitedText,
   verifyPaymentReferenceToken,
   verifyWebhookSignature,
 } from "../src/lib/geniuspay-payment.mjs";
@@ -199,6 +200,36 @@ test("reference token is not created without a secret or with invalid inputs", (
   assert.equal(createPaymentReferenceToken({ reference: "MTX-A1B2C3D4E5", userId, now, secret: undefined }), null);
   assert.equal(createPaymentReferenceToken({ reference: "bad.ref", userId, now, secret }), null);
   assert.equal(createPaymentReferenceToken({ reference: "MTX-A1B2C3D4E5", userId: "not-a-uuid", now, secret }), null);
+});
+
+function streamOf(chunks) {
+  return new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+}
+
+test("limited body reader returns UTF-8 text up to the limit, even split mid-character", async () => {
+  const bytes = Buffer.from("café", "utf8");
+  assert.equal(await readLimitedText(streamOf([bytes.subarray(0, 4), bytes.subarray(4)]), 5), "café");
+  assert.equal(await readLimitedText(streamOf([Buffer.from("abc")]), 3), "abc");
+  assert.equal(await readLimitedText(null, 10), "");
+  assert.equal(await readLimitedText(streamOf([]), 10), "");
+});
+
+test("limited body reader stops and returns null past the limit", async () => {
+  let pulled = 0;
+  const endless = new ReadableStream({
+    pull(controller) {
+      pulled += 1;
+      controller.enqueue(Buffer.alloc(1024));
+    },
+  });
+  assert.equal(await readLimitedText(endless, 4096), null);
+  assert.ok(pulled <= 6, String(pulled));
+  assert.equal(await readLimitedText(streamOf([Buffer.from("abcd")]), 3), null);
 });
 
 const webhookSecret = "whsec_test";
