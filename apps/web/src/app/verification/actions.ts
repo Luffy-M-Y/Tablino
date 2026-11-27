@@ -52,7 +52,7 @@ export async function verifyCodeAction(
   }
 
   const limit = await checkRateLimit("verify_code", userId);
-  if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+  if (!limit.allowed) return { message: "Trop de tentatives. Réessaie plus tard." };
 
   const result = await verifyEmailCode(userId, readStringField(formData, "code"));
   if (!result.ok) {
@@ -98,10 +98,10 @@ export async function resendCodeAction(
   }
 
   const verifyLimit = await checkRateLimit("verify_code", userId);
-  if (!verifyLimit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+  if (!verifyLimit.allowed) return { message: "Trop de tentatives. Réessaie plus tard." };
 
   const limit = await checkRateLimit("email_send", userId);
-  if (!limit.allowed) return { message: "Trop de demandes. Reessaie plus tard." };
+  if (!limit.allowed) return { message: "Trop de demandes. Réessaie plus tard." };
 
   const issued = await issueEmailVerificationCode(userId);
   if (!issued.ok) {

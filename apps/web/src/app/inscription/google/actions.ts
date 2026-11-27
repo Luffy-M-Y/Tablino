@@ -51,7 +51,7 @@ export async function registerGoogleAction(
   }
 
   const limit = await checkRateLimit("signup_code", payload.email);
-  if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+  if (!limit.allowed) return { message: "Trop de tentatives. Réessaie plus tard." };
 
   // Chaque tentative d'inscription vérifiée compte dans la limite par IP (10 par heure).
   if (clientIp !== null) await recordFailure("signup_ip", clientIp);

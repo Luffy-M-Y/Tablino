@@ -34,7 +34,7 @@ export async function loginAction(
   }
   if (clientIp !== null) {
     const ipLimit = await checkRateLimit("login_ip", clientIp);
-    if (!ipLimit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+    if (!ipLimit.allowed) return { message: "Trop de tentatives. Réessaie plus tard." };
   }
 
   if (!(await verifyTurnstileForm(formData, "login"))) {
@@ -45,7 +45,7 @@ export async function loginAction(
   const email = readStringField(formData, "email");
   const password = readStringField(formData, "password");
   const limit = await checkRateLimit("login", email);
-  if (!limit.allowed) return { message: "Trop de tentatives. Reessaie plus tard." };
+  if (!limit.allowed) return { message: "Trop de tentatives. Réessaie plus tard." };
 
   const result = await authenticateStudent(universityId, {
     email: email,
