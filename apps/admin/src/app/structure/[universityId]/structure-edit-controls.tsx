@@ -39,6 +39,7 @@ export function RenameControl({
   const inputId = useId();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
     if (state?.ok) setIsEditing(false);
   }, [state]);
 
@@ -127,6 +128,7 @@ export function DeleteControl({
   const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
     if (state?.ok) setIsConfirming(false);
   }, [state]);
 

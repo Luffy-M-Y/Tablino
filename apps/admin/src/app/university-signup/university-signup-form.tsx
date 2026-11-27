@@ -62,7 +62,7 @@ export function UniversitySignupForm({
           <input type="hidden" name="token" value={token} />
           <div>
             <label htmlFor="universityName" className={labelClass}>
-              Nom de l'universit&eacute;
+              Nom de l&apos;universit&eacute;
             </label>
             <input
               id="universityName"

@@ -192,12 +192,12 @@ export function LoginForm({
         </>
       ) : null}
       <p className="mt-3 text-center text-sm text-[color:var(--color-muted-foreground)]">
-        Vous n'avez pas de compte ?{" "}
+        Vous n&apos;avez pas de compte ?{" "}
         <Link
           href="/signup"
           className={`inline-block px-1 py-3 font-semibold text-[color:var(--color-primary-text)] underline underline-offset-2 ${focusRing}`}
         >
-          S'inscrire
+          S&apos;inscrire
         </Link>
       </p>
     </section>

@@ -62,7 +62,7 @@ export function CreateCodeForm() {
       >
         <div className="min-w-0">
           <label htmlFor="maxUses" className="mb-1.5 block whitespace-nowrap text-sm font-medium text-[color:var(--color-text)]">
-            Nombre d'utilisations maximum
+            Nombre d&apos;utilisations maximum
           </label>
           <div className="w-28 shrink-0">
             <input
@@ -77,7 +77,7 @@ export function CreateCodeForm() {
             />
           </div>
           <p className="mt-1.5 max-w-xs text-xs text-[color:var(--color-muted-foreground)]">
-            Combien d'étudiants peuvent utiliser ce code
+            Combien d&apos;étudiants peuvent utiliser ce code
           </p>
         </div>
         <button
@@ -103,7 +103,7 @@ export function CreateCodeForm() {
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="generated-code-title" className="mb-4 text-xl font-semibold text-[color:var(--color-text)]">
-              Code d'accès généré
+              Code d&apos;accès généré
             </h2>
             <p className="select-all break-all font-mono text-lg font-semibold">{result.code}</p>
             <p className="mt-2">Ce code ne sera plus affiché. Copie-le maintenant.</p>

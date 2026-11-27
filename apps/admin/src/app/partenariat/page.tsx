@@ -116,7 +116,7 @@ export default async function PartenariatPage() {
 
           <div>
             <h3 className="mb-2 font-semibold text-[color:var(--color-text)]">
-              Droits de l'université
+              Droits de l&apos;université
             </h3>
             <ul className="list-disc space-y-1 pl-5">
               {contract.rights.map((right, idx) => (
@@ -127,7 +127,7 @@ export default async function PartenariatPage() {
 
           <div>
             <h3 className="mb-2 font-semibold text-[color:var(--color-text)]">
-              Engagements de l'université
+              Engagements de l&apos;université
             </h3>
             <ul className="list-disc space-y-1 pl-5">
               {contract.obligations.map((obligation, idx) => (

@@ -203,7 +203,7 @@ export function DraftFilesList({
                 <p>{new Date(draft.createdAt).toLocaleDateString("fr-FR")}</p>
                 {draft.programStatus === "draft" && (
                   <p>
-                    Filière en brouillon : ce fichier restera invisible sur le site tant que la filière n'est pas publiée.
+                    Filière en brouillon : ce fichier restera invisible sur le site tant que la filière n&apos;est pas publiée.
                   </p>
                 )}
                 <PublishDraftForm

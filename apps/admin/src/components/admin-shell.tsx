@@ -106,6 +106,7 @@ export function AdminShell({
 
   useEffect(function () {
     if (!pinPolicy.loadStoredValue) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
       setIsSidebarPinned(false);
       return;
     }

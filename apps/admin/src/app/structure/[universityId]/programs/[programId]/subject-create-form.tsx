@@ -59,7 +59,7 @@ export function SubjectCreateForm({
   if (levels.length === 0) {
     return (
       <p className="text-sm text-[color:var(--color-muted-foreground)]">
-        Ajoutez d'abord un cycle à la filière : les niveaux viennent des cycles.
+        Ajoutez d&apos;abord un cycle à la filière : les niveaux viennent des cycles.
       </p>
     );
   }

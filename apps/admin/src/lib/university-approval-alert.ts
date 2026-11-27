@@ -62,9 +62,10 @@ export async function notifySuperAdminOfPendingUniversity(userId: string): Promi
     );
 
     console.log("[alerte-universite] alerte envoyee");
-  } catch (error: any) {
-    const errorName = error?.name ?? "Error";
-    const detail = error?.status ?? error?.cause?.code ?? error?.cause?.name ?? "inconnu";
+  } catch (error) {
+    const failure = error as { name?: unknown; status?: unknown; cause?: { code?: unknown; name?: unknown } } | null | undefined;
+    const errorName = failure?.name ?? "Error";
+    const detail = failure?.status ?? failure?.cause?.code ?? failure?.cause?.name ?? "inconnu";
     console.error(`[alerte-universite] echec apres essais (${errorName}, ${detail})`);
   }
 }
