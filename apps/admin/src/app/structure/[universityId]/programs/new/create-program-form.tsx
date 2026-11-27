@@ -39,7 +39,7 @@ export function CreateProgramForm({ universityId }: { universityId: string }) {
         <span>
           <span className="block text-sm font-semibold text-[color:var(--color-text)]">Créer en brouillon</span>
           <span className="mt-1 block text-sm text-[color:var(--color-muted-foreground)]">
-            Sans cocher, la filière est publiée et visible des étudiants dès qu'elle a du contenu publié.
+            Sans cocher, la filière est publiée et visible des étudiants dès qu&apos;elle a du contenu publié.
           </span>
         </span>
       </label>

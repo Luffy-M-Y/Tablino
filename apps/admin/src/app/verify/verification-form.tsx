@@ -33,6 +33,7 @@ export function VerificationForm() {
   const [resendTurnstileToken, setResendTurnstileToken] = useState("");
 
   useEffect(function () {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
     if (resendState.message === "Un nouveau code a \u00e9t\u00e9 envoy\u00e9.") setSecondsLeft(60);
   }, [resendState]);
   useEffect(function () {

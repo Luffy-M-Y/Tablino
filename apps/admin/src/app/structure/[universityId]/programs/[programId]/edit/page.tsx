@@ -118,7 +118,7 @@ export default async function EditProgramPage({
         <h3 className="text-base font-semibold">Cycle existant</h3>
         {overview.cycles.length === 0 ? (
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Aucun cycle n'existe encore dans l'université : créez-le ci-dessous.
+            Aucun cycle n&apos;existe encore dans l&apos;université : créez-le ci-dessous.
           </p>
         ) : availableCycles.length === 0 ? (
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">Tous les cycles sont déjà dans cette filière.</p>
@@ -137,7 +137,7 @@ export default async function EditProgramPage({
               </select>
             </div>
             <div>
-              <label htmlFor="new-program-cycle-years">Nombre d'années</label>
+              <label htmlFor="new-program-cycle-years">Nombre d&apos;années</label>
               <input
                 id="new-program-cycle-years"
                 name="yearsCount"
@@ -157,7 +157,7 @@ export default async function EditProgramPage({
             Nouveau cycle
           </h3>
           <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-            Le cycle est créé pour l'université et ajouté à cette filière.
+            Le cycle est créé pour l&apos;université et ajouté à cette filière.
           </p>
           <StructureActionForm
             action={createProgramCycleAction}
@@ -197,7 +197,7 @@ export default async function EditProgramPage({
               />
             </div>
             <div>
-              <label htmlFor="program-new-cycle-years" className={adminLabelClass}>Nombre d'années</label>
+              <label htmlFor="program-new-cycle-years" className={adminLabelClass}>Nombre d&apos;années</label>
               <input
                 id="program-new-cycle-years"
                 name="yearsCount"

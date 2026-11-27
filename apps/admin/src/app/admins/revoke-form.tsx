@@ -28,6 +28,7 @@ export function RevokeAdminForm({
 
   useEffect(() => {
     if (state.status !== "idle") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
       setPassword("");
       if (state.status === "success") {
         setIsConfirming(false);

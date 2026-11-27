@@ -77,6 +77,7 @@ export function TurnstileField({
   }, [action, onTokenChange, siteKey]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
     if (window.turnstile) renderWidget();
   }, [renderWidget]);
 
@@ -88,6 +89,7 @@ export function TurnstileField({
     try {
       window.turnstile.reset(widgetId);
     } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
       setError(CONFIG_ERROR);
     }
   }, [onTokenChange, resetKey]);

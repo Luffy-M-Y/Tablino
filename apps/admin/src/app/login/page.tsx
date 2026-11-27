@@ -36,7 +36,7 @@ export default async function LoginPage({
           Connexion admin
         </h1>
         <p className="mb-5 mt-1 text-center text-sm text-[color:var(--color-muted-foreground)]">
-          Acc&eacute;dez &agrave; votre espace d'administration.
+          Acc&eacute;dez &agrave; votre espace d&apos;administration.
         </p>
         <LoginForm
           passwordResetComplete={params.reset === "ok"}

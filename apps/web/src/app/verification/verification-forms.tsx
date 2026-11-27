@@ -40,6 +40,7 @@ export function VerificationForms() {
   }, [resendState.redirectTo]);
   useEffect(function () {
     if (resendState.message === RESEND_SUCCESS_MESSAGE) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mise à jour voulue après un résultat d'action ou un événement externe (comportement testé à l'écran)
       setResendTurnstileToken("");
       setSecondsLeft(RESEND_COOLDOWN_SECONDS);
     }

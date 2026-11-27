@@ -100,7 +100,7 @@ function DraftProgramWarning({ href }: { href: string }) {
       <div>
         <p className="text-sm font-semibold">Filière en brouillon</p>
         <p className="mt-1 text-sm">
-          Le fichier restera invisible des étudiants tant que la filière n'est pas publiée.
+          Le fichier restera invisible des étudiants tant que la filière n&apos;est pas publiée.
         </p>
         <ShortcutLink href={href} icon={ArrowRight}>Publier la filière</ShortcutLink>
       </div>

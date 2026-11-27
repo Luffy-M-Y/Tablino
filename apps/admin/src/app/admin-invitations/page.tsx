@@ -23,8 +23,8 @@ export default async function AdminInvitationsPage() {
     >
       <AdminCard className="max-w-2xl">
         <p className="mb-5 text-sm text-[color:var(--color-muted-foreground)]">
-          L'invitation est valable 48 heures. Chaque adresse e-mail ne peut
-          avoir qu'une invitation en attente. L'envoi est limité à 10
+          L&apos;invitation est valable 48 heures. Chaque adresse e-mail ne peut
+          avoir qu&apos;une invitation en attente. L&apos;envoi est limité à 10
           invitations par heure.
         </p>
         <InvitationForm roles={roles} />
