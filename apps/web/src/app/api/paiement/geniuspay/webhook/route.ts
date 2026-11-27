@@ -6,6 +6,7 @@ import {
   decidePaymentConfirmation,
   GENIUSPAY_PROVIDER,
   parseWebhookEvent,
+  readLimitedText,
   verifyWebhookSignature,
   WEBHOOK_MAX_BYTES,
 } from "@/lib/geniuspay-payment.mjs";
@@ -32,8 +33,9 @@ export async function POST(request: NextRequest) {
 
   const declaredLength = Number(request.headers.get("content-length") ?? "0");
   if (declaredLength > WEBHOOK_MAX_BYTES) return reply(413, { error: "too_large" });
-  const rawBody = await request.text();
-  if (Buffer.byteLength(rawBody, "utf8") > WEBHOOK_MAX_BYTES) return reply(413, { error: "too_large" });
+  // Lecture en flux coupée à 64 Ko, même sans Content-Length (envoi par morceaux).
+  const rawBody = await readLimitedText(request.body, WEBHOOK_MAX_BYTES);
+  if (rawBody === null) return reply(413, { error: "too_large" });
 
   const verified = verifyWebhookSignature({
     rawBody,
