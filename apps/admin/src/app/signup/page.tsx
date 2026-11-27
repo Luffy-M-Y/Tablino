@@ -15,7 +15,7 @@ export default async function SignupPage() {
   return (
     <AuthShell title="Inscription de votre universit&eacute;" wide>
       <section className={authCardClass}>
-        {hostContext?.kind === "super" ? <GoogleSignupButton /> : null}
+        {hostContext?.kind === "signup" ? <GoogleSignupButton /> : null}
         <SignupForm addressDomains={addressDomains} />
         <p className="mt-3 text-center text-sm text-[color:var(--color-muted-foreground)]">
           D&eacute;j&agrave; un compte ?{" "}

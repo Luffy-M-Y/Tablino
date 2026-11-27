@@ -1,6 +1,6 @@
 /**
  * @param {{ role: string, universityId: string | null, revokedAt: Date | null }} user
- * @param {{ kind: "super" } | { kind: "university", universityId: string } | null} hostContext
+ * @param {{ kind: "super" } | { kind: "signup" } | { kind: "university", universityId: string } | null} hostContext
  * @returns {boolean}
  */
 export function isSuperAdminLectorDashboardAllowed({ role, universityId, revokedAt }, hostContext) {

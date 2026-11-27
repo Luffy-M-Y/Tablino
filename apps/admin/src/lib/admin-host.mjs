@@ -1,6 +1,9 @@
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,55}[a-z0-9])?$/;
 const ADMIN_SUFFIX = "-admin";
 const SUPER_ADMIN_HOST_LABEL = "sup-admin";
+const SIGNUP_HOST_LABEL = "inscription-admin";
+const SIGNUP_HOST_PATHS = ["/signup", "/verify", "/university-signup"];
+const SIGNUP_REDIRECTED_PATHS = ["/signup", "/university-signup"];
 
 function normalizeHost(authority) {
   if (
@@ -56,7 +59,7 @@ function parseHostSlugMap(value) {
  * @param {string} adminRootDomain - domaine racine admin (ex: localhost:3001 ou tablino.com)
  * @param {string | undefined} slugMapJson - JSON optionnel mappant hostSlug → databaseSlug
  * @param {string | undefined} authAdminCentralHost - valeur de AUTH_ADMIN_CENTRAL_HOST
- * @returns {{ kind: "super" } | { kind: "central" } | { kind: "university", slug: string } | null}
+ * @returns {{ kind: "super" } | { kind: "signup" } | { kind: "central" } | { kind: "university", slug: string } | null}
  */
 export function resolveAdminHost(host, adminRootDomain, slugMapJson, authAdminCentralHost) {
   const hostname = normalizeHost(host);
@@ -74,6 +77,11 @@ export function resolveAdminHost(host, adminRootDomain, slugMapJson, authAdminCe
   const superAdminHostname = normalizeHost(`${SUPER_ADMIN_HOST_LABEL}.${rootHostname}`);
   if (hostname === superAdminHostname) {
     return { kind: "super" };
+  }
+
+  // Hôte d'inscription : vérifié avant le motif {slug}-admin (slug « inscription » réservé).
+  if (hostname === normalizeHost(`${SIGNUP_HOST_LABEL}.${rootHostname}`)) {
+    return { kind: "signup" };
   }
 
   const suffix = `.${rootHostname}`;
@@ -193,6 +201,10 @@ export function isAdminProxyPathAllowed(kind, pathname) {
       ].includes(decodedPathname);
   }
 
+  if (kind === "signup") {
+    return SIGNUP_HOST_PATHS.includes(decodedPathname) || decodedPathname.startsWith("/icons/");
+  }
+
   if (decodedPathname.startsWith("/auth-admin/")) {
     return (kind === "university" || kind === "super") && decodedPathname === "/auth-admin/return";
   }
@@ -202,10 +214,46 @@ export function isAdminProxyPathAllowed(kind, pathname) {
 }
 
 /**
+ * Redirection du proxy liée à l'hôte d'inscription, ou null.
+ * Hôte d'inscription : / vers /signup ; /login vers la connexion de sup-admin.
+ * Hôtes super et université : /signup et /university-signup vers l'hôte d'inscription (requête gardée).
+ *
+ * @param {{ kind: "super" | "signup" | "university", pathname: string, search: string, adminRootDomain: string | undefined, secure: boolean }} options
+ * @returns {string | null}
+ */
+export function getAdminSignupHostRedirect({ kind, pathname, search, adminRootDomain, secure }) {
+  if (typeof pathname !== "string") return null;
+  let decodedPathname;
+  try {
+    decodedPathname = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+
+  const rootHostname = normalizeHost(adminRootDomain);
+  if (rootHostname === null) return null;
+  const scheme = secure ? "https" : "http";
+
+  if (kind === "signup") {
+    // Location absolu : le proxy Next refuse une URL relative (mesuré : Invalid URL).
+    if (decodedPathname === "/") return `${scheme}://${SIGNUP_HOST_LABEL}.${rootHostname}/signup`;
+    if (decodedPathname === "/login") return `${scheme}://${SUPER_ADMIN_HOST_LABEL}.${rootHostname}/login`;
+    return null;
+  }
+
+  if ((kind === "super" || kind === "university") && SIGNUP_REDIRECTED_PATHS.includes(decodedPathname)) {
+    const query = typeof search === "string" && search.startsWith("?") ? search : "";
+    return `${scheme}://${SIGNUP_HOST_LABEL}.${rootHostname}${decodedPathname}${query}`;
+  }
+
+  return null;
+}
+
+/**
  * Les comptes globaux ne peuvent se connecter que sur l'hôte super.
  *
  * @param {string | null} role
- * @param {"super" | "university" | null} hostKind
+ * @param {"super" | "signup" | "university" | null} hostKind
  */
 export function isAdminPasswordLoginAllowed(role, hostKind) {
   if (role === "university_admin") return true;

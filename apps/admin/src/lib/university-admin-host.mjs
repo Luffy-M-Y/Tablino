@@ -2,7 +2,7 @@
  * Situe un admin d'université par rapport à l'hôte courant.
  *
  * @param {{ role: string | null, universityId: string | null, revokedAt: Date | null } | null} account
- * @param {{ kind: "super" } | { kind: "university", universityId: string } | null} hostContext
+ * @param {{ kind: "super" } | { kind: "signup" } | { kind: "university", universityId: string } | null} hostContext
  * @returns {"not_university_admin" | "own_host" | "other_host"}
  */
 export function resolveUniversityAdminHost(account, hostContext) {
@@ -34,7 +34,7 @@ export function resolveUniversityAdminHost(account, hostContext) {
  * l'université, sinon elles bouclent.
  *
  * @param {{ role: string | null, universityId: string | null, revokedAt: Date | null, universityStatus: string | null } | null} account
- * @param {{ kind: "super" } | { kind: "university", universityId: string } | null} hostContext
+ * @param {{ kind: "super" } | { kind: "signup" } | { kind: "university", universityId: string } | null} hostContext
  * @returns {"none" | "pending" | "partnership" | "university_host"}
  */
 export function resolveForbiddenTarget(account, hostContext) {

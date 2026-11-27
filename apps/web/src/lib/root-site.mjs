@@ -53,7 +53,7 @@ export function buildUniversityStudentUrl({ slug, rootDomain, slugMap = {}, secu
 }
 
 /**
- * Lien « créer mon compte université » : /signup de l'hôte super admin.
+ * Lien « créer mon compte université » : /signup de l'hôte d'inscription.
  * @param {{ adminRootDomain: string | undefined, secure: boolean }} options
  * @returns {string | null}
  */
@@ -65,11 +65,11 @@ export function buildAdminSignupUrl({ adminRootDomain, secure }) {
     return null;
   }
   const scheme = secure ? "https" : "http";
-  return `${scheme}://sup-admin.${adminRootDomain.toLowerCase()}/signup`;
+  return `${scheme}://inscription-admin.${adminRootDomain.toLowerCase()}/signup`;
 }
 
 const ADMIN_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,55}[a-z0-9])?$/;
-const RESERVED_ADMIN_SLUGS = new Set(["sup", "auth"]);
+const RESERVED_ADMIN_SLUGS = new Set(["sup", "auth", "inscription"]);
 
 /**
  * Lien « connexion de mon université » : /login de l'hôte admin de l'université

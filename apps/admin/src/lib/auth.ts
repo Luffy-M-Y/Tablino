@@ -8,7 +8,7 @@ import {
   buildAdminGoogleExistingAccountUrl,
   buildSuperAdminGoogleExistingAccountUrl,
   buildSuperAdminTransferRedirectUrl,
-  buildSuperAdminUniversitySignupUrl,
+  buildUniversitySignupUrl,
 } from "./admin-return-url.mjs";
 
 const resolveGoogleUniversityId = createAdminGoogleUniversityResolver({
@@ -72,7 +72,7 @@ export function getAdminAuthOptions(host: string | null) {
     resolveUniversitySignupUrl: async (token) => {
       const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
       if (!adminRootDomain) return null;
-      return buildSuperAdminUniversitySignupUrl({
+      return buildUniversitySignupUrl({
         adminRootDomain,
         secure: process.env.NODE_ENV === "production",
         token,

@@ -29,7 +29,7 @@ export function buildSuperAdminGoogleExistingAccountUrl(options: {
   token: string;
 }): string | null;
 
-export function buildSuperAdminUniversitySignupUrl(options: {
+export function buildUniversitySignupUrl(options: {
   adminRootDomain: string;
   secure: boolean;
   token: string;
