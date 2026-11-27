@@ -29,9 +29,13 @@ test("restricts powerful browser features", () => {
   assert.ok(policy.includes("geolocation=()"));
 });
 
+test("isolates the window from other sites (COOP)", () => {
+  assert.equal(byKey.get("Cross-Origin-Opener-Policy"), "same-origin");
+});
+
 test("has unique keys and cannot be mutated", () => {
   assert.equal(byKey.size, SECURITY_HEADERS.length);
-  assert.equal(SECURITY_HEADERS.length, 6);
+  assert.equal(SECURITY_HEADERS.length, 7);
   assert.throws(() => { SECURITY_HEADERS.push({ key: "X", value: "y" }); });
   assert.throws(() => { SECURITY_HEADERS[0].value = "SAMEORIGIN"; });
 });
