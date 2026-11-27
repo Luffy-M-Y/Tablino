@@ -57,6 +57,8 @@ export function buildSecurityHeaders({ development, centralHost }) {
     Object.freeze({ key: "X-Content-Type-Options", value: "nosniff" }),
     Object.freeze({ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }),
     Object.freeze({ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }),
+    // Isole la fenêtre des pages d'autres sites ouvertes ou ouvrantes (window.opener coupé).
+    Object.freeze({ key: "Cross-Origin-Opener-Policy", value: "same-origin" }),
     Object.freeze({ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), browsing-topics=()" }),
   ]);
 }
