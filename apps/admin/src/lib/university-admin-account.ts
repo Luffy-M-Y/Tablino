@@ -40,11 +40,15 @@ export async function getCurrentUniversityAdminAccount(): Promise<UniversityAdmi
 }
 
 /** URL de connexion sur l'hôte d'administration de l'université du compte. */
-export function getUniversityAdminLoginUrl(account: UniversityAdminAccount): string | null {
+export function getUniversityAdminLoginUrl(
+  account: UniversityAdminAccount,
+  options: { signupPending?: boolean } = {},
+): string | null {
   if (!account.universitySlug) return null;
   return buildAdminLoginUrl({
     slug: account.universitySlug,
     adminRootDomain: process.env.ADMIN_ROOT_DOMAIN ?? "",
     secure: process.env.NODE_ENV === "production",
+    signupPending: options.signupPending === true,
   });
 }

@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import type { db as sharedDb } from "./client";
 import * as schema from "./schema";
 import { buildProgramSlug } from "./structure-validation";
+import { findUniversityAddressConflict, normalizeUniversityAddress } from "./university-address";
 
 type UniversitySignupDatabase = typeof sharedDb;
 
@@ -12,16 +13,22 @@ async function resolveDatabase(database?: UniversitySignupDatabase): Promise<Uni
 
 export type RegisterUniversityAdminWithGoogleResult =
   | { ok: true; universityId: string; userId: string }
-  | { ok: false; reason: "invalid_input" | "email_taken" | "account_taken" | "slug_unavailable" };
+  | {
+      ok: false;
+      reason:
+        | "invalid_input"
+        | "email_taken"
+        | "account_taken"
+        | "slug_unavailable"
+        | "locality_required"
+        | "address_taken";
+    };
 
 const UNIVERSITY_SLUG_ATTEMPTS = 5;
 const UNIVERSITY_SLUG_SUFFIX_LENGTH = 12;
 
-function createUniversitySlug(base: string): string {
-  const suffix = randomBytes(UNIVERSITY_SLUG_SUFFIX_LENGTH / 2).toString("hex");
-  const maxBaseLength = 100 - suffix.length - 1;
-  const truncatedBase = base.slice(0, maxBaseLength).replace(/-+$/g, "");
-  return truncatedBase + "-" + suffix;
+function createProvisionalUniversitySlug(): string {
+  return "u-" + randomBytes(UNIVERSITY_SLUG_SUFFIX_LENGTH / 2).toString("hex");
 }
 
 export async function registerUniversityAdminWithGoogle(
@@ -31,7 +38,9 @@ export async function registerUniversityAdminWithGoogle(
     name: string | null;
     image: string | null;
     providerAccountId: string;
-    acronym?: string | null;
+    acronym: string;
+    locality?: string | null;
+    visibility?: "private" | "public";
     phone?: string | null;
   },
   database?: UniversitySignupDatabase,
@@ -45,7 +54,9 @@ export async function registerUniversityAdminWithGoogle(
     || typeof input.providerAccountId !== "string"
     || (input.name !== null && typeof input.name !== "string")
     || (input.image !== null && typeof input.image !== "string")
-    || (input.acronym !== undefined && input.acronym !== null && typeof input.acronym !== "string")
+    || typeof input.acronym !== "string"
+    || (input.locality !== undefined && input.locality !== null && typeof input.locality !== "string")
+    || (input.visibility !== undefined && input.visibility !== "private" && input.visibility !== "public")
     || (input.phone !== undefined && input.phone !== null && typeof input.phone !== "string")
   ) {
     return { ok: false, reason: "invalid_input" };
@@ -58,12 +69,14 @@ export async function registerUniversityAdminWithGoogle(
   const providerAccountId = input.providerAccountId.trim();
   const name = input.name?.trim() || null;
   const image = input.image?.trim() || null;
-  const acronym = input.acronym?.trim() || null;
+  const address = normalizeUniversityAddress(input.acronym, input.locality);
+  const visibility = input.visibility ?? "private";
   const phone = input.phone?.trim() || null;
   if (
     universityName.length < 1
     || universityName.length > 255
     || baseSlug.length < 1
+    || address === null
     || email.length < 3
     || email.length > 255
     || separator < 1
@@ -73,7 +86,6 @@ export async function registerUniversityAdminWithGoogle(
     || providerAccountId.length > 255
     || (name !== null && name.length > 255)
     || (image !== null && image.length > 500)
-    || (acronym !== null && acronym.length > 20)
     || (phone !== null && phone.length > 32)
   ) {
     return { ok: false, reason: "invalid_input" };
@@ -98,14 +110,19 @@ export async function registerUniversityAdminWithGoogle(
         .limit(1);
       if (existingAccounts.length > 0) return { ok: false, reason: "account_taken" };
 
+      const addressConflict = await findUniversityAddressConflict(tx, address);
+      if (addressConflict !== null) return { ok: false, reason: addressConflict };
+
       let universityId: string | null = null;
       for (let attempt = 0; attempt < UNIVERSITY_SLUG_ATTEMPTS; attempt++) {
         const universities = await tx
           .insert(schema.universities)
           .values({
             name: universityName,
-            slug: createUniversitySlug(baseSlug),
-            acronym,
+            slug: createProvisionalUniversitySlug(),
+            acronym: address.acronym,
+            locality: address.locality,
+            visibility,
             phone,
             status: "pending",
             revenueShareBps: 0,

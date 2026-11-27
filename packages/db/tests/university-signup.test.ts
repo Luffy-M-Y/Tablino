@@ -7,6 +7,10 @@ type SelectQuery = {
   from: (table: unknown) => SelectQuery;
   where: (condition: unknown) => SelectQuery;
   limit: (count: number) => Promise<unknown[]>;
+  then: (
+    onFulfilled?: ((value: unknown[]) => unknown) | null,
+    onRejected?: ((reason: unknown) => unknown) | null,
+  ) => Promise<unknown>;
 };
 
 type InsertRecord = {
@@ -52,6 +56,8 @@ function createMemoryDatabase({
           return query;
         },
         limit: async () => selectedRows.shift() ?? [],
+        then: (onFulfilled, onRejected) =>
+          Promise.resolve(selectedRows.shift() ?? []).then(onFulfilled, onRejected),
       };
       return query;
     },
@@ -100,6 +106,7 @@ function createMemoryDatabase({
 
 const validInput = {
   universityName: "  Université Exemple  ",
+  acronym: " UEX ",
   email: " ADMIN@EXAMPLE.COM ",
   name: " Ada Lovelace ",
   image: " https://example.com/avatar.png ",
@@ -147,7 +154,7 @@ test("registerUniversityAdminWithGoogle rejects an existing Google account", asy
 test("registerUniversityAdminWithGoogle creates the university, admin, and Google account in order", async () => {
   const now = new Date("2026-10-31T09:00:00.000Z");
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[], [], []],
     insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
   });
 
@@ -165,7 +172,10 @@ test("registerUniversityAdminWithGoogle creates the university, admin, and Googl
   assert.equal(universityValues.name, "Université Exemple");
   assert.equal(universityValues.status, "pending");
   assert.equal(universityValues.revenueShareBps, 0);
-  assert.match(String(universityValues.slug), /^universite-exemple-[a-f0-9]{12}$/);
+  assert.match(String(universityValues.slug), /^u-[a-f0-9]{12}$/);
+  assert.equal(universityValues.acronym, "UEX");
+  assert.equal(universityValues.locality, null);
+  assert.equal(universityValues.visibility, "private");
   assert.ok(String(universityValues.slug).length <= 100);
   assert.equal(fake.conflicts[0].target, schema.universities.slug);
   assert.equal(fake.inserts[1].values?.name, "Ada Lovelace");
@@ -184,7 +194,7 @@ test("registerUniversityAdminWithGoogle creates the university, admin, and Googl
 
 test("registerUniversityAdminWithGoogle retries a colliding slug", async () => {
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[], [], []],
     insertResults: [[], [{ id: "university-id" }], [{ id: "user-id" }], []],
   });
 
@@ -196,7 +206,7 @@ test("registerUniversityAdminWithGoogle retries a colliding slug", async () => {
 });
 
 test("registerUniversityAdminWithGoogle returns slug_unavailable after repeated slug collisions", async () => {
-  const fake = createMemoryDatabase({ selectedRows: [[], []] });
+  const fake = createMemoryDatabase({ selectedRows: [[], [], []] });
 
   assert.deepEqual(
     await registerUniversityAdminWithGoogle(validInput, fake.database),
@@ -209,7 +219,7 @@ test("registerUniversityAdminWithGoogle returns slug_unavailable after repeated 
 test("registerUniversityAdminWithGoogle maps unique constraint violations to email_taken", async () => {
   const uniqueError = Object.assign(new Error("unique constraint"), { code: "23505" });
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[], [], []],
     insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], uniqueError],
   });
 
@@ -221,7 +231,7 @@ test("registerUniversityAdminWithGoogle maps unique constraint violations to ema
 
 test("registerUniversityAdminWithGoogle trims acronym and phone before inserting the university", async () => {
   const fake = createMemoryDatabase({
-    selectedRows: [[], []],
+    selectedRows: [[], [], []],
     insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
   });
 
@@ -237,13 +247,13 @@ test("registerUniversityAdminWithGoogle trims acronym and phone before inserting
   assert.equal(fake.inserts[0].values?.phone, "+225 0102030405");
 });
 
-test("registerUniversityAdminWithGoogle inserts null for absent or blank acronym and phone", async () => {
+test("registerUniversityAdminWithGoogle inserts null for an absent or blank phone", async () => {
   for (const fields of [
-    { acronym: undefined, phone: "   " },
-    { acronym: "   ", phone: undefined },
+    { phone: "   " },
+    { phone: undefined },
   ]) {
     const fake = createMemoryDatabase({
-      selectedRows: [[], []],
+      selectedRows: [[], [], []],
       insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
     });
 
@@ -251,7 +261,7 @@ test("registerUniversityAdminWithGoogle inserts null for absent or blank acronym
       ...validInput,
       ...fields,
     }, fake.database)).ok, true);
-    assert.equal(fake.inserts[0].values?.acronym, null);
+    assert.equal(fake.inserts[0].values?.acronym, "UEX");
     assert.equal(fake.inserts[0].values?.phone, null);
   }
 });
@@ -269,4 +279,83 @@ test("registerUniversityAdminWithGoogle rejects oversized acronym or phone befor
     );
     assert.equal(fake.transactionCount, 0);
   }
+});
+
+test("registerUniversityAdminWithGoogle stores the locality and the chosen visibility", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[], [], []],
+    insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
+  });
+
+  assert.deepEqual(
+    await registerUniversityAdminWithGoogle(
+      { ...validInput, locality: " Ouaga ", visibility: "public" },
+      fake.database,
+    ),
+    { ok: true, universityId: "university-id", userId: "user-id" },
+  );
+  assert.equal(fake.inserts[0].values?.acronym, "UEX");
+  assert.equal(fake.inserts[0].values?.locality, "Ouaga");
+  assert.equal(fake.inserts[0].values?.visibility, "public");
+  assert.match(String(fake.inserts[0].values?.slug), /^u-[a-f0-9]{12}$/);
+});
+
+test("registerUniversityAdminWithGoogle rejects an invalid address before opening a transaction", async () => {
+  const invalidInputs = [
+    { ...validInput, acronym: undefined as never },
+    { ...validInput, acronym: null as never },
+    { ...validInput, acronym: "" },
+    { ...validInput, acronym: "   " },
+    { ...validInput, acronym: "www" },
+    { ...validInput, acronym: "U T M" },
+    { ...validInput, acronym: "U-1A2B3C4D5E6F" },
+    { ...validInput, locality: "a".repeat(61) },
+    { ...validInput, locality: 42 as never },
+    { ...validInput, visibility: "hidden" as never },
+  ];
+
+  for (const input of invalidInputs) {
+    const fake = createMemoryDatabase();
+    assert.deepEqual(
+      await registerUniversityAdminWithGoogle(input, fake.database),
+      { ok: false, reason: "invalid_input" },
+    );
+    assert.equal(fake.transactionCount, 0);
+  }
+});
+
+test("registerUniversityAdminWithGoogle requires a locality when the acronym is already used", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[], [], [{ acronym: "UEX", locality: null, slug: "uex", status: "active" }]],
+  });
+
+  assert.deepEqual(
+    await registerUniversityAdminWithGoogle(validInput, fake.database),
+    { ok: false, reason: "locality_required" },
+  );
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("registerUniversityAdminWithGoogle refuses an acronym and locality already used", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[], [], [{ acronym: "UEX", locality: "Bobo", slug: "u-0a1b2c3d4e5f", status: "approved" }]],
+  });
+
+  assert.deepEqual(
+    await registerUniversityAdminWithGoogle({ ...validInput, locality: "bobo" }, fake.database),
+    { ok: false, reason: "address_taken" },
+  );
+  assert.deepEqual(fake.inserts, []);
+});
+
+test("registerUniversityAdminWithGoogle ignores a pending university with the same acronym", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[], [], [{ acronym: "UEX", locality: null, slug: "u-0a1b2c3d4e5f", status: "pending" }]],
+    insertResults: [[{ id: "university-id" }], [{ id: "user-id" }], []],
+  });
+
+  assert.deepEqual(
+    await registerUniversityAdminWithGoogle(validInput, fake.database),
+    { ok: true, universityId: "university-id", userId: "user-id" },
+  );
 });

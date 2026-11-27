@@ -8,6 +8,7 @@ import {
   buildAdminGoogleExistingAccountUrl,
   buildSuperAdminGoogleExistingAccountUrl,
   buildSuperAdminTransferRedirectUrl,
+  buildSuperAdminUniversitySignupUrl,
 } from "./admin-return-url.mjs";
 
 const resolveGoogleUniversityId = createAdminGoogleUniversityResolver({
@@ -67,6 +68,15 @@ export function getAdminAuthOptions(host: string | null) {
       } catch {
         return null;
       }
+    },
+    resolveUniversitySignupUrl: async (token) => {
+      const adminRootDomain = process.env.ADMIN_ROOT_DOMAIN;
+      if (!adminRootDomain) return null;
+      return buildSuperAdminUniversitySignupUrl({
+        adminRootDomain,
+        secure: process.env.NODE_ENV === "production",
+        token,
+      });
     },
     isAuthAdminCentral: isAuthAdminCentralHost(host, process.env.AUTH_ADMIN_CENTRAL_HOST),
   });

@@ -64,3 +64,38 @@ export async function runStartAdminGoogleSignIn({
 
   return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
 }
+
+/** Départ de l'inscription d'université par Google : hôte super seulement. */
+export async function runStartUniversityGoogleSignup({
+  getHostContext,
+  createTicket,
+  getCentralHost,
+  secure,
+}) {
+  const action = getAuthAdminStartUrl(getCentralHost(), { secure });
+  if (action === null || typeof createTicket !== "function") {
+    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+  }
+
+  let hostContext;
+  try {
+    hostContext = await getHostContext();
+  } catch {
+    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+  }
+  if (hostContext?.kind !== "super") {
+    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+  }
+
+  let ticket;
+  try {
+    ticket = createTicket();
+  } catch {
+    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+  }
+  if (typeof ticket !== "string" || ticket.length === 0) {
+    return { ok: false, message: AUTH_ADMIN_GOOGLE_START_ERROR_MESSAGE };
+  }
+
+  return { ok: true, action, ticket, kind: "university_signup" };
+}

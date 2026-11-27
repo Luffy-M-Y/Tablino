@@ -79,7 +79,9 @@ export async function verifyCodeAction(
   // aucune session ici, connexion à faire sur l'hôte de son université.
   const account = await getUniversityAdminAccount(userId);
   if (account !== null && resolveUniversityAdminHost(account, await getAdminHostContext()) === "other_host") {
-    const loginUrl = getUniversityAdminLoginUrl(account);
+    const loginUrl = getUniversityAdminLoginUrl(account, {
+      signupPending: account.universityStatus === "pending",
+    });
     if (loginUrl !== null) {
       cookieStore.set(verificationCookieConfig.name, "", {
         ...verificationCookieConfig.options,

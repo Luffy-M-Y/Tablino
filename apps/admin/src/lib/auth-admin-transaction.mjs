@@ -3,7 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export const AUTH_ADMIN_TRANSACTION_TTL_MS = 15 * 60 * 1000;
 export const AUTH_ADMIN_TRANSACTION_COOKIE_NAME = "tablino-admin-oauth-tx";
 export const AUTH_ADMIN_TRANSACTION_MAX_AGE_SECONDS = 15 * 60;
-export const AUTH_ADMIN_FLOWS = Object.freeze(["university", "invitation", "super_login"]);
+export const AUTH_ADMIN_FLOWS = Object.freeze(["university", "invitation", "super_login", "university_signup"]);
 
 const VERSION = "v1";
 const SURFACE = "admin";
@@ -73,6 +73,12 @@ export function createAuthAdminTransaction(options) {
     payload = {
       flow,
       transactionId,
+      surface: SURFACE,
+      expiresAt: now.getTime() + AUTH_ADMIN_TRANSACTION_TTL_MS,
+    };
+  } else if (flow === "university_signup") {
+    payload = {
+      flow,
       surface: SURFACE,
       expiresAt: now.getTime() + AUTH_ADMIN_TRANSACTION_TTL_MS,
     };
@@ -177,6 +183,10 @@ export function parseAuthAdminTransaction(value, { now, secret } = {}) {
     };
   }
 
+  if (payload.flow === "university_signup") {
+    return { flow: "university_signup" };
+  }
+
   return null;
 }
 
@@ -201,6 +211,10 @@ export function verifyAuthAdminTransaction(value, { now, secret, expectedFlow } 
 
   if (parsed.flow === "super_login") {
     return parsed.transactionId;
+  }
+
+  if (parsed.flow === "university_signup") {
+    return true;
   }
 
   return null;

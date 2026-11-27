@@ -16,6 +16,10 @@ export function createAuthAdminStartHandler(options: {
   consumeAdminSuperLoginOauthStartTicket?: (
     ticket: string,
   ) => Promise<{ transactionId: string } | null>;
+  verifyUniversitySignupStartTicket?: (
+    ticket: string,
+    options: { now: Date; secret: string },
+  ) => boolean;
   getSecret: () => string | undefined;
   secure: boolean;
   baseUrl?: string;

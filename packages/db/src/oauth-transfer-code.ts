@@ -1,16 +1,22 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { db } from "./client";
 import * as schema from "./schema";
+import {
+  getOauthUniversityStatuses,
+  type OauthStartTicketSurface,
+  type OauthUniversityStatus,
+} from "./oauth-start-ticket";
 
 export const OAUTH_TRANSFER_CODE_TTL_MS = 60_000;
 
 export type OauthTransferCodeRepository = {
-  createForActiveUniversityMember: (
+  createForEligibleUniversityMember: (
     universityId: string,
     userId: string,
     codeHash: string,
     expiresAt: Date,
+    statuses: readonly OauthUniversityStatus[],
   ) => Promise<boolean>;
   consume: (
     codeHash: string,
@@ -52,9 +58,11 @@ export function createOauthTransferCodeService({
     async createOauthTransferCode({
       universityId,
       userId,
+      surface,
     }: {
       universityId: string;
       userId: string;
+      surface: OauthStartTicketSurface;
     }): Promise<string> {
       const createdAt = now();
       const codeBytes = createRandomBytes(32);
@@ -63,11 +71,12 @@ export function createOauthTransferCodeService({
       }
 
       const code = codeBytes.toString("base64url");
-      const created = await repository.createForActiveUniversityMember(
+      const created = await repository.createForEligibleUniversityMember(
         universityId,
         userId,
         hashCode(code),
         new Date(createdAt.getTime() + OAUTH_TRANSFER_CODE_TTL_MS),
+        getOauthUniversityStatuses(surface),
       );
       if (!created) throw new OauthTransferCodeError();
       return code;
@@ -89,7 +98,7 @@ export function createOauthTransferCodeService({
 
 const service = createOauthTransferCodeService({
   repository: {
-    async createForActiveUniversityMember(universityId, userId, codeHash, expiresAt) {
+    async createForEligibleUniversityMember(universityId, userId, codeHash, expiresAt, statuses) {
       return db.transaction(async (transaction) => {
         const [member] = await transaction
           .select({ id: schema.users.id })
@@ -101,7 +110,7 @@ const service = createOauthTransferCodeService({
           .where(and(
             eq(schema.users.id, userId),
             eq(schema.users.universityId, universityId),
-            eq(schema.universities.status, "active"),
+            inArray(schema.universities.status, [...statuses]),
             isNull(schema.users.revokedAt),
           ))
           .for("share")

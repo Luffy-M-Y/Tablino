@@ -51,6 +51,10 @@ export function createAdminGoogleUniversityResolver({
       };
     }
 
+    if (parsed.flow === "university_signup") {
+      return { flow: "university_signup" };
+    }
+
     return null;
   };
 }

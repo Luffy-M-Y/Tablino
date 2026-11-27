@@ -1,10 +1,11 @@
 "use server";
 
-import { getCloudflareClientIp, getSessionCookieConfig, verifyUniversitySignupToken } from "@tablino/auth";
-import { checkRateLimit, createStudentSession, recordFailure, registerUniversityAdminWithGoogle } from "@tablino/db";
-import { cookies, headers } from "next/headers";
+import { getCloudflareClientIp, verifyUniversitySignupToken } from "@tablino/auth";
+import { checkRateLimit, recordFailure, registerUniversityAdminWithGoogle } from "@tablino/db";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { parseAndValidateBurkinaPhone } from "@/lib/phone-countries";
+import { getUniversityAdminAccount, getUniversityAdminLoginUrl } from "@/lib/university-admin-account";
 import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
 import { TURNSTILE_ERROR_MESSAGE, verifyTurnstileForm } from "@/lib/turnstile";
 
@@ -12,6 +13,8 @@ export type UniversitySignupActionState = {
   message: string | null;
   universityName: string;
   acronym: string;
+  locality: string;
+  visibility: "private" | "public";
   phone: string;
   showForm: boolean;
   showLoginLink: boolean;
@@ -29,8 +32,11 @@ export async function registerUniversityAction(
   const token = readStringField(formData, "token");
   const universityName = readStringField(formData, "universityName");
   const acronym = readStringField(formData, "acronym");
+  const locality = readStringField(formData, "locality");
+  const visibilityField = readStringField(formData, "visibility");
   const phone = readStringField(formData, "phone");
-  const state = { universityName, acronym, phone };
+  const visibility: "private" | "public" = visibilityField === "public" ? "public" : "private";
+  const state = { universityName, acronym, locality, visibility, phone };
   if (!(await verifyTurnstileForm(formData, "signup_google"))) {
     return {
       message: TURNSTILE_ERROR_MESSAGE,
@@ -82,6 +88,15 @@ export async function registerUniversityAction(
     };
   }
 
+  if (visibilityField !== "private" && visibilityField !== "public") {
+    return {
+      message: "Choisissez la visibilité de l'université.",
+      ...state,
+      showForm: true,
+      showLoginLink: false,
+    };
+  }
+
   const trimmedAcronym = acronym.trim();
   if (!trimmedAcronym) {
     return {
@@ -112,19 +127,24 @@ export async function registerUniversityAction(
     image: payload.image,
     providerAccountId: payload.providerAccountId,
     acronym: trimmedAcronym,
+    locality: locality.trim() || null,
+    visibility,
     phone: phoneValidation.phone,
   });
 
   if (result.ok) {
-    const session = await createStudentSession(result.userId);
-    const sessionCookieConfig = getSessionCookieConfig("admin");
-    const cookieStore = await cookies();
-    cookieStore.set(sessionCookieConfig.name, session.sessionToken, {
-      ...sessionCookieConfig.options,
-      expires: session.expires,
-    });
     await notifySuperAdminOfPendingUniversity(result.userId);
-    redirect("/university-pending");
+    // Aucune session ici : l'hôte courant n'est jamais celui de la nouvelle université.
+    // La connexion se fait sur l'hôte d'administration de l'université.
+    const account = await getUniversityAdminAccount(result.userId);
+    const loginUrl = account === null ? null : getUniversityAdminLoginUrl(account, { signupPending: true });
+    if (loginUrl !== null) redirect(loginUrl);
+    return {
+      message: "Université enregistrée. Connectez-vous depuis l'adresse d'administration de votre université.",
+      ...state,
+      showForm: false,
+      showLoginLink: false,
+    };
   }
 
   if (result.reason === "email_taken" || result.reason === "account_taken") {
@@ -136,9 +156,27 @@ export async function registerUniversityAction(
     };
   }
 
+  if (result.reason === "locality_required") {
+    return {
+      message: "Une université avec cet acronyme existe déjà. Précisez la localité.",
+      ...state,
+      showForm: true,
+      showLoginLink: false,
+    };
+  }
+
+  if (result.reason === "address_taken") {
+    return {
+      message: "Une université avec cet acronyme et cette localité existe déjà.",
+      ...state,
+      showForm: true,
+      showLoginLink: false,
+    };
+  }
+
   if (result.reason === "invalid_input") {
     return {
-      message: "Vérifiez le nom de l'université, l'acronyme (20 caractères maximum) et le téléphone (32 caractères maximum).",
+      message: "Vérifiez le nom de l'université, l'acronyme (20 caractères maximum), la localité (60 caractères maximum) et le téléphone (32 caractères maximum).",
       ...state,
       showForm: true,
       showLoginLink: false,

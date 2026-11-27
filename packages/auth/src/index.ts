@@ -74,6 +74,7 @@ type AuthOptionsContext = {
   resolveGoogleExistingAccountUrl?: (universityId: string, token: string) => Promise<string | null>;
   resolveGoogleSuperExistingAccountUrl?: (token: string) => Promise<string | null>;
   resolveGoogleSuperTransferUrl?: (code: string) => Promise<string | null>;
+  resolveUniversitySignupUrl?: (token: string) => Promise<string | null>;
   isAuthAdminCentral?: boolean;
   errorPage?: string;
   checkAdminInvitationGoogleEligibility?: typeof checkAdminInvitationGoogleEligibility;
@@ -142,6 +143,18 @@ async function getAdminSuperLoginContext(
     }
   }
   return null;
+}
+
+async function isAdminUniversitySignupContext(context: AuthOptionsContext): Promise<boolean> {
+  if (!context.resolveGoogleUniversityId) return false;
+  try {
+    const res = await (context.resolveGoogleUniversityId as () => Promise<unknown>)();
+    return res !== null
+      && typeof res === "object"
+      && (res as Record<string, unknown>).flow === "university_signup";
+  } catch {
+    return false;
+  }
 }
 
 function toAuthUser(user: StoredUser): AuthAdapterUser {
@@ -618,6 +631,44 @@ export function createAuthOptions(context: AuthOptionsContext): NextAuthOptions 
           }
 
           return true;
+        }
+
+        if (await isAdminUniversitySignupContext(context)) {
+          // Inscription d'université : hôte central seulement, jamais pour un compte existant.
+          let redirectUrl: string | null = null;
+          if (
+            context.surface === "admin"
+            && context.isAuthAdminCentral === true
+            && linkedUser === null
+            && emailUser === null
+          ) {
+            try {
+              const signupToken = createUniversitySignupToken({
+                email,
+                name: user.name ?? null,
+                image: user.image ?? null,
+                providerAccountId: account.providerAccountId,
+              });
+              redirectUrl = context.resolveUniversitySignupUrl
+                ? await context.resolveUniversitySignupUrl(signupToken)
+                : null;
+            } catch {
+              redirectUrl = null;
+            }
+          }
+          try {
+            await deleteGoogleAuthContext(googleAuthContexts, account.providerAccountId, context.surface);
+          } catch {
+            // Le refus ou la redirection ne dépend jamais de cette suppression.
+          }
+          if (redirectUrl === null) {
+            try {
+              console.warn(JSON.stringify({ code: "google_university_signup_denied" }));
+            } catch {
+              // Le journal ne change jamais le retour.
+            }
+          }
+          return redirectUrl ?? AUTH_ADMIN_GOOGLE_ERROR_PATH;
         }
 
         const superLoginContext = await getAdminSuperLoginContext(context);

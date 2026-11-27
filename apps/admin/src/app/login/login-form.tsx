@@ -25,12 +25,14 @@ const inputClass = `h-11 w-full rounded-[var(--radius-rounded)] border border-[c
 export function LoginForm({
   passwordResetComplete = false,
   invitationAccepted = false,
+  universitySignupPending = false,
   googleExistingEmail,
   showGoogleSignIn = false,
   googleSignInError = null,
 }: {
   passwordResetComplete?: boolean;
   invitationAccepted?: boolean;
+  universitySignupPending?: boolean;
   googleExistingEmail?: string;
   showGoogleSignIn?: boolean;
   googleSignInError?: string | null;
@@ -92,6 +94,14 @@ export function LoginForm({
           className="mb-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm text-[color:var(--color-text)]"
         >
           Votre compte a été créé. Connectez-vous.
+        </p>
+      ) : null}
+      {universitySignupPending ? (
+        <p
+          role="status"
+          className="mb-4 rounded-[var(--radius-rounded)] border border-[color:var(--color-border)] px-3 py-2 text-sm text-[color:var(--color-text)]"
+        >
+          Université enregistrée. Elle attend l&apos;approbation de Tablino. Connectez-vous pour suivre son état.
         </p>
       ) : null}
       {googleExistingMessage ? (

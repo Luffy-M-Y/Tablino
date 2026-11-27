@@ -22,10 +22,15 @@ const initialState: UniversitySignupActionState = {
   message: null,
   universityName: "",
   acronym: "",
+  locality: "",
+  visibility: "private",
   phone: "",
   showForm: true,
   showLoginLink: false,
 };
+
+const radioClass =
+  "mt-1 h-4 w-4 rounded border-[color:var(--color-input-border)] text-[color:var(--color-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]";
 
 export function UniversitySignupForm({
   token,
@@ -37,6 +42,8 @@ export function UniversitySignupForm({
   const [state, formAction, pending] = useActionState(registerUniversityAction, initialState);
   const [universityName, setUniversityName] = useState(state.universityName);
   const [acronym, setAcronym] = useState(state.acronym);
+  const [locality, setLocality] = useState(state.locality);
+  const [visibility, setVisibility] = useState(state.visibility);
   const [phone, setPhone] = useState(state.phone);
   const [turnstileToken, setTurnstileToken] = useState("");
 
@@ -92,6 +99,56 @@ export function UniversitySignupForm({
               className={inputClass}
             />
           </div>
+          <div>
+            <label htmlFor="locality" className={labelClass}>
+              Localit&eacute; (facultatif)
+            </label>
+            <input
+              id="locality"
+              name="locality"
+              type="text"
+              maxLength={60}
+              value={locality}
+              onChange={(e) => setLocality(e.target.value)}
+              className={inputClass}
+              aria-describedby="locality-help"
+            />
+            <p id="locality-help" className="mt-1 text-xs text-[color:var(--color-muted-foreground)]">
+              Obligatoire si une universit&eacute; utilise d&eacute;j&agrave; cet acronyme (exemples : Ouaga, Bobo).
+            </p>
+          </div>
+          <fieldset className="space-y-3">
+            <legend className={labelClass}>Visibilit&eacute; de l&apos;universit&eacute;</legend>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="visibility"
+                value="private"
+                checked={visibility === "private"}
+                onChange={() => setVisibility("private")}
+                className={radioClass}
+              />
+              <span className="text-sm text-[color:var(--color-foreground)]">
+                Priv&eacute;e : un code d&apos;acc&egrave;s est exig&eacute; &agrave; l&apos;inscription.
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="visibility"
+                value="public"
+                checked={visibility === "public"}
+                onChange={() => setVisibility("public")}
+                className={radioClass}
+              />
+              <span className="text-sm text-[color:var(--color-foreground)]">
+                Publique : compte &eacute;tudiant obligatoire, sans code d&apos;acc&egrave;s.
+              </span>
+            </label>
+            <p className="text-xs text-[color:var(--color-muted-foreground)]">
+              Modifiable jusqu&apos;&agrave; la validation du contrat, puis depuis la page des codes.
+            </p>
+          </fieldset>
           <div>
             <label htmlFor="phone" className={labelClass}>
               T&eacute;l&eacute;phone

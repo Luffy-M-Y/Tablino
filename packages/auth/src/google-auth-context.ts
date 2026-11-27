@@ -123,6 +123,13 @@ export async function recordGoogleAuthContext(options: {
     } else if (
       resolved !== null
       && typeof resolved === "object"
+      && "flow" in resolved
+      && (resolved as Record<string, unknown>).flow === "university_signup"
+    ) {
+      universityId = null;
+    } else if (
+      resolved !== null
+      && typeof resolved === "object"
       && "invitationId" in resolved
       && "transactionId" in resolved
     ) {
