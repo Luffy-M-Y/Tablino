@@ -422,3 +422,13 @@ export type {
   RevokedAdminRole,
 } from "./admin-revocation-outbox";
 
+export {
+  confirmAdminTotpEnrollment,
+  getAdminTotpState,
+  startAdminTotpEnrollment,
+} from "./admin-totp";
+export type {
+  AdminTotpState,
+  ConfirmAdminTotpEnrollmentResult,
+  StartAdminTotpEnrollmentResult,
+} from "./admin-totp";

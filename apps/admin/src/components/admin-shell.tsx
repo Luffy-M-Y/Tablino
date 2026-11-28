@@ -25,6 +25,7 @@ import {
   Pin,
   PinOff,
   ScanLine,
+  ShieldCheck,
   Upload,
   User,
   UserCheck,
@@ -309,6 +310,14 @@ export function AdminShell({
                       <span>Logo de l&apos;universit&eacute;</span>
                     </Link>
                   ) : null}
+                  <Link
+                    href="/securite"
+                    onClick={() => setIsAccountMenuOpen(false)}
+                    className="flex min-h-11 w-full items-center gap-2 rounded-[var(--radius-rounded)] px-3 py-2 text-sm font-medium text-[color:var(--color-text)] hover:bg-[color:var(--color-page-background)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--color-ring)]"
+                  >
+                    <ShieldCheck size={16} aria-hidden="true" />
+                    <span>S&eacute;curit&eacute; du compte</span>
+                  </Link>
                   <button
                     type="button"
                     onClick={() => {
