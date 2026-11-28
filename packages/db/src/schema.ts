@@ -1,5 +1,5 @@
 import {
-  pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean,
+  pgTable, uuid, varchar, text, timestamp, pgEnum, integer, boolean, bigint,
   unique, uniqueIndex, index, foreignKey, check, primaryKey, customType,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -701,6 +701,35 @@ export const sessions = pgTable("sessions", {
   expires: timestamp("expires").notNull(),
 }, (t) => [
   index("sessions_user_idx").on(t.userId),
+]).enableRLS();
+
+// ─── 2FA TOTP des admins ──────────────────────────────────────────────────────
+
+// Secret chiffré (AES-256-GCM, TOTP_ENCRYPTION_KEY). enabledAt nul = activation en cours.
+// lastUsedStep : dernier pas TOTP accepté (anti-rejeu).
+export const adminTotp = pgTable("admin_totp", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  secretEncrypted: text("secret_encrypted").notNull(),
+  enabledAt: timestamp("enabled_at"),
+  lastUsedStep: bigint("last_used_step", { mode: "number" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}).enableRLS();
+
+// Codes de secours à usage unique : empreinte SHA-256 seulement.
+export const adminTotpRecoveryCodes = pgTable("admin_totp_recovery_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  // Index unique (user_id, code_hash) : sert aussi aux recherches par user_id.
+  unique("admin_totp_recovery_codes_user_hash_uq").on(t.userId, t.codeHash),
 ]).enableRLS();
 
 export const verificationTokens = pgTable("verification_tokens", {

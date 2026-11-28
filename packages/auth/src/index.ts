@@ -1093,3 +1093,16 @@ export {
   decideAdminSuperGoogleSignIn,
 } from "./admin-super-google-signin";
 export type { AdminSuperGoogleUser } from "./admin-super-google-signin";
+export {
+  buildTotpUri,
+  decryptTotpSecret,
+  encryptTotpSecret,
+  generateRecoveryCodes,
+  generateTotpSecret,
+  hashRecoveryCode,
+  normalizeRecoveryCode,
+  readTotpEncryptionKey,
+  verifyTotpCode,
+  TOTP_RECOVERY_CODE_COUNT,
+} from "./totp";
+export type { TotpVerification } from "./totp";

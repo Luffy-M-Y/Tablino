@@ -5,6 +5,8 @@ import {
   adminInvitationAlertOutbox,
   adminInvitationAudit,
   adminInvitationCodes,
+  adminTotp,
+  adminTotpRecoveryCodes,
   levels,
   programs,
 } from "../src/schema";
@@ -49,4 +51,21 @@ test("invitation audit and OTP tables contain the required fields", () => {
   assert.ok(codeColumns.includes("code_hash"));
   assert.ok(codeColumns.includes("password_hash"));
   assert.equal(codeColumns.includes("password"), false);
+});
+
+test("admin TOTP tables keep only encrypted secrets and hashed recovery codes", () => {
+  const totp = getTableConfig(adminTotp);
+  const totpColumns = totp.columns.map((column) => column.name);
+  assert.equal(totp.name, "admin_totp");
+  assert.ok(totpColumns.includes("secret_encrypted"));
+  assert.equal(totpColumns.includes("secret"), false);
+  assert.equal(totp.columns.find((column) => column.name === "user_id")?.primary, true);
+  assert.equal(totp.foreignKeys[0]?.onDelete, "cascade");
+
+  const recovery = getTableConfig(adminTotpRecoveryCodes);
+  const recoveryColumns = recovery.columns.map((column) => column.name);
+  assert.ok(recoveryColumns.includes("code_hash"));
+  assert.equal(recoveryColumns.includes("code"), false);
+  assert.equal(recovery.foreignKeys[0]?.onDelete, "cascade");
+  assert.deepEqual(recovery.uniqueConstraints.map((constraint) => constraint.name), ["admin_totp_recovery_codes_user_hash_uq"]);
 });
