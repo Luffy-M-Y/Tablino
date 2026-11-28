@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   confirmAdminTotpEnrollment,
+  getAdminTotpLoginState,
   getAdminTotpState,
+  recordAdminTotpLogin,
   startAdminTotpEnrollment,
 } from "../src/admin-totp";
 import * as schema from "../src/schema";
@@ -285,5 +287,115 @@ test("confirmAdminTotpEnrollment renvoie not_pending si le secret a changé ou e
   assert.deepEqual(
     await confirmAdminTotpEnrollment({ userId: "user-1", secretEncrypted: "v1:abc", step: 10 }, fake.database, NOW),
     { ok: false, reason: "not_pending" },
+  );
+});
+
+// ─── getAdminTotpLoginState ───────────────────────────────────────────────────
+
+test("getAdminTotpLoginState refuse une entrée invalide sans requête", async () => {
+  const fake = createMemoryDatabase();
+  for (const input of [{ userId: "" }, { userId: 3 as never }, null as never]) {
+    assert.deepEqual(await getAdminTotpLoginState(input, fake.database), { ok: false, reason: "invalid_input" });
+  }
+  assert.equal(fake.selects.length, 0);
+});
+
+test("getAdminTotpLoginState refuse un utilisateur absent, révoqué ou étudiant", async () => {
+  const cases = [
+    [],
+    [{ role: "super_admin", revokedAt: new Date("2026-11-01T00:00:00.000Z") }],
+    [{ role: "student", revokedAt: null }],
+  ];
+  for (const userRows of cases) {
+    const fake = createMemoryDatabase({ selectedRows: [userRows] });
+    assert.deepEqual(
+      await getAdminTotpLoginState({ userId: "user-1" }, fake.database),
+      { ok: false, reason: "not_authorized" },
+    );
+    assert.equal(fake.selects.length, 1);
+  }
+});
+
+test("getAdminTotpLoginState renvoie none, pending ou enabled avec le dernier pas", async () => {
+  const admin = { role: "super_admin_editor", revokedAt: null };
+  const none = createMemoryDatabase({ selectedRows: [[admin], []] });
+  assert.deepEqual(await getAdminTotpLoginState({ userId: "user-1" }, none.database), { ok: true, status: "none" });
+
+  const pending = createMemoryDatabase({
+    selectedRows: [[admin], [{ secretEncrypted: "v1:abc", enabledAt: null, lastUsedStep: null }]],
+  });
+  assert.deepEqual(
+    await getAdminTotpLoginState({ userId: "user-1" }, pending.database),
+    { ok: true, status: "pending", secretEncrypted: "v1:abc" },
+  );
+
+  const enabled = createMemoryDatabase({
+    selectedRows: [[admin], [{ secretEncrypted: "v1:abc", enabledAt: NOW, lastUsedStep: 42 }]],
+  });
+  assert.deepEqual(
+    await getAdminTotpLoginState({ userId: "user-1" }, enabled.database),
+    { ok: true, status: "enabled", secretEncrypted: "v1:abc", lastUsedStep: 42 },
+  );
+  assert.equal(enabled.selects[1].table, schema.adminTotp);
+});
+
+// ─── recordAdminTotpLogin ─────────────────────────────────────────────────────
+
+test("recordAdminTotpLogin refuse une entrée invalide sans transaction", async () => {
+  const fake = createMemoryDatabase();
+  const inputs = [
+    { userId: " ", secretEncrypted: "v1:abc", step: 1 },
+    { userId: "user-1", secretEncrypted: "", step: 1 },
+    { userId: "user-1", secretEncrypted: "v1:abc", step: -1 },
+    { userId: "user-1", secretEncrypted: "v1:abc", step: Number.NaN },
+    null as never,
+  ];
+  for (const input of inputs) {
+    assert.deepEqual(await recordAdminTotpLogin(input, fake.database, NOW), { ok: false, reason: "invalid_input" });
+  }
+  assert.equal(fake.transactionCount, 0);
+});
+
+test("recordAdminTotpLogin refuse un admin révoqué ou un étudiant sans écrire", async () => {
+  const cases = [
+    [],
+    [{ role: "university_admin", revokedAt: new Date("2026-11-01T00:00:00.000Z") }],
+    [{ role: "student", revokedAt: null }],
+  ];
+  for (const userRows of cases) {
+    const fake = createMemoryDatabase({ selectedRows: [userRows] });
+    assert.deepEqual(
+      await recordAdminTotpLogin({ userId: "user-1", secretEncrypted: "v1:abc", step: 10 }, fake.database, NOW),
+      { ok: false, reason: "not_authorized" },
+    );
+    assert.equal(fake.writes.length, 0);
+  }
+});
+
+test("recordAdminTotpLogin enregistre le pas accepté par un UPDATE conditionnel", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ role: "university_admin", revokedAt: null }]],
+    writeResults: [[{ userId: "user-1" }]],
+  });
+  assert.deepEqual(
+    await recordAdminTotpLogin({ userId: "user-1", secretEncrypted: "v1:abc", step: 59_000_001 }, fake.database, NOW),
+    { ok: true },
+  );
+  assert.equal(fake.selects[0].lock, "update");
+  assert.equal(fake.writes.length, 1);
+  assert.equal(fake.writes[0].kind, "update");
+  assert.equal(fake.writes[0].table, schema.adminTotp);
+  assert.deepEqual(fake.writes[0].values, { lastUsedStep: 59_000_001, updatedAt: NOW });
+  assert.ok(fake.writes[0].condition, "condition (secret, enabled_at, last_used_step < pas) obligatoire");
+});
+
+test("recordAdminTotpLogin renvoie replayed si aucune ligne n'est mise à jour", async () => {
+  const fake = createMemoryDatabase({
+    selectedRows: [[{ role: "super_admin", revokedAt: null }]],
+    writeResults: [[]],
+  });
+  assert.deepEqual(
+    await recordAdminTotpLogin({ userId: "user-1", secretEncrypted: "v1:abc", step: 10 }, fake.database, NOW),
+    { ok: false, reason: "replayed" },
   );
 });

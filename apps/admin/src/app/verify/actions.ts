@@ -1,13 +1,13 @@
 "use server";
 
 import {
+  createAdmin2faPendingToken,
+  getAdmin2faPendingCookieConfig,
   getEmailVerificationCookieConfig,
-  getSessionCookieConfig,
   verifyEmailVerificationToken,
 } from "@tablino/auth";
 import {
   checkRateLimit,
-  createStudentSession,
   getStudentEmailById,
   issueEmailVerificationCode,
   recordFailure,
@@ -15,7 +15,7 @@ import {
   verifyEmailCode,
 } from "@tablino/db";
 import { sendVerificationEmail } from "@tablino/email";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAdminHostContext } from "@/lib/admin-host-context";
 import { notifySuperAdminOfPendingUniversity } from "@/lib/university-approval-alert";
@@ -91,17 +91,18 @@ export async function verifyCodeAction(
     }
   }
 
-  const session = await createStudentSession(userId);
-  const sessionCookieConfig = getSessionCookieConfig("admin");
-  cookieStore.set(sessionCookieConfig.name, session.sessionToken, {
-    ...sessionCookieConfig.options,
-    expires: session.expires,
-  });
+  // 2FA obligatoire : aucune session avant le code (/login/2fa, jeton signé 5 min lié à l'hôte).
+  const pendingCookieConfig = getAdmin2faPendingCookieConfig();
+  cookieStore.set(
+    pendingCookieConfig.name,
+    createAdmin2faPendingToken(userId, (await headers()).get("host") ?? ""),
+    pendingCookieConfig.options,
+  );
   cookieStore.set(verificationCookieConfig.name, "", {
     ...verificationCookieConfig.options,
     maxAge: 0,
   });
-  redirect("/");
+  redirect("/login/2fa");
 }
 
 export async function resendCodeAction(

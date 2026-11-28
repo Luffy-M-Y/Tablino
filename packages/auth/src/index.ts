@@ -1106,3 +1106,9 @@ export {
   TOTP_RECOVERY_CODE_COUNT,
 } from "./totp";
 export type { TotpVerification } from "./totp";
+export {
+  ADMIN_2FA_PENDING_TTL_MS,
+  createAdmin2faPendingToken,
+  getAdmin2faPendingCookieConfig,
+  verifyAdmin2faPendingToken,
+} from "./admin-2fa-pending";

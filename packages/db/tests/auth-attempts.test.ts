@@ -188,6 +188,12 @@ test("RATE_LIMITS for verify_code allows 5 failures with a 15-minute window and 
   assert.equal(RATE_LIMITS.verify_code.blockMs, 900000);
 });
 
+test("RATE_LIMITS for totp_verify allows 5 failures with a 15-minute window and block", () => {
+  assert.equal(RATE_LIMITS.totp_verify.maxAttempts, 5);
+  assert.equal(RATE_LIMITS.totp_verify.windowMs, 900000);
+  assert.equal(RATE_LIMITS.totp_verify.blockMs, 900000);
+});
+
 test("RATE_LIMITS for login_ip allows 20 failures per 15 minutes then blocks for 15 minutes", () => {
   assert.equal(RATE_LIMITS.login_ip.maxAttempts, 20);
   assert.equal(RATE_LIMITS.login_ip.windowMs, 900000);

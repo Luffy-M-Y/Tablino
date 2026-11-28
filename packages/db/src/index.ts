@@ -424,11 +424,15 @@ export type {
 
 export {
   confirmAdminTotpEnrollment,
+  getAdminTotpLoginState,
   getAdminTotpState,
+  recordAdminTotpLogin,
   startAdminTotpEnrollment,
 } from "./admin-totp";
 export type {
+  AdminTotpLoginState,
   AdminTotpState,
   ConfirmAdminTotpEnrollmentResult,
+  RecordAdminTotpLoginResult,
   StartAdminTotpEnrollmentResult,
 } from "./admin-totp";

@@ -3,12 +3,11 @@ import {
   consumeOauthTransferCode,
   consumeAdminInvitationOauthTransferCode,
   consumeAdminSuperLoginOauthTransferCode,
-  createStudentSession,
   db,
   eq,
   schema,
 } from "@tablino/db";
-import { getSessionCookieConfig } from "@tablino/auth";
+import { createAdmin2faPendingToken, getAdmin2faPendingCookieConfig } from "@tablino/auth";
 import { getAdminHostContext } from "@/lib/admin-host-context";
 import { buildAdminRequestUrl } from "@/lib/admin-host.mjs";
 import {
@@ -141,17 +140,12 @@ export async function GET(request: NextRequest) {
     return cleanRedirect(request, decision.path, expectedKind);
   }
 
-  let session: Awaited<ReturnType<typeof createStudentSession>>;
+  // 2FA obligatoire : aucune session avant le code (/login/2fa, jeton signé 5 min lié à l'hôte).
   try {
-    session = await createStudentSession(decision.userId);
-  } catch {
-    return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
-  }
-
-  try {
+    const host = request.headers.get("host");
     const redirectUrl = buildAdminRequestUrl({
-      host: request.headers.get("host"),
-      pathname: "/",
+      host,
+      pathname: "/login/2fa",
       adminRootDomain: process.env.ADMIN_ROOT_DOMAIN,
       slugMapJson: process.env.ADMIN_HOST_SLUG_MAP,
       authAdminCentralHost: process.env.AUTH_ADMIN_CENTRAL_HOST,
@@ -161,15 +155,16 @@ export async function GET(request: NextRequest) {
     if (redirectUrl === null) {
       return new NextResponse(null, { status: 404, headers: NO_STORE_HEADERS });
     }
-    const cookieConfig = getSessionCookieConfig("admin");
+    const pendingCookieConfig = getAdmin2faPendingCookieConfig();
     const response = NextResponse.redirect(new URL(redirectUrl), {
       status: 303,
       headers: NO_STORE_HEADERS,
     });
-    response.cookies.set(cookieConfig.name, session.sessionToken, {
-      ...cookieConfig.options,
-      expires: session.expires,
-    });
+    response.cookies.set(
+      pendingCookieConfig.name,
+      createAdmin2faPendingToken(decision.userId, host ?? ""),
+      pendingCookieConfig.options,
+    );
     return response;
   } catch {
     return cleanRedirect(request, AUTH_ADMIN_RETURN_ERROR_PATH, expectedKind);
