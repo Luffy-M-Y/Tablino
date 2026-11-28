@@ -18,7 +18,8 @@ export type AuthAttemptAction =
   | "password_reset"
   | "password_reset_verify"
   | "search_ip"
-  | "signup_ip";
+  | "signup_ip"
+  | "totp_verify";
 
 export type RateLimit = {
   maxAttempts: number;
@@ -36,6 +37,7 @@ export const RATE_LIMITS: Record<AuthAttemptAction, RateLimit> = {
   password_reset_verify: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
   search_ip: { maxAttempts: 30, windowMs: 900000, blockMs: 900000 },
   signup_ip: { maxAttempts: 10, windowMs: 3600000, blockMs: 3600000 },
+  totp_verify: { maxAttempts: 5, windowMs: 900000, blockMs: 900000 },
 };
 
 export function hashAttemptKey(action: AuthAttemptAction, identifier: string): string {

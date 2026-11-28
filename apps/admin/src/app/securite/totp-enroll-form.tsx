@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, KeyRound, RefreshCw, ShieldCheck } from "lucide-react";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import {
   AdminCard,
   adminFieldClass,
@@ -35,6 +35,11 @@ export function TotpEnrollForm({ view }: { view: TotpEnrollView }) {
   const [startState, startAction, starting] = useActionState(startTotpEnrollmentAction, initialState);
   const [confirmState, confirmAction, confirming] = useActionState(confirmTotpEnrollmentAction, initialState);
   const [code, setCode] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  // Code refusé : il reste affiché, sélectionné ; une frappe le remplace (comme /verify).
+  useEffect(() => {
+    if (confirmState.status === "error") codeInputRef.current?.select();
+  }, [confirmState]);
   const busy = starting || confirming;
 
   if (view.kind === "enabled") {
@@ -128,6 +133,7 @@ export function TotpEnrollForm({ view }: { view: TotpEnrollView }) {
         <input
           id="totp-code"
           name="code"
+          ref={codeInputRef}
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"

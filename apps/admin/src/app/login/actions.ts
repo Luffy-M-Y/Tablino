@@ -1,12 +1,15 @@
 "use server";
 
-import { getCloudflareClientIp, getSessionCookieConfig } from "@tablino/auth";
+import {
+  createAdmin2faPendingToken,
+  getAdmin2faPendingCookieConfig,
+  getCloudflareClientIp,
+} from "@tablino/auth";
 import {
   authenticateAdminPassword,
   checkRateLimit,
   createAdminSuperLoginOauthStartTicket,
   createOauthStartTicket,
-  createStudentSession,
   recordFailure,
   resetAttempts,
 } from "@tablino/db";
@@ -103,12 +106,13 @@ export async function loginAction(
     }
   }
 
-  const session = await createStudentSession(result.userId);
-  const cookieConfig = getSessionCookieConfig("admin");
+  // 2FA obligatoire : aucune session avant le code (/login/2fa, jeton signé 5 min lié à l'hôte).
+  const pendingCookieConfig = getAdmin2faPendingCookieConfig();
   const cookieStore = await cookies();
-  cookieStore.set(cookieConfig.name, session.sessionToken, {
-    ...cookieConfig.options,
-    expires: session.expires,
-  });
-  redirect("/");
+  cookieStore.set(
+    pendingCookieConfig.name,
+    createAdmin2faPendingToken(result.userId, (await headers()).get("host") ?? ""),
+    pendingCookieConfig.options,
+  );
+  redirect("/login/2fa");
 }
