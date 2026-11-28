@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { errorClass, inputClass, labelClass, primaryButtonClass, secondaryButtonClass } from "@/components/auth-ui";
 import { startLogin2faEnrollmentAction, verifyLogin2faAction, type Login2faState } from "./actions";
 
@@ -15,6 +15,11 @@ export function TwoFactorForm({ view }: { view: TwoFactorView }) {
   const [startState, startAction, starting] = useActionState(startLogin2faEnrollmentAction, initialState);
   const [verifyState, verifyAction, verifying] = useActionState(verifyLogin2faAction, initialState);
   const [code, setCode] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  // Code refusé : il reste affiché, sélectionné ; une frappe le remplace (comme /verify).
+  useEffect(() => {
+    if (verifyState.message !== null) codeInputRef.current?.select();
+  }, [verifyState]);
   const busy = starting || verifying;
 
   if (view.kind === "enroll-start") {
@@ -80,6 +85,7 @@ export function TwoFactorForm({ view }: { view: TwoFactorView }) {
         <input
           id="totp-code"
           name="code"
+          ref={codeInputRef}
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
